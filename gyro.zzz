@@ -1,5 +1,5 @@
 pkgs:
-  json:
+  getty_json:
     version: 0.0.0
     license: MIT
     source_url: "https://github.com/getty-zig/json"
