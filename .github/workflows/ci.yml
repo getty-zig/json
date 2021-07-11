@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: goto-bus-stop/setup-zig@v1
+        with:
+          version: master
+
+      - name: lint
+        run: |
+          zig fmt --check src/
+          zig fmt --check build.zig
+
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: goto-bus-stop/setup-zig@v1
+        with:
+          version: master
+      - uses: mattnite/setup-gyro@v1
+        with:
+          access-token: ${{secrets.GITHUB_TOKEN}}
+
+      - name: build
+        run: gyro build
+
+      - name: test
+        run: zig build test
