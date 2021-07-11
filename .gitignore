@@ -1,0 +1,4 @@
+zig-*
+gyro.lock
+.gyro/
+deps.zig
