@@ -3,7 +3,7 @@ const pkgs = @import("deps.zig").pkgs;
 
 const Builder = std.build.Builder;
 
-const package_name = "getty_json";
+const package_name = "json";
 const package_path = "src/lib.zig";
 
 pub fn build(b: *Builder) void {
