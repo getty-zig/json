@@ -1,8 +1,14 @@
 pkgs:
   json:
     version: 0.0.0
-    root: src/lib.zig
+    license: MIT
     source_url: "https://github.com/getty-zig/json"
+    root: src/lib.zig
+    files:
+      README.md
+      LICENSE
+      build.zig
+      src/*.zig
 deps:
   getty:
     src:
