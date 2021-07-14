@@ -1,17 +1,17 @@
-<p align="center">:zap: <strong>Getty JSON is in early development. Things might break or change!</strong> :zap:</p>
-<br/>
+<h1 align="center">Getty JSON</h1>
+<p align="center">A serialization library for the JSON data format.</p>
 
 <p align="center">
+  <a href="https://github.com/getty-zig/json/releases/latest"><img alt="Version" src="https://img.shields.io/badge/version-N/A-e2725b.svg?style=flat-square"></a>
+  <a href="https://ziglang.org/download"><img alt="Zig" src="https://img.shields.io/badge/zig-master-fd9930.svg?style=flat-square"></a>
+  <a href="https://actions-badge.atrox.dev/getty-zig/json/goto?ref=main"><img alt="Build status" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fgetty-zig%2Fjson%2Fbadge%3Fref%3Dmain&style=flat-square" /></a>
+  <a href="https://github.com/getty-zig/json/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square"></a>
+  <br/>
+  <br/>
+  <br/>
   <img alt="Getty" src="https://github.com/getty-zig/logo/blob/main/getty-solid.svg" width="410px">
-  <br/>
-  <br/>
-  <a alt="Version" href="https://github.com/getty-zig/json/releases/latest"><img src="https://img.shields.io/badge/version-N/A-e2725b.svg"></a>
-  <a alt="Zig" href="https://ziglang.org/download"><img src="https://img.shields.io/badge/zig-master-fd9930.svg"></a>
-  <a alt="Build" href="https://github.com/getty-zig/json/actions"><img src="https://github.com/getty-zig/getty/actions/workflows/ci.yml/badge.svg"></a>
-  <a alt="License" href="https://github.com/getty-zig/json/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-2598c9"></a>
-</p></p>
+</p>
 
-<p align="center">A serialization library for the JSON data format.</p>
 
 ## Quick Start
 
