@@ -215,6 +215,9 @@ pub fn CompactFormatter(comptime Writer: type) type {
             Writer,
             null,
             null,
+            null,
+            null,
+            null,
         );
 
         pub fn formatter(self: *Self) F {
@@ -227,17 +230,15 @@ pub fn CompactFormatter(comptime Writer: type) type {
 
 pub const PrettyFormatter = struct {};
 
-// TODO: Is there a way to make the methods generic over a writer instead of
-// the interface?
 pub fn Formatter(
     comptime Context: type,
     comptime E: type,
     comptime W: type,
     comptime boolFn: ?fn (context: Context, writer: W, value: bool) E!void,
-    //comptime intFn: ?fn (context: Context, writer: W, value: anytype) E!void,
-    //comptime floatFn: ?fn (context: Context, writer: W, value: anytype) E!void,
+    comptime intFn: ?fn (context: Context, writer: W, value: anytype) E!void,
+    comptime floatFn: ?fn (context: Context, writer: W, value: anytype) E!void,
     comptime nullFn: ?fn (context: Context, writer: W) E!void,
-    //comptime numberStringFn: ?fn (context: Context, writer: W, value: []const u8) E!void,
+    comptime numberStringFn: ?fn (context: Context, writer: W, value: []const u8) E!void,
 ) type {
     return struct {
         context: Context,
@@ -256,14 +257,42 @@ pub fn Formatter(
         }
 
         // Writes an integer value to the specified writer.
-        //pub fn writeInt(self: Self, writer: Writer, value: anytype) E!void {
-        //try intFn(self.context, writer, value);
-        //}
+        pub fn writeInt(self: Self, writer: W, value: anytype) E!void {
+            switch (@typeInfo(@TypeOf(value))) {
+                .ComptimeInt, .Int => {
+                    if (intFn) |f| {
+                        try f(self.context, writer, value);
+                    } else {
+                        var buf: [100]u8 = undefined;
+                        writer.writeAll(std.fmt.bufPrintIntToSlice(&buf, value, 10, .lower, .{})) catch unreachable;
+                    }
+                },
+                else => @compileError("expected integer, found " ++ @typeName(@TypeOf(value))),
+            }
+        }
 
         // Writes an floating point value to the specified writer.
-        //pub fn writeFloat(self: Self, writer: Writer, value: anytype) E!void {
-        //try floatFn(self.context, writer, value);
-        //}
+        pub fn writeFloat(self: Self, writer: W, value: anytype) E!void {
+            switch (@typeInfo(@TypeOf(value))) {
+                .ComptimeFloat, .Float => {
+                    if (floatFn) |f| {
+                        try f(self.context, writer, value);
+                    } else {
+                        // this should be enough to display all decimal places of a decimal f64 number.
+                        var buf: [512]u8 = undefined;
+                        var buf_stream = std.io.fixedBufferStream(&buf);
+
+                        std.fmt.formatFloatDecimal(value, std.fmt.FormatOptions{}, buf_stream.writer()) catch |err| switch (err) {
+                            error.NoSpaceLeft => unreachable,
+                            else => unreachable, // TODO: handle error
+                        };
+
+                        writer.writeAll(&buf) catch unreachable;
+                    }
+                },
+                else => @compileError("expected floating point, found " ++ @typeName(@TypeOf(value))),
+            }
+        }
 
         /// Writes a `null` value to the specified writer.
         pub fn writeNull(self: Self, writer: W) E!void {
@@ -275,13 +304,14 @@ pub fn Formatter(
         }
 
         // Writes a number that has already been rendered into a string.
-        //pub fn writeNumberString(self: Self, writer: Writer, value: []const u8) E!void {
-        //if (nullFn) |f| {
-        //try f(self.context, writer);
-        //} else {
-        //writer.writeAll(value);
-        //}
-        //}
+        pub fn writeNumberString(self: Self, writer: W, value: []const u8) E!void {
+            // TODO: Check that the string is actually an integer when parsed.
+            if (numberStringFn) |f| {
+                try f(self.context, writer, value);
+            } else {
+                writer.writeAll(value) catch unreachable;
+            }
+        }
     };
 }
 
@@ -292,7 +322,31 @@ test "formatter" {
     var compact_formatter = CompactFormatter(@TypeOf(writer)){};
     const formatter = compact_formatter.formatter();
 
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeBool(writer, false);
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeInt(writer, 12345);
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeFloat(writer, 3.1415);
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
     try formatter.writeNull(writer);
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
 }
 
 test "toWriter - Array" {
