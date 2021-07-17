@@ -1,12 +1,40 @@
 const getty = @import("getty");
 const std = @import("std");
 
-pub fn Json(comptime Writer: type) type {
+pub fn Serializer(comptime W: type, comptime F: type) type {
     return struct {
-        writer: Writer,
+        writer: W,
+        formatter: F,
+
         _written: usize = 0,
 
         const Self = @This();
+
+        pub fn init(writer: anytype, formatter: anytype) Self {
+            return .{
+                .writer = writer,
+                .formatter = formatter,
+            };
+        }
+
+        /// Implements `getty.ser.Serializer`.
+        pub const S = getty.ser.Serializer(
+            *Self,
+            Ok,
+            Error,
+            //Map,
+            Sequence,
+            Struct,
+            //Tuple,
+            serializeBool,
+            serializeFloat,
+            serializeInt,
+            serializeNull,
+            serializeSequence,
+            serializeString,
+            serializeStruct,
+            serializeVariant,
+        );
 
         pub const Ok = void;
         pub const Error = error{
@@ -34,33 +62,8 @@ pub fn Json(comptime Writer: type) type {
         pub const Struct = SS;
         //pub const Tuple = ST;
 
-        /// Implements `getty.ser.Serializer`.
-        pub const Serializer = getty.ser.Serializer(
-            *Self,
-            Ok,
-            Error,
-            //Map,
-            Sequence,
-            Struct,
-            //Tuple,
-            serializeBool,
-            serializeFloat,
-            serializeInt,
-            serializeNull,
-            serializeSequence,
-            serializeString,
-            serializeStruct,
-            serializeVariant,
-        );
-
-        pub fn serializer(self: *Self) Serializer {
+        pub fn getSerializer(self: *Self) S {
             return .{ .context = self };
-        }
-
-        pub fn init(writer: anytype) Self {
-            return .{
-                .writer = writer,
-            };
         }
 
         /// Implements `boolFn` for `getty.ser.Serializer`.
@@ -176,10 +179,18 @@ pub fn Json(comptime Writer: type) type {
     };
 }
 
+pub fn formattedSerializer(writer: anytype, formatter: anytype) Serializer(@TypeOf(writer), @TypeOf(formatter)) {
+    return Serializer(@TypeOf(writer), @TypeOf(formatter)).init(writer, formatter);
+}
+
+pub fn serializer(writer: anytype) Serializer(@TypeOf(writer), CompactFormatter(@TypeOf(writer))) {
+    return formattedSerializer(writer, CompactFormatter(@TypeOf(writer)){});
+}
+
 /// Serializes a value using the JSON serializer into a provided writer.
 pub fn toWriter(writer: anytype, value: anytype) !void {
-    var serializer = Json(@TypeOf(writer)).init(writer);
-    try getty.ser.serialize(&serializer, value);
+    var s = serializer(writer);
+    try getty.ser.serialize(&s, value);
 }
 
 /// Returns an owned slice of a serialized JSON string.
@@ -191,6 +202,97 @@ pub fn toString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
 
     try toWriter(array_list.writer(), value);
     return array_list.toOwnedSlice();
+}
+
+pub fn CompactFormatter(comptime Writer: type) type {
+    return struct {
+        const Self = @This();
+
+        /// Implements `json.Formatter`.
+        pub const F = Formatter(
+            *Self,
+            Error,
+            Writer,
+            null,
+            null,
+        );
+
+        pub fn formatter(self: *Self) F {
+            return .{ .context = self };
+        }
+
+        pub const Error = error{};
+    };
+}
+
+pub const PrettyFormatter = struct {};
+
+// TODO: Is there a way to make the methods generic over a writer instead of
+// the interface?
+pub fn Formatter(
+    comptime Context: type,
+    comptime E: type,
+    comptime W: type,
+    comptime boolFn: ?fn (context: Context, writer: W, value: bool) E!void,
+    //comptime intFn: ?fn (context: Context, writer: W, value: anytype) E!void,
+    //comptime floatFn: ?fn (context: Context, writer: W, value: anytype) E!void,
+    comptime nullFn: ?fn (context: Context, writer: W) E!void,
+    //comptime numberStringFn: ?fn (context: Context, writer: W, value: []const u8) E!void,
+) type {
+    return struct {
+        context: Context,
+
+        const Self = @This();
+
+        pub const Error = E;
+
+        /// Writes `true` or `false` to the specified writer.
+        pub fn writeBool(self: Self, writer: W, value: bool) E!void {
+            if (boolFn) |f| {
+                try f(self.context, writer, value);
+            } else {
+                writer.writeAll(if (value) "true" else "false") catch unreachable;
+            }
+        }
+
+        // Writes an integer value to the specified writer.
+        //pub fn writeInt(self: Self, writer: Writer, value: anytype) E!void {
+        //try intFn(self.context, writer, value);
+        //}
+
+        // Writes an floating point value to the specified writer.
+        //pub fn writeFloat(self: Self, writer: Writer, value: anytype) E!void {
+        //try floatFn(self.context, writer, value);
+        //}
+
+        /// Writes a `null` value to the specified writer.
+        pub fn writeNull(self: Self, writer: W) E!void {
+            if (nullFn) |f| {
+                try f(self.context, writer);
+            } else {
+                writer.writeAll("null") catch unreachable;
+            }
+        }
+
+        // Writes a number that has already been rendered into a string.
+        //pub fn writeNumberString(self: Self, writer: Writer, value: []const u8) E!void {
+        //if (nullFn) |f| {
+        //try f(self.context, writer);
+        //} else {
+        //writer.writeAll(value);
+        //}
+        //}
+    };
+}
+
+test "formatter" {
+    var stdout = std.io.getStdOut();
+    const writer = stdout.writer();
+
+    var compact_formatter = CompactFormatter(@TypeOf(writer)){};
+    const formatter = compact_formatter.formatter();
+
+    try formatter.writeNull(writer);
 }
 
 test "toWriter - Array" {
