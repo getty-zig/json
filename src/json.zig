@@ -211,8 +211,9 @@ pub fn CompactFormatter(comptime Writer: type) type {
         /// Implements `json.Formatter`.
         pub const F = Formatter(
             *Self,
-            Error,
             Writer,
+            null,
+            null,
             null,
             null,
             null,
@@ -232,23 +233,22 @@ pub const PrettyFormatter = struct {};
 
 pub fn Formatter(
     comptime Context: type,
-    comptime E: type,
     comptime W: type,
-    comptime boolFn: ?fn (context: Context, writer: W, value: bool) E!void,
-    comptime intFn: ?fn (context: Context, writer: W, value: anytype) E!void,
-    comptime floatFn: ?fn (context: Context, writer: W, value: anytype) E!void,
-    comptime nullFn: ?fn (context: Context, writer: W) E!void,
-    comptime numberStringFn: ?fn (context: Context, writer: W, value: []const u8) E!void,
+    comptime boolFn: ?fn (context: Context, writer: W, value: bool) W.Error!void,
+    comptime intFn: ?fn (context: Context, writer: W, value: anytype) W.Error!void,
+    comptime floatFn: ?fn (context: Context, writer: W, value: anytype) W.Error!void,
+    comptime nullFn: ?fn (context: Context, writer: W) W.Error!void,
+    comptime numberStringFn: ?fn (context: Context, writer: W, value: []const u8) W.Error!void,
+    comptime beginStringFn: ?fn (context: Context, writer: W) W.Error!void,
+    comptime endStringFn: ?fn (context: Context, writer: W) W.Error!void,
 ) type {
     return struct {
         context: Context,
 
         const Self = @This();
 
-        pub const Error = E;
-
         /// Writes `true` or `false` to the specified writer.
-        pub fn writeBool(self: Self, writer: W, value: bool) E!void {
+        pub inline fn writeBool(self: Self, writer: W, value: bool) W.Error!void {
             if (boolFn) |f| {
                 try f(self.context, writer, value);
             } else {
@@ -257,7 +257,7 @@ pub fn Formatter(
         }
 
         // Writes an integer value to the specified writer.
-        pub fn writeInt(self: Self, writer: W, value: anytype) E!void {
+        pub inline fn writeInt(self: Self, writer: W, value: anytype) W.Error!void {
             switch (@typeInfo(@TypeOf(value))) {
                 .ComptimeInt, .Int => {
                     if (intFn) |f| {
@@ -272,7 +272,7 @@ pub fn Formatter(
         }
 
         // Writes an floating point value to the specified writer.
-        pub fn writeFloat(self: Self, writer: W, value: anytype) E!void {
+        pub inline fn writeFloat(self: Self, writer: W, value: anytype) W.Error!void {
             switch (@typeInfo(@TypeOf(value))) {
                 .ComptimeFloat, .Float => {
                     if (floatFn) |f| {
@@ -295,7 +295,7 @@ pub fn Formatter(
         }
 
         /// Writes a `null` value to the specified writer.
-        pub fn writeNull(self: Self, writer: W) E!void {
+        pub inline fn writeNull(self: Self, writer: W) W.Error!void {
             if (nullFn) |f| {
                 try f(self.context, writer);
             } else {
@@ -303,13 +303,33 @@ pub fn Formatter(
             }
         }
 
-        // Writes a number that has already been rendered into a string.
-        pub fn writeNumberString(self: Self, writer: W, value: []const u8) E!void {
+        /// Writes a number that has already been rendered into a string.
+        pub inline fn writeNumberString(self: Self, writer: W, value: []const u8) W.Error!void {
             // TODO: Check that the string is actually an integer when parsed.
             if (numberStringFn) |f| {
                 try f(self.context, writer, value);
             } else {
                 writer.writeAll(value) catch unreachable;
+            }
+        }
+
+        /// Called before each series of `write_string_fragment` and
+        /// `write_char_escape`.  Writes a `"` to the specified writer.
+        pub inline fn beginString(self: Self, writer: W) W.Error!void {
+            if (beginStringFn) |f| {
+                try f(self.context, writer);
+            } else {
+                writer.writeAll("\"") catch unreachable;
+            }
+        }
+
+        /// Called after each series of `write_string_fragment` and
+        /// `write_char_escape`.  Writes a `"` to the specified writer.
+        pub inline fn endString(self: Self, writer: W) W.Error!void {
+            if (endStringFn) |f| {
+                try f(self.context, writer);
+            } else {
+                writer.writeAll("\"") catch unreachable;
             }
         }
     };
@@ -328,19 +348,35 @@ test "formatter" {
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
+
     try formatter.writeBool(writer, false);
+
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
+
     try formatter.writeInt(writer, 12345);
+
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
+
     try formatter.writeFloat(writer, 3.1415);
+
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
+
     try formatter.writeNull(writer);
+
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+    try formatter.writeNumberString(writer, "\n");
+
+    try formatter.beginString(writer);
+    try formatter.writeBool(writer, true);
+    try formatter.endString(writer);
+
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
