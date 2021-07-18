@@ -204,8 +204,9 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
 /// Serializes a value using the JSON serializer into a provided writer.
 pub fn toWriter(writer: anytype, value: anytype) !void {
     var cf = CompactFormatter(@TypeOf(writer)){};
-    const formatter = cf.formatter();
-    var s = Serializer(@TypeOf(writer), @TypeOf(formatter)).init(writer, formatter);
+    const f = cf.formatter();
+    var s = Serializer(@TypeOf(writer), @TypeOf(f)).init(writer, f);
+
     try getty.ser.serialize(&s, value);
 }
 
