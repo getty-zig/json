@@ -134,46 +134,46 @@ pub fn CompactFormatter(comptime Writer: type) type {
     return struct {
         const Self = @This();
 
-        pub const FormatterIface = Formatter(
+        pub const F = Formatter(
             *Self,
             Writer,
-            FormatterImpl.writeBool,
-            FormatterImpl.writeInt,
-            FormatterImpl.writeFloat,
-            FormatterImpl.writeNull,
-            FormatterImpl.writeNumberString,
-            FormatterImpl.beginString,
-            FormatterImpl.endString,
-            FormatterImpl.writeStringFragment,
-            FormatterImpl.writeCharEscape,
-            FormatterImpl.beginArray,
-            FormatterImpl.endArray,
-            FormatterImpl.beginArrayValue,
-            FormatterImpl.endArrayValue,
-            FormatterImpl.beginObject,
-            FormatterImpl.endObject,
-            FormatterImpl.beginObjectKey,
-            FormatterImpl.endObjectKey,
-            FormatterImpl.beginObjectValue,
-            FormatterImpl.endObjectValue,
-            FormatterImpl.writeRawFragment,
+            _F.writeBool,
+            _F.writeInt,
+            _F.writeFloat,
+            _F.writeNull,
+            _F.writeNumberString,
+            _F.beginString,
+            _F.endString,
+            _F.writeStringFragment,
+            _F.writeCharEscape,
+            _F.beginArray,
+            _F.endArray,
+            _F.beginArrayValue,
+            _F.endArrayValue,
+            _F.beginObject,
+            _F.endObject,
+            _F.beginObjectKey,
+            _F.endObjectKey,
+            _F.beginObjectValue,
+            _F.endObjectValue,
+            _F.writeRawFragment,
         );
 
-        pub fn formatter(self: *Self) FormatterIface {
+        pub fn formatter(self: *Self) F {
             return .{ .context = self };
         }
 
-        pub const FormatterImpl = struct {
-            pub fn writeBool(_: *Self, writer: Writer, value: bool) Writer.Error!void {
+        const _F = struct {
+            fn writeBool(_: *Self, writer: Writer, value: bool) Writer.Error!void {
                 try writer.writeAll(if (value) "true" else "false");
             }
 
-            pub fn writeInt(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
+            fn writeInt(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
                 var buf: [100]u8 = undefined;
                 try writer.writeAll(std.fmt.bufPrintIntToSlice(&buf, value, 10, .lower, .{}));
             }
 
-            pub fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
+            fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
                 // this should be enough to display all decimal places of a decimal f64 number.
                 var buf: [512]u8 = undefined;
                 var stream = std.io.fixedBufferStream(&buf);
@@ -187,27 +187,27 @@ pub fn CompactFormatter(comptime Writer: type) type {
                 try writer.writeAll(buf[0 .. stream.getPos() catch unreachable]);
             }
 
-            pub fn writeNull(_: *Self, writer: Writer) Writer.Error!void {
+            fn writeNull(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("null");
             }
 
-            pub fn writeNumberString(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
+            fn writeNumberString(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
                 try writer.writeAll(value);
             }
 
-            pub fn beginString(_: *Self, writer: Writer) Writer.Error!void {
+            fn beginString(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("\"");
             }
 
-            pub fn endString(_: *Self, writer: Writer) Writer.Error!void {
+            fn endString(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("\"");
             }
 
-            pub fn writeStringFragment(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
+            fn writeStringFragment(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
                 try writer.writeAll(value);
             }
 
-            pub fn writeCharEscape(_: *Self, writer: Writer, value: CharEscape) Writer.Error!void {
+            fn writeCharEscape(_: *Self, writer: Writer, value: CharEscape) Writer.Error!void {
                 const s = switch (value) {
                     .Quote => "\\\"",
                     .ReverseSolidus => "\\\\",
@@ -223,52 +223,52 @@ pub fn CompactFormatter(comptime Writer: type) type {
                 try writer.writeAll(s);
             }
 
-            pub fn beginArray(_: *Self, writer: Writer) Writer.Error!void {
+            fn beginArray(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("[");
             }
 
-            pub fn endArray(_: *Self, writer: Writer) Writer.Error!void {
+            fn endArray(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("]");
             }
 
-            pub fn beginArrayValue(_: *Self, writer: Writer, first: bool) Writer.Error!void {
+            fn beginArrayValue(_: *Self, writer: Writer, first: bool) Writer.Error!void {
                 if (!first)
                     try writer.writeAll(",");
             }
 
-            pub fn endArrayValue(self: *Self, writer: Writer) Writer.Error!void {
+            fn endArrayValue(self: *Self, writer: Writer) Writer.Error!void {
                 _ = self;
                 _ = writer;
             }
 
-            pub fn beginObject(_: *Self, writer: Writer) Writer.Error!void {
+            fn beginObject(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("{");
             }
 
-            pub fn endObject(_: *Self, writer: Writer) Writer.Error!void {
+            fn endObject(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("}");
             }
 
-            pub fn beginObjectKey(_: *Self, writer: Writer, first: bool) Writer.Error!void {
+            fn beginObjectKey(_: *Self, writer: Writer, first: bool) Writer.Error!void {
                 if (!first)
                     try writer.writeAll(",");
             }
 
-            pub fn endObjectKey(self: *Self, writer: Writer) Writer.Error!void {
+            fn endObjectKey(self: *Self, writer: Writer) Writer.Error!void {
                 _ = self;
                 _ = writer;
             }
 
-            pub fn beginObjectValue(_: *Self, writer: Writer) Writer.Error!void {
+            fn beginObjectValue(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll(":");
             }
 
-            pub fn endObjectValue(self: *Self, writer: Writer) Writer.Error!void {
+            fn endObjectValue(self: *Self, writer: Writer) Writer.Error!void {
                 _ = self;
                 _ = writer;
             }
 
-            pub fn writeRawFragment(self: *Self, writer: Writer, value: []const u8) Writer.Error!void {
+            fn writeRawFragment(self: *Self, writer: Writer, value: []const u8) Writer.Error!void {
                 _ = self;
 
                 try writer.writeAll(value);

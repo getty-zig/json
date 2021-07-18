@@ -21,7 +21,7 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
         /// Implements `getty.ser.Serializer`.
         ///
         /// TODO: Reorder functions
-        pub const SerializerIface = getty.ser.Serializer(
+        pub const S = getty.ser.Serializer(
             *Self,
             Ok,
             Error,
@@ -29,17 +29,17 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             Sequence,
             Struct,
             //Tuple,
-            SerializerImpl.serializeBool,
-            SerializerImpl.serializeFloat,
-            SerializerImpl.serializeInt,
-            SerializerImpl.serializeNull,
-            SerializerImpl.serializeSequence,
-            SerializerImpl.serializeString,
-            SerializerImpl.serializeStruct,
-            SerializerImpl.serializeVariant,
+            _S.serializeBool,
+            _S.serializeFloat,
+            _S.serializeInt,
+            _S.serializeNull,
+            _S.serializeSequence,
+            _S.serializeString,
+            _S.serializeStruct,
+            _S.serializeVariant,
         );
 
-        pub fn getSerializer(self: *Self) SerializerIface {
+        pub fn getSerializer(self: *Self) S {
             return .{ .context = self };
         }
 
@@ -64,26 +64,26 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             Eof,
         };
 
-        //pub const Map = SerializeMap;
-        pub const Sequence = SerializeSequenceIface;
-        pub const Struct = SerializeStructIface;
+        //pub const Map = SM;
+        pub const Sequence = SSE;
+        pub const Struct = SST;
         //pub const Tuple = ST;
 
-        pub const SerializerImpl = struct {
+        const _S = struct {
             /// Implements `boolFn` for `getty.ser.Serializer`.
-            pub fn serializeBool(self: *Self, value: bool) Error!Ok {
+            fn serializeBool(self: *Self, value: bool) Error!Ok {
                 self.formatter.writeBool(self.writer, value) catch return Error.Io;
             }
 
             /// Implements `intFn` for `getty.ser.Serializer`.
-            pub fn serializeInt(self: *Self, value: anytype) Error!Ok {
+            fn serializeInt(self: *Self, value: anytype) Error!Ok {
                 self.formatter.writeInt(self.writer, value) catch return Error.Io;
             }
 
             /// Implements `floatFn` for `getty.ser.Serializer`.
             ///
             /// TODO: Handle Inf for comptime_floats.
-            pub fn serializeFloat(self: *Self, value: anytype) Error!Ok {
+            fn serializeFloat(self: *Self, value: anytype) Error!Ok {
                 //if (std.math.isNan(value) or std.math.isInf(value)) {
                 if (std.math.isNan(value)) {
                     self.formatter.writeNull(self.writer) catch return Error.Io;
@@ -93,12 +93,12 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             }
 
             /// Implements `nullFn` for `getty.ser.Serializer`.
-            pub fn serializeNull(self: *Self) Error!Ok {
+            fn serializeNull(self: *Self) Error!Ok {
                 self.formatter.writeNull(self.writer) catch return Error.Io;
             }
 
             /// Implements `sequenceFn` for `getty.ser.Serializer`.
-            pub fn serializeSequence(self: *Self, length: ?usize) Error!Sequence {
+            fn serializeSequence(self: *Self, length: ?usize) Error!Sequence {
                 self.formatter.beginArray(self.writer) catch return Error.Io;
 
                 if (length) |_| {
@@ -113,44 +113,44 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             }
 
             /// Implements `stringFn` for `getty.ser.Serializer`.
-            pub fn serializeString(self: *Self, value: anytype) Error!Ok {
+            fn serializeString(self: *Self, value: anytype) Error!Ok {
                 self.writer.writeByte('"') catch return Error.Io;
                 self.writer.writeAll(value) catch return Error.Io;
                 self.writer.writeByte('"') catch return Error.Io;
             }
 
             /// Implements `structFn` for `getty.ser.Serializer`.
-            pub fn serializeStruct(self: *Self) Error!Struct {
+            fn serializeStruct(self: *Self) Error!Struct {
                 self.writer.writeByte('{') catch return Error.Io;
 
                 return self.getStruct();
             }
 
             /// Implements `variantFn` for `getty.ser.Serializer`.
-            pub fn serializeVariant(self: *Self, value: anytype) Error!Ok {
+            fn serializeVariant(self: *Self, value: anytype) Error!Ok {
                 serializeString(self, @tagName(value)) catch return Error.Io;
             }
         };
 
         /// Implements `getty.ser.SerializeSequence`.
-        pub const SerializeSequenceIface = getty.ser.SerializeSequence(
+        pub const SSE = getty.ser.SerializeSequence(
             *Self,
             Ok,
             Error,
-            SerializeSequenceImpl.serializeElement,
-            SerializeSequenceImpl.end,
+            _SSE.serializeElement,
+            _SSE.end,
         );
 
-        pub fn getSequence(self: *Self) SerializeSequenceIface {
+        pub fn getSequence(self: *Self) SSE {
             return .{ .context = self };
         }
 
-        pub const SerializeSequenceImpl = struct {
+        const _SSE = struct {
             /// Implements `elementFn` for `getty.ser.SerializeSequence`.
             ///
             /// FIXME: Pretty sure the _written usage is wrong for elements and
             /// fields.
-            pub fn serializeElement(self: *Self, value: anytype) Error!void {
+            fn serializeElement(self: *Self, value: anytype) Error!void {
                 if (self._written > 0) {
                     self.writer.writeByte(',') catch return Error.Io;
                 }
@@ -161,27 +161,27 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             }
 
             /// Implements `endFn` for `getty.ser.SerializeSequence`.
-            pub fn end(self: *Self) Error!Ok {
+            fn end(self: *Self) Error!Ok {
                 self.writer.writeByte(']') catch return Error.Io;
             }
         };
 
         /// Implements `getty.ser.SerializeStruct`.
-        pub const SerializeStructIface = getty.ser.SerializeStruct(
+        pub const SST = getty.ser.SerializeStruct(
             *Self,
             Ok,
             Error,
-            SerializeStructImpl.serializeField,
-            SerializeStructImpl.end,
+            _SST.serializeField,
+            _SST.end,
         );
 
-        pub fn getStruct(self: *Self) SerializeStructIface {
+        pub fn getStruct(self: *Self) SST {
             return .{ .context = self };
         }
 
-        pub const SerializeStructImpl = struct {
+        const _SST = struct {
             /// Implements `fieldFn` for `getty.ser.SerializeStruct`.
-            pub fn serializeField(self: *Self, comptime key: []const u8, value: anytype) Error!void {
+            fn serializeField(self: *Self, comptime key: []const u8, value: anytype) Error!void {
                 if (self._written > 0) {
                     self.writer.writeByte(',') catch return Error.Io;
                 }
@@ -194,7 +194,7 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             }
 
             /// Implements `endFn` for `getty.ser.SerializeStruct`.
-            pub fn end(self: *Self) Error!Ok {
+            fn end(self: *Self) Error!Ok {
                 self.writer.writeByte('}') catch return Error.Io;
             }
         };
