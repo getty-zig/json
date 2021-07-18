@@ -1,7 +1,7 @@
 const getty = @import("getty");
 const std = @import("std");
 
-const Formatter = @import("formatter.zig");
+const CompactFormatter = @import("formatter.zig").CompactFormatter;
 
 pub fn Serializer(comptime W: type, comptime F: type) type {
     return struct {
@@ -201,19 +201,21 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
     };
 }
 
-pub fn formattedSerializer(writer: anytype, formatter: anytype) Serializer(@TypeOf(writer), @TypeOf(formatter)) {
-    return Serializer(@TypeOf(writer), @TypeOf(formatter)).init(writer, formatter);
-}
-
-pub fn serializer(writer: anytype) Serializer(@TypeOf(writer), Formatter.CompactFormatter(@TypeOf(writer))) {
-    return formattedSerializer(writer, Formatter.CompactFormatter(@TypeOf(writer)){});
-}
-
 /// Serializes a value using the JSON serializer into a provided writer.
 pub fn toWriter(writer: anytype, value: anytype) !void {
-    var s = serializer(writer);
+    var cf = CompactFormatter(@TypeOf(writer)){};
+    const formatter = cf.formatter();
+    var s = Serializer(@TypeOf(writer), @TypeOf(formatter)).init(writer, formatter);
     try getty.ser.serialize(&s, value);
 }
+
+//// Serialize the given data structure as pretty-printed JSON into the IO
+//// stream.
+//pub fn toWriterPretty(writer: anytype, value: anytype) !void {
+//const pf = PrettyFormatter(@TypeOf(writer)){};
+//var s = Serializer(@TypeOf(writer), @TypeOf(pf)).init(writer, pf);
+//try getty.ser.serialize(&s, value);
+//}
 
 /// Returns an owned slice of a serialized JSON string.
 ///
