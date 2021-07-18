@@ -208,24 +208,78 @@ pub fn CompactFormatter(comptime Writer: type) type {
     return struct {
         const Self = @This();
 
-        /// Implements `json.Formatter`.
-        pub const F = Formatter(
+        const F = Formatter(
             *Self,
             Writer,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
+            writeBool,
+            writeInt,
+            writeFloat,
+            writeNull,
+            writeNumberString,
+            beginString,
+            endString,
         );
 
         pub fn formatter(self: *Self) F {
             return .{ .context = self };
         }
 
-        pub const Error = error{};
+        pub fn writeBool(self: *Self, writer: Writer, value: bool) Writer.Error!void {
+            _ = self;
+
+            try writer.writeAll(if (value) "true" else "false");
+        }
+
+        pub fn writeInt(self: *Self, writer: Writer, value: anytype) Writer.Error!void {
+            _ = self;
+
+            var buf: [100]u8 = undefined;
+            try writer.writeAll(std.fmt.bufPrintIntToSlice(&buf, value, 10, .lower, .{}));
+        }
+
+        pub fn writeFloat(self: *Self, writer: Writer, value: anytype) Writer.Error!void {
+            _ = self;
+
+            // this should be enough to display all decimal places of a decimal f64 number.
+            var buf: [512]u8 = undefined;
+            var buf_stream = std.io.fixedBufferStream(&buf);
+
+            std.fmt.formatFloatDecimal(value, std.fmt.FormatOptions{}, buf_stream.writer()) catch |err| switch (err) {
+                error.NoSpaceLeft => unreachable,
+                else => unreachable, // TODO: handle error
+            };
+
+            try writer.writeAll(&buf);
+        }
+
+        pub fn writeNull(self: *Self, writer: Writer) Writer.Error!void {
+            _ = self;
+
+            try writer.writeAll("null");
+        }
+
+        /// Writes a number that has already been rendered into a string.
+        pub fn writeNumberString(self: *Self, writer: Writer, value: []const u8) Writer.Error!void {
+            _ = self;
+
+            try writer.writeAll(value);
+        }
+
+        /// Called before each series of `write_string_fragment` and
+        /// `write_char_escape`.  Writes a `"` to the specified writer.
+        pub fn beginString(self: *Self, writer: Writer) Writer.Error!void {
+            _ = self;
+
+            try writer.writeAll("\"");
+        }
+
+        /// Called after each series of `write_string_fragment` and
+        /// `write_char_escape`.  Writes a `"` to the specified writer.
+        pub fn endString(self: *Self, writer: Writer) Writer.Error!void {
+            _ = self;
+
+            try writer.writeAll("\"");
+        }
     };
 }
 
@@ -233,14 +287,14 @@ pub const PrettyFormatter = struct {};
 
 pub fn Formatter(
     comptime Context: type,
-    comptime W: type,
-    comptime boolFn: ?fn (context: Context, writer: W, value: bool) W.Error!void,
-    comptime intFn: ?fn (context: Context, writer: W, value: anytype) W.Error!void,
-    comptime floatFn: ?fn (context: Context, writer: W, value: anytype) W.Error!void,
-    comptime nullFn: ?fn (context: Context, writer: W) W.Error!void,
-    comptime numberStringFn: ?fn (context: Context, writer: W, value: []const u8) W.Error!void,
-    comptime beginStringFn: ?fn (context: Context, writer: W) W.Error!void,
-    comptime endStringFn: ?fn (context: Context, writer: W) W.Error!void,
+    comptime Writer: type,
+    comptime boolFn: fn (Context, Writer, bool) Writer.Error!void,
+    comptime intFn: fn (Context, Writer, anytype) Writer.Error!void,
+    comptime floatFn: fn (Context, Writer, anytype) Writer.Error!void,
+    comptime nullFn: fn (Context, Writer) Writer.Error!void,
+    comptime numberStringFn: fn (Context, Writer, []const u8) Writer.Error!void,
+    comptime beginStringFn: fn (Context, Writer) Writer.Error!void,
+    comptime endStringFn: fn (Context, Writer) Writer.Error!void,
 ) type {
     return struct {
         context: Context,
@@ -248,89 +302,48 @@ pub fn Formatter(
         const Self = @This();
 
         /// Writes `true` or `false` to the specified writer.
-        pub inline fn writeBool(self: Self, writer: W, value: bool) W.Error!void {
-            if (boolFn) |f| {
-                try f(self.context, writer, value);
-            } else {
-                writer.writeAll(if (value) "true" else "false") catch unreachable;
-            }
+        pub inline fn writeBool(self: Self, writer: Writer, value: bool) Writer.Error!void {
+            try boolFn(self.context, writer, value);
         }
 
-        // Writes an integer value to the specified writer.
-        pub inline fn writeInt(self: Self, writer: W, value: anytype) W.Error!void {
+        /// Writes an integer value to the specified writer.
+        pub inline fn writeInt(self: Self, writer: Writer, value: anytype) Writer.Error!void {
             switch (@typeInfo(@TypeOf(value))) {
-                .ComptimeInt, .Int => {
-                    if (intFn) |f| {
-                        try f(self.context, writer, value);
-                    } else {
-                        var buf: [100]u8 = undefined;
-                        writer.writeAll(std.fmt.bufPrintIntToSlice(&buf, value, 10, .lower, .{})) catch unreachable;
-                    }
-                },
+                .ComptimeInt, .Int => try intFn(self.context, writer, value),
                 else => @compileError("expected integer, found " ++ @typeName(@TypeOf(value))),
             }
         }
 
         // Writes an floating point value to the specified writer.
-        pub inline fn writeFloat(self: Self, writer: W, value: anytype) W.Error!void {
+        pub inline fn writeFloat(self: Self, writer: Writer, value: anytype) Writer.Error!void {
             switch (@typeInfo(@TypeOf(value))) {
-                .ComptimeFloat, .Float => {
-                    if (floatFn) |f| {
-                        try f(self.context, writer, value);
-                    } else {
-                        // this should be enough to display all decimal places of a decimal f64 number.
-                        var buf: [512]u8 = undefined;
-                        var buf_stream = std.io.fixedBufferStream(&buf);
-
-                        std.fmt.formatFloatDecimal(value, std.fmt.FormatOptions{}, buf_stream.writer()) catch |err| switch (err) {
-                            error.NoSpaceLeft => unreachable,
-                            else => unreachable, // TODO: handle error
-                        };
-
-                        writer.writeAll(&buf) catch unreachable;
-                    }
-                },
+                .ComptimeFloat, .Float => try floatFn(self.context, writer, value),
                 else => @compileError("expected floating point, found " ++ @typeName(@TypeOf(value))),
             }
         }
 
         /// Writes a `null` value to the specified writer.
-        pub inline fn writeNull(self: Self, writer: W) W.Error!void {
-            if (nullFn) |f| {
-                try f(self.context, writer);
-            } else {
-                writer.writeAll("null") catch unreachable;
-            }
+        pub inline fn writeNull(self: Self, writer: Writer) Writer.Error!void {
+            try nullFn(self.context, writer);
         }
 
         /// Writes a number that has already been rendered into a string.
-        pub inline fn writeNumberString(self: Self, writer: W, value: []const u8) W.Error!void {
-            // TODO: Check that the string is actually an integer when parsed.
-            if (numberStringFn) |f| {
-                try f(self.context, writer, value);
-            } else {
-                writer.writeAll(value) catch unreachable;
-            }
+        ///
+        /// TODO: Check that the string is actually an integer when parsed.
+        pub inline fn writeNumberString(self: Self, writer: Writer, value: []const u8) Writer.Error!void {
+            try numberStringFn(self.context, writer, value);
         }
 
         /// Called before each series of `write_string_fragment` and
         /// `write_char_escape`.  Writes a `"` to the specified writer.
-        pub inline fn beginString(self: Self, writer: W) W.Error!void {
-            if (beginStringFn) |f| {
-                try f(self.context, writer);
-            } else {
-                writer.writeAll("\"") catch unreachable;
-            }
+        pub inline fn beginString(self: Self, writer: Writer) Writer.Error!void {
+            try beginStringFn(self.context, writer);
         }
 
         /// Called after each series of `write_string_fragment` and
         /// `write_char_escape`.  Writes a `"` to the specified writer.
-        pub inline fn endString(self: Self, writer: W) W.Error!void {
-            if (endStringFn) |f| {
-                try f(self.context, writer);
-            } else {
-                writer.writeAll("\"") catch unreachable;
-            }
+        pub inline fn endString(self: Self, writer: Writer) Writer.Error!void {
+            try endStringFn(self.context, writer);
         }
     };
 }
