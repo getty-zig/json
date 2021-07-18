@@ -20,6 +20,8 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
         }
 
         /// Implements `getty.ser.Serializer`.
+        ///
+        /// TODO: Reorder functions
         pub const S = getty.ser.Serializer(
             *Self,
             Ok,
@@ -70,19 +72,22 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
 
         /// Implements `boolFn` for `getty.ser.Serializer`.
         pub fn serializeBool(self: *Self, value: bool) Error!Ok {
-            self.writer.writeAll(if (value) "true" else "false") catch return Error.Io;
-        }
-
-        /// Implements `floatFn` for `getty.ser.Serializer`.
-        pub fn serializeFloat(self: *Self, value: anytype) Error!Ok {
-            std.json.stringify(value, .{}, self.writer) catch return Error.Io;
+            self.formatter.writeBool(self.writer, value) catch return Error.Io;
         }
 
         /// Implements `intFn` for `getty.ser.Serializer`.
         pub fn serializeInt(self: *Self, value: anytype) Error!Ok {
-            var buffer: [20]u8 = undefined;
-            const number = std.fmt.bufPrint(&buffer, "{}", .{value}) catch unreachable;
-            self.writer.writeAll(number) catch return Error.Io;
+            self.formatter.writeInt(self.writer, value) catch return Error.Io;
+        }
+
+        /// Implements `floatFn` for `getty.ser.Serializer`.
+        pub fn serializeFloat(self: *Self, value: anytype) Error!Ok {
+            //if (std.math.isNan(value) or std.math.isInf(value)) {
+            if (std.math.isNan(value)) {
+                self.formatter.writeNull(self.writer) catch return Error.Io;
+            } else {
+                self.formatter.writeFloat(self.writer, value) catch return Error.Io;
+            }
         }
 
         /// Implements `nullFn` for `getty.ser.Serializer`.
@@ -226,6 +231,13 @@ test "toWriter - Integer" {
     try t(std.math.maxInt(u64), "18446744073709551615");
     try t(std.math.minInt(i32), "-2147483648");
     try t(std.math.maxInt(i64), "9223372036854775807");
+}
+
+test "toWriter - Float" {
+    try t(1.0, "1");
+    try t(3.1415, "3.1415");
+    try t(-1.0, "-1");
+    try t(0.0, "0");
 }
 
 test "toWriter - Null" {

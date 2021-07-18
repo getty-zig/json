@@ -175,14 +175,15 @@ pub fn CompactFormatter(comptime Writer: type) type {
         pub fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
             // this should be enough to display all decimal places of a decimal f64 number.
             var buf: [512]u8 = undefined;
-            var buf_stream = std.io.fixedBufferStream(&buf);
+            var stream = std.io.fixedBufferStream(&buf);
 
-            std.fmt.formatFloatDecimal(value, std.fmt.FormatOptions{}, buf_stream.writer()) catch |err| switch (err) {
+            std.fmt.formatFloatDecimal(value, std.fmt.FormatOptions{}, stream.writer()) catch |err| switch (err) {
                 error.NoSpaceLeft => unreachable,
                 else => unreachable, // TODO: handle error
             };
 
-            try writer.writeAll(&buf);
+            // TODO: fix getPos error
+            try writer.writeAll(buf[0 .. stream.getPos() catch unreachable]);
         }
 
         pub fn writeNull(_: *Self, writer: Writer) Writer.Error!void {
