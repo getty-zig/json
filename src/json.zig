@@ -756,7 +756,7 @@ const __: u8 = 0;
 
 // Lookup table of escape sequences. A value of b'x' at index i means that byte
 // i is escaped as "\x" in JSON. A value of 0 means that byte i is not escaped.
-pub const ESCAPE = [256]u8{
+const ESCAPE = [256]u8{
     //   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
     UU, UU, UU, UU, UU, UU, UU, UU, BB, TT, NN, UU, FF, RR, UU, UU, // 0
     UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, // 1
@@ -776,7 +776,7 @@ pub const ESCAPE = [256]u8{
     __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // F
 };
 
-pub const CharEscape = union(enum) {
+const CharEscape = union(enum) {
     // An escaped ASCII plane control character (usually escaped as `\u00XX`
     // where `XX` are two hex characters)
     ascii: u8,
