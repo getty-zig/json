@@ -3,10 +3,10 @@ const std = @import("std");
 pub fn Formatter(
     comptime Context: type,
     comptime Writer: type,
+    comptime nullFn: fn (Context, Writer) Writer.Error!void,
     comptime boolFn: fn (Context, Writer, bool) Writer.Error!void,
     comptime intFn: fn (Context, Writer, anytype) Writer.Error!void,
     comptime floatFn: fn (Context, Writer, anytype) Writer.Error!void,
-    comptime nullFn: fn (Context, Writer) Writer.Error!void,
     comptime numberStringFn: fn (Context, Writer, []const u8) Writer.Error!void,
     comptime beginStringFn: fn (Context, Writer) Writer.Error!void,
     comptime endStringFn: fn (Context, Writer) Writer.Error!void,
@@ -29,6 +29,11 @@ pub fn Formatter(
 
         const Self = @This();
 
+        /// Writes a `null` value to the specified writer.
+        pub inline fn writeNull(self: Self, writer: Writer) Writer.Error!void {
+            try nullFn(self.context, writer);
+        }
+
         /// Writes `true` or `false` to the specified writer.
         pub inline fn writeBool(self: Self, writer: Writer, value: bool) Writer.Error!void {
             try boolFn(self.context, writer, value);
@@ -48,11 +53,6 @@ pub fn Formatter(
                 .ComptimeFloat, .Float => try floatFn(self.context, writer, value),
                 else => @compileError("expected floating point, found " ++ @typeName(@TypeOf(value))),
             }
-        }
-
-        /// Writes a `null` value to the specified writer.
-        pub inline fn writeNull(self: Self, writer: Writer) Writer.Error!void {
-            try nullFn(self.context, writer);
         }
 
         /// Writes a number that has already been rendered into a string.
@@ -137,10 +137,10 @@ pub fn CompactFormatter(comptime Writer: type) type {
         pub const F = Formatter(
             *Self,
             Writer,
+            _F.writeNull,
             _F.writeBool,
             _F.writeInt,
             _F.writeFloat,
-            _F.writeNull,
             _F.writeNumberString,
             _F.beginString,
             _F.endString,
@@ -164,6 +164,10 @@ pub fn CompactFormatter(comptime Writer: type) type {
         }
 
         const _F = struct {
+            fn writeNull(_: *Self, writer: Writer) Writer.Error!void {
+                try writer.writeAll("null");
+            }
+
             fn writeBool(_: *Self, writer: Writer, value: bool) Writer.Error!void {
                 try writer.writeAll(if (value) "true" else "false");
             }
@@ -185,10 +189,6 @@ pub fn CompactFormatter(comptime Writer: type) type {
 
                 // TODO: fix getPos error
                 try writer.writeAll(buf[0 .. stream.getPos() catch unreachable]);
-            }
-
-            fn writeNull(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll("null");
             }
 
             fn writeNumberString(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
