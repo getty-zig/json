@@ -1,11 +1,7 @@
 const getty = @import("getty");
 const std = @import("std");
 
-const format = @import("ser/format.zig");
-const CompactFormatter = @import("formatter.zig").CompactFormatter;
-
-const CharEscape = format.CharEscape;
-const formatEscapedString = format.formatEscapedString;
+const formatEscapedString = @import("formatter.zig").formatEscapedString;
 
 pub fn Serializer(comptime W: type, comptime F: type) type {
     return struct {
@@ -204,10 +200,12 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
     };
 }
 
+const CompactFormatter = @import("formatters/compact.zig").Formatter;
+
 /// Serializes a value using the JSON serializer into a provided writer.
 pub fn toWriter(writer: anytype, value: anytype) !void {
     var cf = CompactFormatter(@TypeOf(writer)){};
-    const f = cf.formatter();
+    const f = cf.getFormatter();
     var s = Serializer(@TypeOf(writer), @TypeOf(f)).init(writer, f);
 
     try getty.ser.serialize(&s, value);

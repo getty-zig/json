@@ -1,11 +1,5 @@
 const std = @import("std");
 
-const format = @import("ser/format.zig");
-
-const fmt = std.fmt;
-const CharEscape = format.CharEscape;
-const formatEscapedString = format.formatEscapedString;
-
 pub fn Formatter(
     comptime Context: type,
     comptime Writer: type,
@@ -136,399 +130,118 @@ pub fn Formatter(
     };
 }
 
-pub fn CompactFormatter(comptime Writer: type) type {
-    return struct {
-        const Self = @This();
+const BB: u8 = 'b'; // \x08
+const TT: u8 = 't'; // \x09
+const NN: u8 = 'n'; // \x0A
+const FF: u8 = 'f'; // \x0C
+const RR: u8 = 'r'; // \x0D
+const QU: u8 = '"'; // \x22
+const BS: u8 = '\\'; // \x5C
+const UU: u8 = 'u'; // \x00...\x1F except the ones above
+const __: u8 = 0;
 
-        pub const F = Formatter(
-            *Self,
-            Writer,
-            _F.writeNull,
-            _F.writeBool,
-            _F.writeInt,
-            _F.writeFloat,
-            _F.writeNumberString,
-            _F.beginString,
-            _F.endString,
-            _F.writeStringFragment,
-            _F.writeCharEscape,
-            _F.beginArray,
-            _F.endArray,
-            _F.beginArrayValue,
-            _F.endArrayValue,
-            _F.beginObject,
-            _F.endObject,
-            _F.beginObjectKey,
-            _F.endObjectKey,
-            _F.beginObjectValue,
-            _F.endObjectValue,
-            _F.writeRawFragment,
-        );
+// Lookup table of escape sequences. A value of b'x' at index i means that byte
+// i is escaped as "\x" in JSON. A value of 0 means that byte i is not escaped.
+const ESCAPE = [256]u8{
+    //   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+    UU, UU, UU, UU, UU, UU, UU, UU, BB, TT, NN, UU, FF, RR, UU, UU, // 0
+    UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, // 1
+    __, __, QU, __, __, __, __, __, __, __, __, __, __, __, __, __, // 2
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 3
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 4
+    __, __, __, __, __, __, __, __, __, __, __, __, BS, __, __, __, // 5
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 6
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 7
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 8
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 9
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // A
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // B
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // C
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // D
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // E
+    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // F
+};
 
-        pub fn formatter(self: *Self) F {
-            return .{ .context = self };
+pub const CharEscape = union(enum) {
+    // An escaped ASCII plane control character (usually escaped as `\u00XX`
+    // where `XX` are two hex characters)
+    ascii: u8,
+
+    non_ascii: enum(u8) {
+        /// An escaped quote `"`
+        Quote,
+
+        /// An escaped reverse solidus `\`
+        ReverseSolidus,
+
+        /// An escaped solidus `/`
+        Solidus,
+
+        /// An escaped backspace character (usually escaped as `\b`)
+        Backspace,
+
+        /// An escaped form feed character (usually escaped as `\f`)
+        FormFeed,
+
+        /// An escaped line feed character (usually escaped as `\n`)
+        LineFeed,
+
+        /// An escaped carriage return character (usually escaped as `\r`)
+        CarriageReturn,
+
+        /// An escaped tab character (usually escaped as `\t`)
+        Tab,
+    },
+
+    fn fromEscapeTable(escape: u8, byte: u8) @This() {
+        switch (escape) {
+            BB => return .{ .non_ascii = .Backspace },
+            TT => return .{ .non_ascii = .Tab },
+            NN => return .{ .non_ascii = .LineFeed },
+            FF => return .{ .non_ascii = .FormFeed },
+            RR => return .{ .non_ascii = .CarriageReturn },
+            QU => return .{ .non_ascii = .Quote },
+            BS => return .{ .non_ascii = .ReverseSolidus },
+            UU => return .{ .ascii = byte },
+            else => unreachable,
+        }
+    }
+};
+
+pub fn formatEscapedString(writer: anytype, formatter: anytype, bytes: []const u8) !void {
+    var start: usize = 0;
+
+    for (bytes) |byte, i| {
+        // TODO: Does byte need to be casted?
+        const escape = ESCAPE[@as(usize, byte)];
+
+        if (escape == 0) {
+            continue;
         }
 
-        const _F = struct {
-            fn writeNull(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll("null");
-            }
+        if (start < i) {
+            try formatter.writeStringFragment(writer, bytes[start..i]);
+        }
 
-            fn writeBool(_: *Self, writer: Writer, value: bool) Writer.Error!void {
-                try writer.writeAll(if (value) "true" else "false");
-            }
+        const char_escape = CharEscape.fromEscapeTable(escape, byte);
+        try formatter.writeCharEscape(writer, char_escape);
 
-            fn writeInt(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
-                var buf: [100]u8 = undefined;
-                try writer.writeAll(fmt.bufPrintIntToSlice(&buf, value, 10, .lower, .{}));
-            }
+        start = i + 1;
+    }
 
-            fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
-                // this should be enough to display all decimal places of a decimal f64 number.
-                var buf: [512]u8 = undefined;
-                var stream = std.io.fixedBufferStream(&buf);
-
-                fmt.formatFloatDecimal(value, fmt.FormatOptions{}, stream.writer()) catch |err| switch (err) {
-                    error.NoSpaceLeft => unreachable,
-                    else => unreachable, // TODO: handle error
-                };
-
-                // TODO: fix getPos error
-                try writer.writeAll(buf[0 .. stream.getPos() catch unreachable]);
-            }
-
-            fn writeNumberString(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
-                try writer.writeAll(value);
-            }
-
-            fn beginString(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll("\"");
-            }
-
-            fn endString(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll("\"");
-            }
-
-            fn writeStringFragment(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
-                try writer.writeAll(value);
-            }
-
-            /// TODO: Figure out what to do on ascii control
-            fn writeCharEscape(_: *Self, writer: Writer, value: CharEscape) Writer.Error!void {
-                switch (value) {
-                    .ascii => |v| {
-                        const HEX_DIGITS: []const u8 = "0123456789abcdef";
-                        const s = &[_]u8{
-                            '\\',
-                            'u',
-                            '0',
-                            '0',
-                            HEX_DIGITS[v >> 4],
-                            HEX_DIGITS[v & 0xF],
-                        };
-
-                        try writer.writeAll(s);
-                    },
-                    .non_ascii => |v| {
-                        const s = switch (v) {
-                            .Quote => "\\\"",
-                            .ReverseSolidus => "\\\\",
-                            .Solidus => "\\/",
-                            .Backspace => "\\",
-                            .FormFeed => "\\f",
-                            .LineFeed => "\\n",
-                            .CarriageReturn => "\\r",
-                            .Tab => "\\t",
-                        };
-
-                        try writer.writeAll(s);
-                    },
-                }
-            }
-
-            fn beginArray(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll("[");
-            }
-
-            fn endArray(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll("]");
-            }
-
-            fn beginArrayValue(_: *Self, writer: Writer, first: bool) Writer.Error!void {
-                if (!first)
-                    try writer.writeAll(",");
-            }
-
-            fn endArrayValue(self: *Self, writer: Writer) Writer.Error!void {
-                _ = self;
-                _ = writer;
-            }
-
-            fn beginObject(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll("{");
-            }
-
-            fn endObject(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll("}");
-            }
-
-            fn beginObjectKey(_: *Self, writer: Writer, first: bool) Writer.Error!void {
-                if (!first)
-                    try writer.writeAll(",");
-            }
-
-            fn endObjectKey(self: *Self, writer: Writer) Writer.Error!void {
-                _ = self;
-                _ = writer;
-            }
-
-            fn beginObjectValue(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll(":");
-            }
-
-            fn endObjectValue(self: *Self, writer: Writer) Writer.Error!void {
-                _ = self;
-                _ = writer;
-            }
-
-            fn writeRawFragment(self: *Self, writer: Writer, value: []const u8) Writer.Error!void {
-                _ = self;
-
-                try writer.writeAll(value);
-            }
-        };
-    };
+    if (start != bytes.len) {
+        try formatter.writeStringFragment(writer, bytes[start..]);
+    }
 }
 
-pub fn PrettyFormatter(comptime Writer: type) type {
-    return struct {
-        current: usize,
-        has_value: bool,
-        indent: []const u8,
-
-        const Self = @This();
-
-        /// Construct a pretty printer formatter that defaults to using two
-        /// spaces for indentation.
-        pub fn init() Self {
-            return initWithIndent("  ");
-        }
-
-        /// Construct a pretty printer formatter that uses the `indent` string
-        /// for indentation.
-        pub fn initWithIndent(indent: []const u8) Self {
-            return .{
-                .current = 0,
-                .has_value = false,
-                .indent = indent,
-            };
-        }
-
-        fn doIndent(self: *Self, writer: anytype) Writer.Error!void {
-            var i: usize = 0;
-
-            while (i < self.current) : (i += 1) {
-                try writer.writeAll(self.indent);
-            }
-        }
-
-        pub const F = Formatter(
-            *Self,
-            Writer,
-            _F.writeNull,
-            _F.writeBool,
-            _F.writeInt,
-            _F.writeFloat,
-            _F.writeNumberString,
-            _F.beginString,
-            _F.endString,
-            _F.writeStringFragment,
-            _F.writeCharEscape,
-            _F.beginArray,
-            _F.endArray,
-            _F.beginArrayValue,
-            _F.endArrayValue,
-            _F.beginObject,
-            _F.endObject,
-            _F.beginObjectKey,
-            _F.endObjectKey,
-            _F.beginObjectValue,
-            _F.endObjectValue,
-            _F.writeRawFragment,
-        );
-
-        pub fn formatter(self: *Self) F {
-            return .{ .context = self };
-        }
-
-        const _F = struct {
-            fn writeNull(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll("null");
-            }
-
-            fn writeBool(_: *Self, writer: Writer, value: bool) Writer.Error!void {
-                try writer.writeAll(if (value) "true" else "false");
-            }
-
-            fn writeInt(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
-                var buf: [100]u8 = undefined;
-                try writer.writeAll(fmt.bufPrintIntToSlice(&buf, value, 10, .lower, .{}));
-            }
-
-            fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
-                var buf: [512]u8 = undefined;
-                var stream = std.io.fixedBufferStream(&buf);
-
-                fmt.formatFloatDecimal(value, fmt.FormatOptions{}, stream.writer()) catch |err| switch (err) {
-                    error.NoSpaceLeft => unreachable,
-                    else => unreachable, // TODO: handle error
-                };
-
-                // TODO: fix getPos error
-                try writer.writeAll(buf[0 .. stream.getPos() catch unreachable]);
-            }
-
-            fn writeNumberString(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
-                try writer.writeAll(value);
-            }
-
-            fn beginString(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll("\"");
-            }
-
-            fn endString(_: *Self, writer: Writer) Writer.Error!void {
-                try writer.writeAll("\"");
-            }
-
-            fn writeStringFragment(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
-                try writer.writeAll(value);
-            }
-
-            /// TODO: Figure out what to do on ascii control
-            fn writeCharEscape(_: *Self, writer: Writer, value: CharEscape) Writer.Error!void {
-                switch (value) {
-                    .ascii => |v| {
-                        const HEX_DIGITS: []const u8 = "0123456789abcdef";
-                        const s = &[_]u8{
-                            '\\',
-                            'u',
-                            '0',
-                            '0',
-                            HEX_DIGITS[v >> 4],
-                            HEX_DIGITS[v & 0xF],
-                        };
-
-                        try writer.writeAll(s);
-                    },
-                    .non_ascii => |v| {
-                        const s = switch (v) {
-                            .Quote => "\\\"",
-                            .ReverseSolidus => "\\\\",
-                            .Solidus => "\\/",
-                            .Backspace => "\\",
-                            .FormFeed => "\\f",
-                            .LineFeed => "\\n",
-                            .CarriageReturn => "\\r",
-                            .Tab => "\\t",
-                        };
-
-                        try writer.writeAll(s);
-                    },
-                }
-            }
-
-            fn beginArray(self: *Self, writer: Writer) Writer.Error!void {
-                self.current += 1;
-                self.has_value = false;
-                try writer.writeAll("[");
-            }
-
-            fn endArray(self: *Self, writer: Writer) Writer.Error!void {
-                self.current -= 1;
-
-                if (self.has_value) {
-                    try writer.writeAll("\n");
-                    try self.doIndent(writer);
-                }
-
-                try writer.writeAll("]");
-            }
-
-            fn beginArrayValue(self: *Self, writer: Writer, first: bool) Writer.Error!void {
-                if (first) {
-                    try writer.writeAll("\n");
-                } else {
-                    try writer.writeAll(",\n");
-                }
-
-                try self.doIndent(writer);
-            }
-
-            fn endArrayValue(self: *Self, writer: Writer) Writer.Error!void {
-                _ = writer;
-
-                self.has_value = true;
-            }
-
-            fn beginObject(self: *Self, writer: Writer) Writer.Error!void {
-                self.current += 1;
-                self.has_value = false;
-                try writer.writeAll("{");
-            }
-
-            fn endObject(self: *Self, writer: Writer) Writer.Error!void {
-                self.current -= 1;
-
-                if (self.has_value) {
-                    try writer.writeAll("\n");
-                    try self.doIndent(writer);
-                }
-
-                try writer.writeAll("}");
-            }
-
-            fn beginObjectKey(self: *Self, writer: Writer, first: bool) Writer.Error!void {
-                if (first) {
-                    try writer.writeAll("\n");
-                } else {
-                    try writer.writeAll(",\n");
-                }
-
-                try self.doIndent(writer);
-            }
-
-            fn endObjectKey(self: *Self, writer: Writer) Writer.Error!void {
-                _ = self;
-                _ = writer;
-            }
-
-            fn beginObjectValue(self: *Self, writer: Writer) Writer.Error!void {
-                _ = self;
-
-                try writer.writeAll(": ");
-            }
-
-            fn endObjectValue(self: *Self, writer: Writer) Writer.Error!void {
-                _ = writer;
-
-                self.has_value = true;
-            }
-
-            fn writeRawFragment(self: *Self, writer: Writer, value: []const u8) Writer.Error!void {
-                _ = self;
-
-                try writer.writeAll(value);
-            }
-        };
-    };
-}
+const PrettyFormatter = @import("formatters/pretty.zig").Formatter;
 
 test "formatter" {
     var stdout = std.io.getStdOut();
     const writer = stdout.writer();
 
     var compact_formatter = PrettyFormatter(@TypeOf(writer)).init();
-    const formatter = compact_formatter.formatter();
+    const formatter = compact_formatter.getFormatter();
 
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
