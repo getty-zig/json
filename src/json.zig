@@ -525,7 +525,7 @@ pub fn PrettyFormatter(comptime Writer: type) type {
     return struct {
         current: usize,
         has_value: bool,
-        indentation: []const u8,
+        indent: []const u8,
 
         const Self = @This();
 
@@ -537,19 +537,19 @@ pub fn PrettyFormatter(comptime Writer: type) type {
 
         /// Construct a pretty printer formatter that uses the `indent` string
         /// for indentation.
-        pub fn initWithIndent(indentation: []const u8) Self {
+        pub fn initWithIndent(indent: []const u8) Self {
             return .{
                 .current = 0,
                 .has_value = false,
-                .indentation = indentation,
+                .indent = indent,
             };
         }
 
-        fn indent(self: *Self, writer: anytype) Writer.Error!void {
+        fn doIndent(self: *Self, writer: anytype) Writer.Error!void {
             var i: usize = 0;
 
             while (i < self.current) : (i += 1) {
-                try writer.writeAll(self.indentation);
+                try writer.writeAll(self.indent);
             }
         }
 
@@ -669,7 +669,7 @@ pub fn PrettyFormatter(comptime Writer: type) type {
 
                 if (self.has_value) {
                     try writer.writeAll("\n");
-                    try self.indent(writer);
+                    try self.doIndent(writer);
                 }
 
                 try writer.writeAll("]");
@@ -682,7 +682,7 @@ pub fn PrettyFormatter(comptime Writer: type) type {
                     try writer.writeAll(",\n");
                 }
 
-                try self.indent(writer);
+                try self.doIndent(writer);
             }
 
             fn endArrayValue(self: *Self, writer: Writer) Writer.Error!void {
@@ -702,7 +702,7 @@ pub fn PrettyFormatter(comptime Writer: type) type {
 
                 if (self.has_value) {
                     try writer.writeAll("\n");
-                    try self.indent(writer);
+                    try self.doIndent(writer);
                 }
 
                 try writer.writeAll("}");
@@ -715,7 +715,7 @@ pub fn PrettyFormatter(comptime Writer: type) type {
                     try writer.writeAll(",\n");
                 }
 
-                try self.indent(writer);
+                try self.doIndent(writer);
             }
 
             fn endObjectKey(self: *Self, writer: Writer) Writer.Error!void {
