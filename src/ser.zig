@@ -102,11 +102,10 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
                 if (length) |_| {
                     //self.formatter.endArray(self.writer) catch return Error.Io;
 
-                    //return Map;
+                    // TODO: We should be returning a Compound::Map, whatever that is.
                     return self.getSequence();
                 } else {
                     return self.getSequence();
-                    //return Map;
                 }
             }
 
