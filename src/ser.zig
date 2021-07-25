@@ -237,7 +237,9 @@ pub fn Map(comptime W: type, comptime F: type) type {
 }
 
 test "toWriter - Array" {
-    try t([_]i8{ 1, 2, 3 }, "[1,2,3]");
+    try t([_]i8{}, "[]");
+    try t([_]i8{1}, "[1]");
+    try t([_]i8{ 1, 2 }, "[1,2]");
 }
 
 test "toWriter - Bool" {
