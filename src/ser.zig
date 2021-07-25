@@ -2,6 +2,7 @@ const getty = @import("getty");
 const std = @import("std");
 
 const formatEscapedString = @import("formatter.zig").formatEscapedString;
+const CompactFormatter = @import("formatters/compact.zig").Formatter;
 
 pub fn Serializer(comptime W: type, comptime F: type) type {
     return struct {
@@ -65,7 +66,7 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
         };
 
         //pub const Map = SM;
-        pub const Sequence = SSE;
+        pub const Sequence = Map(W, F);
         pub const Struct = SST;
         //pub const Tuple = ST;
 
@@ -101,14 +102,14 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             fn serializeSequence(self: *Self, length: ?usize) Error!Sequence {
                 self.formatter.beginArray(self.writer) catch return Error.Io;
 
-                if (length) |_| {
-                    //self.formatter.endArray(self.writer) catch return Error.Io;
-
-                    // TODO: We should be returning a Compound::Map, whatever that is.
-                    return self.getSequence();
-                } else {
-                    return self.getSequence();
+                if (length) |l| {
+                    if (l == 0) {
+                        self.formatter.endArray(self.writer) catch return Error.Io;
+                        return Map(W, F){ .ser = self, .state = .Empty };
+                    }
                 }
+
+                return Map(W, F){ .ser = self, .state = .First };
             }
 
             /// Implements `stringFn` for `getty.ser.Serializer`.
@@ -128,40 +129,6 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             /// Implements `variantFn` for `getty.ser.Serializer`.
             fn serializeVariant(self: *Self, value: anytype) Error!Ok {
                 serializeString(self, @tagName(value)) catch return Error.Io;
-            }
-        };
-
-        /// Implements `getty.ser.SerializeSequence`.
-        pub const SSE = getty.ser.SerializeSequence(
-            *Self,
-            Ok,
-            Error,
-            _SSE.serializeElement,
-            _SSE.end,
-        );
-
-        pub fn getSequence(self: *Self) SSE {
-            return .{ .context = self };
-        }
-
-        const _SSE = struct {
-            /// Implements `elementFn` for `getty.ser.SerializeSequence`.
-            ///
-            /// FIXME: Pretty sure the _written usage is wrong for elements and
-            /// fields.
-            fn serializeElement(self: *Self, value: anytype) Error!void {
-                if (self._written > 0) {
-                    self.writer.writeByte(',') catch return Error.Io;
-                }
-
-                self._written += 1;
-
-                getty.ser.serialize(self, value) catch return Error.Io;
-            }
-
-            /// Implements `endFn` for `getty.ser.SerializeSequence`.
-            fn end(self: *Self) Error!Ok {
-                self.writer.writeByte(']') catch return Error.Io;
             }
         };
 
@@ -200,8 +167,6 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
     };
 }
 
-const CompactFormatter = @import("formatters/compact.zig").Formatter;
-
 /// Serializes a value using the JSON serializer into a provided writer.
 pub fn toWriter(writer: anytype, value: anytype) !void {
     var cf = CompactFormatter(@TypeOf(writer)){};
@@ -220,6 +185,55 @@ pub fn toString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
 
     try toWriter(array_list.writer(), value);
     return array_list.toOwnedSlice();
+}
+
+pub const State = enum {
+    Empty,
+    First,
+    Rest,
+};
+
+pub fn Map(comptime W: type, comptime F: type) type {
+    const S = Serializer(W, F);
+
+    return struct {
+        ser: *S,
+        state: State,
+
+        const Self = @This();
+
+        pub const SSE = getty.ser.SerializeSequence(
+            *Self,
+            S.Ok,
+            S.Error,
+            _SSE.serializeElement,
+            _SSE.end,
+        );
+
+        pub fn getSequence(self: *Self) SSE {
+            return .{ .context = self };
+        }
+
+        const _SSE = struct {
+            /// Implements `elementFn` for `getty.ser.SerializeSequence`.
+            fn serializeElement(self: *Self, value: anytype) S.Error!S.Ok {
+                self.ser.formatter.beginArrayValue(self.ser.writer, self.state == .First) catch return S.Error.Io;
+
+                self.state = .Rest;
+                getty.ser.serialize(self.ser, value) catch return S.Error.Io;
+
+                self.ser.formatter.endArrayValue(self.ser.writer) catch return S.Error.Io;
+            }
+
+            /// Implements `endFn` for `getty.ser.SerializeSequence`.
+            fn end(self: *Self) S.Error!S.Ok {
+                switch (self.state) {
+                    .Empty => {},
+                    else => self.ser.formatter.endArray(self.ser.writer) catch return S.Error.Io,
+                }
+            }
+        };
+    };
 }
 
 test "toWriter - Array" {
