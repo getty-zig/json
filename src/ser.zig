@@ -277,7 +277,7 @@ pub fn Map(comptime W: type, comptime F: type) type {
 /// Serializes a value using the JSON serializer into a provided writer.
 pub fn toWriter(writer: anytype, value: anytype) !void {
     var cf = CompactFormatter(@TypeOf(writer)){};
-    const f = cf.getFormatter();
+    const f = cf.interface("formatter");
     var s = Serializer(@TypeOf(writer), @TypeOf(f)).init(writer, f);
 
     try getty.ser.serialize(&s, value);

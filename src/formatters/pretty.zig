@@ -33,36 +33,40 @@ pub fn Formatter(comptime Writer: type) type {
             }
         }
 
-        pub const F = formatter.Formatter(
-            *Self,
-            Writer,
-            _F.writeNull,
-            _F.writeBool,
-            _F.writeInt,
-            _F.writeFloat,
-            _F.writeNumberString,
-            _F.beginString,
-            _F.endString,
-            _F.writeStringFragment,
-            _F.writeCharEscape,
-            _F.beginArray,
-            _F.endArray,
-            _F.beginArrayValue,
-            _F.endArrayValue,
-            _F.beginObject,
-            _F.endObject,
-            _F.beginObjectKey,
-            _F.endObjectKey,
-            _F.beginObjectValue,
-            _F.endObjectValue,
-            _F.writeRawFragment,
-        );
-
-        pub fn getFormatter(self: *Self) F {
+        pub fn interface(self: *Self, comptime name: []const u8) blk: {
+            if (std.mem.eql(u8, name, "formatter")) {
+                break :blk formatter.Formatter(
+                    *Self,
+                    Writer,
+                    _Formatter.writeNull,
+                    _Formatter.writeBool,
+                    _Formatter.writeInt,
+                    _Formatter.writeFloat,
+                    _Formatter.writeNumberString,
+                    _Formatter.beginString,
+                    _Formatter.endString,
+                    _Formatter.writeStringFragment,
+                    _Formatter.writeCharEscape,
+                    _Formatter.beginArray,
+                    _Formatter.endArray,
+                    _Formatter.beginArrayValue,
+                    _Formatter.endArrayValue,
+                    _Formatter.beginObject,
+                    _Formatter.endObject,
+                    _Formatter.beginObjectKey,
+                    _Formatter.endObjectKey,
+                    _Formatter.beginObjectValue,
+                    _Formatter.endObjectValue,
+                    _Formatter.writeRawFragment,
+                );
+            } else {
+                @compileError("Unknown interface name");
+            }
+        } {
             return .{ .context = self };
         }
 
-        const _F = struct {
+        const _Formatter = struct {
             fn writeNull(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("null");
             }
