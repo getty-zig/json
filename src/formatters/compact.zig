@@ -5,8 +5,8 @@ pub fn Formatter(comptime Writer: type) type {
     return struct {
         const Self = @This();
 
-        pub fn interface(self: *Self, comptime name: []const u8) blk: {
-            if (std.mem.eql(u8, name, "formatter")) {
+        pub fn interface(self: *Self, comptime iface: []const u8) blk: {
+            if (std.mem.eql(u8, iface, "formatter")) {
                 break :blk formatter.Formatter(
                     *Self,
                     Writer,
