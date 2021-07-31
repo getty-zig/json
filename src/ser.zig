@@ -335,16 +335,13 @@ test "toWriter - String" {
 
 test "toWriter - Struct" {
     const Point = struct { x: i32, y: i32, z: struct { x: bool, y: [3]i8 } };
-    const point = Point{
+
+    try t(struct {}{}, "{}");
+    try t(Point{
         .x = 1,
         .y = 2,
-        .z = .{
-            .x = true,
-            .y = .{ 1, 2, 3 },
-        },
-    };
-
-    try t(point, "{\"x\":1,\"y\":2,\"z\":{\"x\":true,\"y\":[1,2,3]}}");
+        .z = .{ .x = true, .y = .{ 1, 2, 3 } },
+    }, "{\"x\":1,\"y\":2,\"z\":{\"x\":true,\"y\":[1,2,3]}}");
 }
 
 fn t(input: anytype, output: []const u8) !void {
