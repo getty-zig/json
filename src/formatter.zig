@@ -117,7 +117,7 @@ pub fn Formatter(
         }
 
         pub inline fn beginObjectValue(self: Self, writer: Writer) Writer.Error!void {
-            try beginObjectValueFn(self.context, writer, first);
+            try beginObjectValueFn(self.context, writer);
         }
 
         pub inline fn endObjectValue(self: Self, writer: Writer) Writer.Error!void {
