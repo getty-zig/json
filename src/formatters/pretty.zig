@@ -33,6 +33,7 @@ pub fn Formatter(comptime Writer: type) type {
             }
         }
 
+        /// Implements `_formatter.Formatter`.
         pub fn formatter(self: *Self) F {
             return .{ .context = self };
         }

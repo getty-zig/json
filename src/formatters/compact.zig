@@ -5,6 +5,7 @@ pub fn Formatter(comptime Writer: type) type {
     return struct {
         const Self = @This();
 
+        /// Implements `_formatter.Formatter`.
         pub fn formatter(self: *Self) F {
             return .{ .context = self };
         }

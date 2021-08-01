@@ -63,18 +63,14 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
         );
 
         const _S = struct {
-            /// Implements `boolFn` for `getty.ser.Serializer`.
             fn serializeBool(self: *Self, value: bool) Error!Ok {
                 self.formatter.writeBool(self.writer, value) catch return Error.Io;
             }
 
-            /// Implements `intFn` for `getty.ser.Serializer`.
             fn serializeInt(self: *Self, value: anytype) Error!Ok {
                 self.formatter.writeInt(self.writer, value) catch return Error.Io;
             }
 
-            /// Implements `floatFn` for `getty.ser.self`.
-            ///
             /// TODO: Handle Inf for comptime_floats.
             fn serializeFloat(self: *Self, value: anytype) Error!Ok {
                 //if (std.math.isNan(value) or std.math.isInf(value)) {
@@ -85,12 +81,10 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
                 }
             }
 
-            /// Implements `nullFn` for `getty.ser.self`.
             fn serializeNull(self: *Self) Error!Ok {
                 self.formatter.writeNull(self.writer) catch return Error.Io;
             }
 
-            /// Implements `sequenceFn` for `getty.ser.self`.
             fn serializeSequence(self: *Self, length: ?usize) Error!Map(W, F) {
                 self.formatter.beginArray(self.writer) catch return Error.Io;
 
@@ -104,14 +98,12 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
                 return Map(W, F){ .ser = self, .state = .First };
             }
 
-            /// Implements `stringFn` for `getty.ser.self`.
             fn serializeString(self: *Self, value: anytype) Error!Ok {
                 self.formatter.beginString(self.writer) catch return Error.Io;
                 formatEscapedString(self.writer, self.formatter, value) catch return Error.Io;
                 self.formatter.endString(self.writer) catch return Error.Io;
             }
 
-            /// Implements `mapFn` for `getty.ser.self`.
             fn serializeMap(self: *Self, length: ?usize) Error!Map(W, F) {
                 self.formatter.beginObject(self.writer) catch return Error.Io;
 
@@ -125,14 +117,12 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
                 return Map(W, F){ .ser = self, .state = .First };
             }
 
-            /// Implements `structFn` for `getty.ser.self`.
             fn serializeStruct(self: *Self, name: []const u8, length: usize) Error!Map(W, F) {
                 _ = name;
 
                 return serializeMap(self, length);
             }
 
-            /// Implements `variantFn` for `getty.ser.self`.
             fn serializeVariant(self: *Self, value: anytype) Error!Ok {
                 serializeString(self, @tagName(value)) catch return Error.Io;
             }
@@ -186,7 +176,6 @@ pub fn Map(comptime W: type, comptime F: type) type {
         );
 
         const _M = struct {
-            /// Implements `keyFn` for `getty.ser.Map`.
             fn serializeKey(self: *Self, key: anytype) S.Error!void {
                 self.ser.formatter.beginObjectKey(self.ser.writer, self.state == .First) catch return S.Error.Io;
                 self.state = .Rest;
@@ -196,20 +185,17 @@ pub fn Map(comptime W: type, comptime F: type) type {
                 self.ser.formatter.endObjectKey(self.ser.writer) catch return S.Error.Io;
             }
 
-            /// Implements `valueFn` for `getty.ser.Map`.
             fn serializeValue(self: *Self, value: anytype) S.Error!void {
                 self.ser.formatter.beginObjectValue(self.ser.writer) catch return S.Error.Io;
                 getty.ser.serialize(&self.ser.serializer(), value) catch return S.Error.Io;
                 self.ser.formatter.endObjectValue(self.ser.writer) catch return S.Error.Io;
             }
 
-            /// Implements `entryFn` for `getty.ser.Map`.
             fn serializeEntry(self: *Self, key: anytype, value: anytype) S.Error!void {
                 try serializeKey(self, key);
                 try serializeValue(self, value);
             }
 
-            /// Implements `endFn` for `getty.ser.Map`.
             fn end(self: *Self) S.Error!S.Ok {
                 switch (self.state) {
                     .Empty => {},
@@ -232,7 +218,6 @@ pub fn Map(comptime W: type, comptime F: type) type {
         );
 
         const _SE = struct {
-            /// Implements `elementFn` for `getty.ser.Sequence`.
             fn serializeElement(self: *Self, value: anytype) S.Error!S.Ok {
                 self.ser.formatter.beginArrayValue(self.ser.writer, self.state == .First) catch return S.Error.Io;
                 self.state = .Rest;
@@ -240,7 +225,6 @@ pub fn Map(comptime W: type, comptime F: type) type {
                 self.ser.formatter.endArrayValue(self.ser.writer) catch return S.Error.Io;
             }
 
-            /// Implements `endFn` for `getty.ser.Sequence`.
             fn end(self: *Self) S.Error!S.Ok {
                 switch (self.state) {
                     .Empty => {},
@@ -263,13 +247,11 @@ pub fn Map(comptime W: type, comptime F: type) type {
         );
 
         const _ST = struct {
-            /// Implements `fieldFn` for `getty.ser.Struct`.
             fn serializeField(self: *Self, comptime key: []const u8, value: anytype) S.Error!void {
                 const m = self.map();
                 try m.serializeEntry(key, value);
             }
 
-            /// Implements `endFn` for `getty.ser.Struct`.
             fn end(self: *Self) S.Error!S.Ok {
                 const m = self.map();
                 try m.end();
