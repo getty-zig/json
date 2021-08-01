@@ -174,14 +174,14 @@ pub fn Map(comptime W: type, comptime F: type) type {
                         map.state = .Rest;
                         // TODO: serde-json passes in a MapKeySerializer here instead
                         // of map. This works though, so should we change it?
-                        getty.ser.serialize(map.ser, key) catch return S.Error.Io;
+                        getty.ser.serialize(&map.ser.interface("serializer"), key) catch return S.Error.Io;
                         map.ser.formatter.endObjectKey(map.ser.writer) catch return S.Error.Io;
                     }
 
                     /// Implements `valueFn` for `getty.ser.SerializeMap`.
                     fn serializeValue(map: *Self, value: anytype) S.Error!void {
                         map.ser.formatter.beginObjectValue(map.ser.writer) catch return S.Error.Io;
-                        getty.ser.serialize(map.ser, value) catch return S.Error.Io;
+                        getty.ser.serialize(&map.ser.interface("serializer"), value) catch return S.Error.Io;
                         map.ser.formatter.endObjectValue(map.ser.writer) catch return S.Error.Io;
                     }
 
@@ -215,7 +215,7 @@ pub fn Map(comptime W: type, comptime F: type) type {
                     fn serializeElement(seq: *Self, value: anytype) S.Error!S.Ok {
                         seq.ser.formatter.beginArrayValue(seq.ser.writer, seq.state == .First) catch return S.Error.Io;
                         seq.state = .Rest;
-                        getty.ser.serialize(seq.ser, value) catch return S.Error.Io;
+                        getty.ser.serialize(&seq.ser.interface("serializer"), value) catch return S.Error.Io;
                         seq.ser.formatter.endArrayValue(seq.ser.writer) catch return S.Error.Io;
                     }
 
@@ -270,7 +270,8 @@ pub fn Map(comptime W: type, comptime F: type) type {
 pub fn toWriter(writer: anytype, value: anytype) !void {
     var cf = CompactFormatter(@TypeOf(writer)){};
     const f = cf.interface("formatter");
-    var s = Serializer(@TypeOf(writer), @TypeOf(f)).init(writer, f);
+    var serializer = Serializer(@TypeOf(writer), @TypeOf(f)).init(writer, f);
+    const s = serializer.interface("serializer");
 
     try getty.ser.serialize(&s, value);
 }
