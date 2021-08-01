@@ -18,10 +18,16 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             };
         }
 
-        pub fn interface(self: *Self, comptime iface: []const u8) blk: {
-            if (std.mem.eql(u8, iface, "map")) {
-                break :blk Map(W, F);
-            } else if (std.mem.eql(u8, iface, "serializer")) {
+        const Interface = enum {
+            Map,
+            Serializer,
+            Sequence,
+            Struct,
+        };
+
+        pub fn interface(self: *Self, comptime iface: Interface) switch (iface) {
+            .Map, .Sequence, .Struct => Map(W, F),
+            .Serializer => blk: {
                 const Impl = struct {
                     /// Implements `boolFn` for `getty.ser.Serializer`.
                     fn serializeBool(serializer: *Self, value: bool) Error!Ok {
@@ -116,13 +122,7 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
                     Impl.serializeStruct,
                     Impl.serializeVariant,
                 );
-            } else if (std.mem.eql(u8, iface, "sequence")) {
-                break :blk Map(W, F);
-            } else if (std.mem.eql(u8, iface, "struct")) {
-                break :blk Map(W, F);
-            } else {
-                @compileError("Unknown interface name");
-            }
+            },
         } {
             return .{ .context = self };
         }
@@ -165,8 +165,14 @@ pub fn Map(comptime W: type, comptime F: type) type {
 
         const Self = @This();
 
-        pub fn interface(self: *Self, comptime iface: []const u8) blk: {
-            if (std.mem.eql(u8, iface, "map")) {
+        const Interface = enum {
+            Map,
+            Sequence,
+            Struct,
+        };
+
+        pub fn interface(self: *Self, comptime iface: Interface) switch (iface) {
+            .Map => blk: {
                 const Impl = struct {
                     /// Implements `keyFn` for `getty.ser.SerializeMap`.
                     fn serializeKey(map: *Self, key: anytype) S.Error!void {
@@ -174,14 +180,14 @@ pub fn Map(comptime W: type, comptime F: type) type {
                         map.state = .Rest;
                         // TODO: serde-json passes in a MapKeySerializer here instead
                         // of map. This works though, so should we change it?
-                        getty.ser.serialize(&map.ser.interface("serializer"), key) catch return S.Error.Io;
+                        getty.ser.serialize(&map.ser.interface(.Serializer), key) catch return S.Error.Io;
                         map.ser.formatter.endObjectKey(map.ser.writer) catch return S.Error.Io;
                     }
 
                     /// Implements `valueFn` for `getty.ser.SerializeMap`.
                     fn serializeValue(map: *Self, value: anytype) S.Error!void {
                         map.ser.formatter.beginObjectValue(map.ser.writer) catch return S.Error.Io;
-                        getty.ser.serialize(&map.ser.interface("serializer"), value) catch return S.Error.Io;
+                        getty.ser.serialize(&map.ser.interface(.Serializer), value) catch return S.Error.Io;
                         map.ser.formatter.endObjectValue(map.ser.writer) catch return S.Error.Io;
                     }
 
@@ -209,13 +215,14 @@ pub fn Map(comptime W: type, comptime F: type) type {
                     Impl.serializeEntry,
                     Impl.end,
                 );
-            } else if (std.mem.eql(u8, iface, "sequence")) {
+            },
+            .Sequence => blk: {
                 const Impl = struct {
                     /// Implements `elementFn` for `getty.ser.SerializeSequence`.
                     fn serializeElement(seq: *Self, value: anytype) S.Error!S.Ok {
                         seq.ser.formatter.beginArrayValue(seq.ser.writer, seq.state == .First) catch return S.Error.Io;
                         seq.state = .Rest;
-                        getty.ser.serialize(&seq.ser.interface("serializer"), value) catch return S.Error.Io;
+                        getty.ser.serialize(&seq.ser.interface(.Serializer), value) catch return S.Error.Io;
                         seq.ser.formatter.endArrayValue(seq.ser.writer) catch return S.Error.Io;
                     }
 
@@ -235,17 +242,18 @@ pub fn Map(comptime W: type, comptime F: type) type {
                     Impl.serializeElement,
                     Impl.end,
                 );
-            } else if (std.mem.eql(u8, iface, "struct")) {
+            },
+            .Struct => blk: {
                 const Impl = struct {
                     /// Implements `fieldFn` for `getty.ser.SerializeStruct`.
                     fn serializeField(s: *Self, comptime key: []const u8, value: anytype) S.Error!void {
-                        const map = s.interface("map");
+                        const map = s.interface(.Map);
                         try map.serializeEntry(key, value);
                     }
 
                     /// Implements `endFn` for `getty.ser.SerializeStruct`.
                     fn end(s: *Self) S.Error!S.Ok {
-                        const map = s.interface("map");
+                        const map = s.interface(.Map);
                         try map.end();
                     }
                 };
@@ -257,9 +265,7 @@ pub fn Map(comptime W: type, comptime F: type) type {
                     Impl.serializeField,
                     Impl.end,
                 );
-            } else {
-                @compileError("Unknown interface name");
-            }
+            },
         } {
             return .{ .context = self };
         }
@@ -268,10 +274,11 @@ pub fn Map(comptime W: type, comptime F: type) type {
 
 /// Serializes a value using the JSON serializer into a provided writer.
 pub fn toWriter(writer: anytype, value: anytype) !void {
-    var cf = CompactFormatter(@TypeOf(writer)){};
-    const f = cf.interface("formatter");
+    var formatter = CompactFormatter(@TypeOf(writer)){};
+    const f = formatter.interface(.Formatter);
+
     var serializer = Serializer(@TypeOf(writer), @TypeOf(f)).init(writer, f);
-    const s = serializer.interface("serializer");
+    const s = serializer.interface(.Serializer);
 
     try getty.ser.serialize(&s, value);
 }

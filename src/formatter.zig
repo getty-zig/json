@@ -240,8 +240,8 @@ test "formatter" {
     var stdout = std.io.getStdOut();
     const writer = stdout.writer();
 
-    var compact_formatter = PrettyFormatter(@TypeOf(writer)).init();
-    const formatter = compact_formatter.interface("formatter");
+    var pretty_formatter = PrettyFormatter(@TypeOf(writer)).init();
+    const formatter = pretty_formatter.interface(.Formatter);
 
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
