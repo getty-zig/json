@@ -18,114 +18,116 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             };
         }
 
-        const Interface = enum {
-            Map,
-            Serializer,
-            Sequence,
-            Struct,
-        };
-
-        pub fn interface(self: *Self, comptime iface: Interface) switch (iface) {
-            .Map, .Sequence, .Struct => Map(W, F),
-            .Serializer => blk: {
-                const Impl = struct {
-                    /// Implements `boolFn` for `getty.ser.Serializer`.
-                    fn serializeBool(serializer: *Self, value: bool) Error!Ok {
-                        serializer.formatter.writeBool(serializer.writer, value) catch return Error.Io;
-                    }
-
-                    /// Implements `intFn` for `getty.ser.Serializer`.
-                    fn serializeInt(serializer: *Self, value: anytype) Error!Ok {
-                        serializer.formatter.writeInt(serializer.writer, value) catch return Error.Io;
-                    }
-
-                    /// Implements `floatFn` for `getty.ser.Serializer`.
-                    ///
-                    /// TODO: Handle Inf for comptime_floats.
-                    fn serializeFloat(serializer: *Self, value: anytype) Error!Ok {
-                        //if (std.math.isNan(value) or std.math.isInf(value)) {
-                        if (std.math.isNan(value)) {
-                            serializer.formatter.writeNull(serializer.writer) catch return Error.Io;
-                        } else {
-                            serializer.formatter.writeFloat(serializer.writer, value) catch return Error.Io;
-                        }
-                    }
-
-                    /// Implements `nullFn` for `getty.ser.Serializer`.
-                    fn serializeNull(serializer: *Self) Error!Ok {
-                        serializer.formatter.writeNull(serializer.writer) catch return Error.Io;
-                    }
-
-                    /// Implements `sequenceFn` for `getty.ser.Serializer`.
-                    fn serializeSequence(serializer: *Self, length: ?usize) Error!Map(W, F) {
-                        serializer.formatter.beginArray(serializer.writer) catch return Error.Io;
-
-                        if (length) |l| {
-                            if (l == 0) {
-                                serializer.formatter.endArray(serializer.writer) catch return Error.Io;
-                                return Map(W, F){ .ser = serializer, .state = .Empty };
-                            }
-                        }
-
-                        return Map(W, F){ .ser = serializer, .state = .First };
-                    }
-
-                    /// Implements `stringFn` for `getty.ser.Serializer`.
-                    fn serializeString(serializer: *Self, value: anytype) Error!Ok {
-                        serializer.formatter.beginString(serializer.writer) catch return Error.Io;
-                        formatEscapedString(serializer.writer, serializer.formatter, value) catch return Error.Io;
-                        serializer.formatter.endString(serializer.writer) catch return Error.Io;
-                    }
-
-                    /// Implements `mapFn` for `getty.ser.Serializer`.
-                    fn serializeMap(serializer: *Self, length: ?usize) Error!Map(W, F) {
-                        serializer.formatter.beginObject(serializer.writer) catch return Error.Io;
-
-                        if (length) |l| {
-                            if (l == 0) {
-                                serializer.formatter.endObject(serializer.writer) catch return Error.Io;
-                                return Map(W, F){ .ser = serializer, .state = .Empty };
-                            }
-                        }
-
-                        return Map(W, F){ .ser = serializer, .state = .First };
-                    }
-
-                    /// Implements `structFn` for `getty.ser.Serializer`.
-                    fn serializeStruct(serializer: *Self, name: []const u8, length: usize) Error!Map(W, F) {
-                        _ = name;
-
-                        return serializeMap(serializer, length);
-                    }
-
-                    /// Implements `variantFn` for `getty.ser.Serializer`.
-                    fn serializeVariant(serializer: *Self, value: anytype) Error!Ok {
-                        serializeString(serializer, @tagName(value)) catch return Error.Io;
-                    }
-                };
-
-                break :blk getty.ser.Serializer(
-                    *Self,
-                    Ok,
-                    Error,
-                    Map(W, F),
-                    Map(W, F),
-                    Map(W, F),
-                    //Tuple,
-                    Impl.serializeBool,
-                    Impl.serializeFloat,
-                    Impl.serializeInt,
-                    Impl.serializeNull,
-                    Impl.serializeSequence,
-                    Impl.serializeString,
-                    Impl.serializeMap,
-                    Impl.serializeStruct,
-                    Impl.serializeVariant,
-                );
-            },
-        } {
+        pub fn map(self: *Self) Map(W, F) {
             return .{ .context = self };
         }
+
+        pub fn sequence(self: *Self) Map(W, F) {
+            return .{ .context = self };
+        }
+
+        pub fn structure(self: *Self) Map(W, F) {
+            return .{ .context = self };
+        }
+
+        const S = getty.ser.Serializer(
+            *Self,
+            Ok,
+            Error,
+            Map(W, F),
+            Map(W, F),
+            Map(W, F),
+            //Tuple,
+            _S.serializeBool,
+            _S.serializeFloat,
+            _S.serializeInt,
+            _S.serializeNull,
+            _S.serializeSequence,
+            _S.serializeString,
+            _S.serializeMap,
+            _S.serializeStruct,
+            _S.serializeVariant,
+        );
+
+        pub fn serializer(self: *Self) S {
+            return .{ .context = self };
+        }
+
+        const _S = struct {
+            /// Implements `boolFn` for `getty.ser.Serializer`.
+            fn serializeBool(self: *Self, value: bool) Error!Ok {
+                self.formatter.writeBool(self.writer, value) catch return Error.Io;
+            }
+
+            /// Implements `intFn` for `getty.ser.Serializer`.
+            fn serializeInt(self: *Self, value: anytype) Error!Ok {
+                self.formatter.writeInt(self.writer, value) catch return Error.Io;
+            }
+
+            /// Implements `floatFn` for `getty.ser.self`.
+            ///
+            /// TODO: Handle Inf for comptime_floats.
+            fn serializeFloat(self: *Self, value: anytype) Error!Ok {
+                //if (std.math.isNan(value) or std.math.isInf(value)) {
+                if (std.math.isNan(value)) {
+                    self.formatter.writeNull(self.writer) catch return Error.Io;
+                } else {
+                    self.formatter.writeFloat(self.writer, value) catch return Error.Io;
+                }
+            }
+
+            /// Implements `nullFn` for `getty.ser.self`.
+            fn serializeNull(self: *Self) Error!Ok {
+                self.formatter.writeNull(self.writer) catch return Error.Io;
+            }
+
+            /// Implements `sequenceFn` for `getty.ser.self`.
+            fn serializeSequence(self: *Self, length: ?usize) Error!Map(W, F) {
+                self.formatter.beginArray(self.writer) catch return Error.Io;
+
+                if (length) |l| {
+                    if (l == 0) {
+                        self.formatter.endArray(self.writer) catch return Error.Io;
+                        return Map(W, F){ .ser = self, .state = .Empty };
+                    }
+                }
+
+                return Map(W, F){ .ser = self, .state = .First };
+            }
+
+            /// Implements `stringFn` for `getty.ser.self`.
+            fn serializeString(self: *Self, value: anytype) Error!Ok {
+                self.formatter.beginString(self.writer) catch return Error.Io;
+                formatEscapedString(self.writer, self.formatter, value) catch return Error.Io;
+                self.formatter.endString(self.writer) catch return Error.Io;
+            }
+
+            /// Implements `mapFn` for `getty.ser.self`.
+            fn serializeMap(self: *Self, length: ?usize) Error!Map(W, F) {
+                self.formatter.beginObject(self.writer) catch return Error.Io;
+
+                if (length) |l| {
+                    if (l == 0) {
+                        self.formatter.endObject(self.writer) catch return Error.Io;
+                        return Map(W, F){ .ser = self, .state = .Empty };
+                    }
+                }
+
+                return Map(W, F){ .ser = self, .state = .First };
+            }
+
+            /// Implements `structFn` for `getty.ser.self`.
+            fn serializeStruct(self: *Self, name: []const u8, length: usize) Error!Map(W, F) {
+                _ = name;
+
+                return serializeMap(self, length);
+            }
+
+            /// Implements `variantFn` for `getty.ser.self`.
+            fn serializeVariant(self: *Self, value: anytype) Error!Ok {
+                serializeString(self, @tagName(value)) catch return Error.Io;
+            }
+        };
 
         pub const Ok = void;
         pub const Error = error{
@@ -165,120 +167,118 @@ pub fn Map(comptime W: type, comptime F: type) type {
 
         const Self = @This();
 
-        const Interface = enum {
-            Map,
-            Sequence,
-            Struct,
-        };
-
-        pub fn interface(self: *Self, comptime iface: Interface) switch (iface) {
-            .Map => blk: {
-                const Impl = struct {
-                    /// Implements `keyFn` for `getty.ser.SerializeMap`.
-                    fn serializeKey(map: *Self, key: anytype) S.Error!void {
-                        map.ser.formatter.beginObjectKey(map.ser.writer, map.state == .First) catch return S.Error.Io;
-                        map.state = .Rest;
-                        // TODO: serde-json passes in a MapKeySerializer here instead
-                        // of map. This works though, so should we change it?
-                        getty.ser.serialize(&map.ser.interface(.Serializer), key) catch return S.Error.Io;
-                        map.ser.formatter.endObjectKey(map.ser.writer) catch return S.Error.Io;
-                    }
-
-                    /// Implements `valueFn` for `getty.ser.SerializeMap`.
-                    fn serializeValue(map: *Self, value: anytype) S.Error!void {
-                        map.ser.formatter.beginObjectValue(map.ser.writer) catch return S.Error.Io;
-                        getty.ser.serialize(&map.ser.interface(.Serializer), value) catch return S.Error.Io;
-                        map.ser.formatter.endObjectValue(map.ser.writer) catch return S.Error.Io;
-                    }
-
-                    /// Implements `entryFn` for `getty.ser.SerializeMap`.
-                    fn serializeEntry(map: *Self, key: anytype, value: anytype) S.Error!void {
-                        try serializeKey(map, key);
-                        try serializeValue(map, value);
-                    }
-
-                    /// Implements `endFn` for `getty.ser.SerializeMap`.
-                    fn end(map: *Self) S.Error!S.Ok {
-                        switch (map.state) {
-                            .Empty => {},
-                            else => map.ser.formatter.endObject(map.ser.writer) catch return S.Error.Io,
-                        }
-                    }
-                };
-
-                break :blk getty.ser.SerializeMap(
-                    *Self,
-                    S.Ok,
-                    S.Error,
-                    Impl.serializeKey,
-                    Impl.serializeValue,
-                    Impl.serializeEntry,
-                    Impl.end,
-                );
-            },
-            .Sequence => blk: {
-                const Impl = struct {
-                    /// Implements `elementFn` for `getty.ser.SerializeSequence`.
-                    fn serializeElement(seq: *Self, value: anytype) S.Error!S.Ok {
-                        seq.ser.formatter.beginArrayValue(seq.ser.writer, seq.state == .First) catch return S.Error.Io;
-                        seq.state = .Rest;
-                        getty.ser.serialize(&seq.ser.interface(.Serializer), value) catch return S.Error.Io;
-                        seq.ser.formatter.endArrayValue(seq.ser.writer) catch return S.Error.Io;
-                    }
-
-                    /// Implements `endFn` for `getty.ser.SerializeSequence`.
-                    fn end(seq: *Self) S.Error!S.Ok {
-                        switch (seq.state) {
-                            .Empty => {},
-                            else => seq.ser.formatter.endArray(seq.ser.writer) catch return S.Error.Io,
-                        }
-                    }
-                };
-
-                break :blk getty.ser.SerializeSequence(
-                    *Self,
-                    S.Ok,
-                    S.Error,
-                    Impl.serializeElement,
-                    Impl.end,
-                );
-            },
-            .Struct => blk: {
-                const Impl = struct {
-                    /// Implements `fieldFn` for `getty.ser.SerializeStruct`.
-                    fn serializeField(s: *Self, comptime key: []const u8, value: anytype) S.Error!void {
-                        const map = s.interface(.Map);
-                        try map.serializeEntry(key, value);
-                    }
-
-                    /// Implements `endFn` for `getty.ser.SerializeStruct`.
-                    fn end(s: *Self) S.Error!S.Ok {
-                        const map = s.interface(.Map);
-                        try map.end();
-                    }
-                };
-
-                break :blk getty.ser.SerializeStruct(
-                    *Self,
-                    S.Ok,
-                    S.Error,
-                    Impl.serializeField,
-                    Impl.end,
-                );
-            },
-        } {
+        pub fn map(self: *Self) M {
             return .{ .context = self };
         }
+
+        const M = getty.ser.SerializeMap(
+            *Self,
+            S.Ok,
+            S.Error,
+            _M.serializeKey,
+            _M.serializeValue,
+            _M.serializeEntry,
+            _M.end,
+        );
+
+        const _M = struct {
+            /// Implements `keyFn` for `getty.ser.SerializeMap`.
+            fn serializeKey(self: *Self, key: anytype) S.Error!void {
+                self.ser.formatter.beginObjectKey(self.ser.writer, self.state == .First) catch return S.Error.Io;
+                self.state = .Rest;
+                // TODO: serde-json passes in a MapKeySerializer here instead
+                // of self. This works though, so should we change it?
+                getty.ser.serialize(&self.ser.serializer(), key) catch return S.Error.Io;
+                self.ser.formatter.endObjectKey(self.ser.writer) catch return S.Error.Io;
+            }
+
+            /// Implements `valueFn` for `getty.ser.SerializeMap`.
+            fn serializeValue(self: *Self, value: anytype) S.Error!void {
+                self.ser.formatter.beginObjectValue(self.ser.writer) catch return S.Error.Io;
+                getty.ser.serialize(&self.ser.serializer(), value) catch return S.Error.Io;
+                self.ser.formatter.endObjectValue(self.ser.writer) catch return S.Error.Io;
+            }
+
+            /// Implements `entryFn` for `getty.ser.SerializeMap`.
+            fn serializeEntry(self: *Self, key: anytype, value: anytype) S.Error!void {
+                try serializeKey(self, key);
+                try serializeValue(self, value);
+            }
+
+            /// Implements `endFn` for `getty.ser.SerializeMap`.
+            fn end(self: *Self) S.Error!S.Ok {
+                switch (self.state) {
+                    .Empty => {},
+                    else => self.ser.formatter.endObject(self.ser.writer) catch return S.Error.Io,
+                }
+            }
+        };
+
+        pub fn sequence(self: *Self) SE {
+            return .{ .context = self };
+        }
+
+        const SE = getty.ser.SerializeSequence(
+            *Self,
+            S.Ok,
+            S.Error,
+            _SE.serializeElement,
+            _SE.end,
+        );
+
+        const _SE = struct {
+            /// Implements `elementFn` for `getty.ser.SerializeSequence`.
+            fn serializeElement(self: *Self, value: anytype) S.Error!S.Ok {
+                self.ser.formatter.beginArrayValue(self.ser.writer, self.state == .First) catch return S.Error.Io;
+                self.state = .Rest;
+                getty.ser.serialize(&self.ser.serializer(), value) catch return S.Error.Io;
+                self.ser.formatter.endArrayValue(self.ser.writer) catch return S.Error.Io;
+            }
+
+            /// Implements `endFn` for `getty.ser.SerializeSequence`.
+            fn end(self: *Self) S.Error!S.Ok {
+                switch (self.state) {
+                    .Empty => {},
+                    else => self.ser.formatter.endArray(self.ser.writer) catch return S.Error.Io,
+                }
+            }
+        };
+
+        pub fn structure(self: *Self) ST {
+            return .{ .context = self };
+        }
+
+        const ST = getty.ser.SerializeStruct(
+            *Self,
+            S.Ok,
+            S.Error,
+            _ST.serializeField,
+            _ST.end,
+        );
+
+        const _ST = struct {
+            /// Implements `fieldFn` for `getty.ser.SerializeStruct`.
+            fn serializeField(self: *Self, comptime key: []const u8, value: anytype) S.Error!void {
+                const m = self.map();
+                try m.serializeEntry(key, value);
+            }
+
+            /// Implements `endFn` for `getty.ser.SerializeStruct`.
+            fn end(self: *Self) S.Error!S.Ok {
+                const m = self.map();
+                try m.end();
+            }
+        };
     };
 }
 
 /// Serializes a value using the JSON serializer into a provided writer.
 pub fn toWriter(writer: anytype, value: anytype) !void {
     var formatter = CompactFormatter(@TypeOf(writer)){};
-    const f = formatter.interface(.Formatter);
+    const f = formatter.formatter();
 
     var serializer = Serializer(@TypeOf(writer), @TypeOf(f)).init(writer, f);
-    const s = serializer.interface(.Serializer);
+    const s = serializer.serializer();
 
     try getty.ser.serialize(&s, value);
 }

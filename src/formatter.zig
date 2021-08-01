@@ -241,7 +241,7 @@ test "formatter" {
     const writer = stdout.writer();
 
     var pretty_formatter = PrettyFormatter(@TypeOf(writer)).init();
-    const formatter = pretty_formatter.interface(.Formatter);
+    const formatter = pretty_formatter.formatter();
 
     try formatter.writeNumberString(writer, "\n");
     try formatter.writeNumberString(writer, "\n");
