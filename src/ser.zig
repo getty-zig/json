@@ -10,6 +10,26 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
         formatter: F,
 
         const Self = @This();
+        const Ok = void;
+        const Error = error{
+            /// Failure to read or write bytes on an IO stream.
+            Io,
+
+            /// Input was not syntactically valid JSON.
+            Syntax,
+
+            /// Input data was semantically incorrect.
+            ///
+            /// For example, JSON containing a number is semantically incorrect
+            /// when the type being deserialized into holds a String.
+            Data,
+
+            /// Prematurely reached the end of the input data.
+            ///
+            /// Callers that process streaming input may be interested in
+            /// retrying the deserialization once more data is available.
+            Eof,
+        };
 
         pub fn init(writer: anytype, formatter: anytype) Self {
             return .{
@@ -127,27 +147,6 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             fn serializeVariant(self: *Self, value: anytype) Error!Ok {
                 serializeString(self, @tagName(value)) catch return Error.Io;
             }
-        };
-
-        pub const Ok = void;
-        pub const Error = error{
-            /// Failure to read or write bytes on an IO stream.
-            Io,
-
-            /// Input was not syntactically valid JSON.
-            Syntax,
-
-            /// Input data was semantically incorrect.
-            ///
-            /// For example, JSON containing a number is semantically incorrect
-            /// when the type being deserialized into holds a String.
-            Data,
-
-            /// Prematurely reached the end of the input data.
-            ///
-            /// Callers that process streaming input may be interested in
-            /// retrying the deserialization once more data is available.
-            Eof,
         };
     };
 }
