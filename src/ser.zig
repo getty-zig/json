@@ -238,7 +238,7 @@ pub fn Map(comptime W: type, comptime F: type) type {
             return .{ .context = self };
         }
 
-        const ST = getty.ser.Struct(
+        const ST = getty.ser.Structure(
             *Self,
             S.Ok,
             S.Error,
