@@ -30,17 +30,17 @@ pub fn Formatter(
         const Self = @This();
 
         /// Writes a `null` value to the specified writer.
-        pub inline fn writeNull(self: Self, writer: Writer) Writer.Error!void {
+        pub fn writeNull(self: Self, writer: Writer) Writer.Error!void {
             try nullFn(self.context, writer);
         }
 
         /// Writes `true` or `false` to the specified writer.
-        pub inline fn writeBool(self: Self, writer: Writer, value: bool) Writer.Error!void {
+        pub fn writeBool(self: Self, writer: Writer, value: bool) Writer.Error!void {
             try boolFn(self.context, writer, value);
         }
 
         /// Writes an integer value to the specified writer.
-        pub inline fn writeInt(self: Self, writer: Writer, value: anytype) Writer.Error!void {
+        pub fn writeInt(self: Self, writer: Writer, value: anytype) Writer.Error!void {
             switch (@typeInfo(@TypeOf(value))) {
                 .ComptimeInt, .Int => try intFn(self.context, writer, value),
                 else => @compileError("expected integer, found " ++ @typeName(@TypeOf(value))),
@@ -48,7 +48,7 @@ pub fn Formatter(
         }
 
         // Writes an floating point value to the specified writer.
-        pub inline fn writeFloat(self: Self, writer: Writer, value: anytype) Writer.Error!void {
+        pub fn writeFloat(self: Self, writer: Writer, value: anytype) Writer.Error!void {
             switch (@typeInfo(@TypeOf(value))) {
                 .ComptimeFloat, .Float => try floatFn(self.context, writer, value),
                 else => @compileError("expected floating point, found " ++ @typeName(@TypeOf(value))),
@@ -58,73 +58,73 @@ pub fn Formatter(
         /// Writes a number that has already been rendered into a string.
         ///
         /// TODO: Check that the string is actually an integer when parsed.
-        pub inline fn writeNumberString(self: Self, writer: Writer, value: []const u8) Writer.Error!void {
+        pub fn writeNumberString(self: Self, writer: Writer, value: []const u8) Writer.Error!void {
             try numberStringFn(self.context, writer, value);
         }
 
         /// Called before each series of `write_string_fragment` and
         /// `write_char_escape`.  Writes a `"` to the specified writer.
-        pub inline fn beginString(self: Self, writer: Writer) Writer.Error!void {
+        pub fn beginString(self: Self, writer: Writer) Writer.Error!void {
             try beginStringFn(self.context, writer);
         }
 
         /// Called after each series of `write_string_fragment` and
         /// `write_char_escape`.  Writes a `"` to the specified writer.
-        pub inline fn endString(self: Self, writer: Writer) Writer.Error!void {
+        pub fn endString(self: Self, writer: Writer) Writer.Error!void {
             try endStringFn(self.context, writer);
         }
 
         /// Writes a string fragment that doesn't need any escaping to the
         /// specified writer.
-        pub inline fn writeStringFragment(self: Self, writer: Writer, value: []const u8) Writer.Error!void {
+        pub fn writeStringFragment(self: Self, writer: Writer, value: []const u8) Writer.Error!void {
             try stringFragmentFn(self.context, writer, value);
         }
 
-        pub inline fn writeCharEscape(self: Self, writer: Writer, value: CharEscape) Writer.Error!void {
+        pub fn writeCharEscape(self: Self, writer: Writer, value: CharEscape) Writer.Error!void {
             try charEscapeFn(self.context, writer, value);
         }
 
-        pub inline fn beginArray(self: Self, writer: Writer) Writer.Error!void {
+        pub fn beginArray(self: Self, writer: Writer) Writer.Error!void {
             try beginArrayFn(self.context, writer);
         }
 
-        pub inline fn endArray(self: Self, writer: Writer) Writer.Error!void {
+        pub fn endArray(self: Self, writer: Writer) Writer.Error!void {
             try endArrayFn(self.context, writer);
         }
 
-        pub inline fn beginArrayValue(self: Self, writer: Writer, first: bool) Writer.Error!void {
+        pub fn beginArrayValue(self: Self, writer: Writer, first: bool) Writer.Error!void {
             try beginArrayValueFn(self.context, writer, first);
         }
 
-        pub inline fn endArrayValue(self: Self, writer: Writer) Writer.Error!void {
+        pub fn endArrayValue(self: Self, writer: Writer) Writer.Error!void {
             try endArrayValueFn(self.context, writer);
         }
 
-        pub inline fn beginObject(self: Self, writer: Writer) Writer.Error!void {
+        pub fn beginObject(self: Self, writer: Writer) Writer.Error!void {
             try beginObjectFn(self.context, writer);
         }
 
-        pub inline fn endObject(self: Self, writer: Writer) Writer.Error!void {
+        pub fn endObject(self: Self, writer: Writer) Writer.Error!void {
             try endObjectFn(self.context, writer);
         }
 
-        pub inline fn beginObjectKey(self: Self, writer: Writer, first: bool) Writer.Error!void {
+        pub fn beginObjectKey(self: Self, writer: Writer, first: bool) Writer.Error!void {
             try beginObjectKeyFn(self.context, writer, first);
         }
 
-        pub inline fn endObjectKey(self: Self, writer: Writer) Writer.Error!void {
+        pub fn endObjectKey(self: Self, writer: Writer) Writer.Error!void {
             try endObjectKeyFn(self.context, writer);
         }
 
-        pub inline fn beginObjectValue(self: Self, writer: Writer) Writer.Error!void {
+        pub fn beginObjectValue(self: Self, writer: Writer) Writer.Error!void {
             try beginObjectValueFn(self.context, writer);
         }
 
-        pub inline fn endObjectValue(self: Self, writer: Writer) Writer.Error!void {
+        pub fn endObjectValue(self: Self, writer: Writer) Writer.Error!void {
             try endObjectValueFn(self.context, writer);
         }
 
-        pub inline fn writeRawFragment(self: Self, writer: Writer, value: []const u8) Writer.Error!void {
+        pub fn writeRawFragment(self: Self, writer: Writer, value: []const u8) Writer.Error!void {
             try rawFragmentFn(self.context, writer, value);
         }
     };
