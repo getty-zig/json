@@ -78,10 +78,8 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
                 self.formatter.writeInt(self.writer, value) catch return Error.Io;
             }
 
-            /// TODO: Handle Inf for comptime_floats.
             fn serializeFloat(self: *Self, value: anytype) Error!Ok {
-                //if (std.math.isNan(value) or std.math.isInf(value)) {
-                if (std.math.isNan(value)) {
+                if (@TypeOf(value) != comptime_float and (std.math.isNan(value) or std.math.isInf(value))) {
                     self.formatter.writeNull(self.writer) catch return Error.Io;
                 } else {
                     self.formatter.writeFloat(self.writer, value) catch return Error.Io;
