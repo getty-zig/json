@@ -37,7 +37,7 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
         const Struct = _Map(W, F);
         const Tuple = _Map(W, F);
 
-        pub fn init(writer: anytype, formatter: anytype) Self {
+        pub fn init(writer: W, formatter: F) Self {
             return .{
                 .writer = writer,
                 .formatter = formatter,
