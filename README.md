@@ -16,24 +16,25 @@
 const std = @import("std");
 const json = @import("json");
 
+const allocator = std.heap.page_allocator;
+const print = std.debug.print;
+
 const Point = struct {
     x: i32,
     y: i32,
 };
 
-pub fn main() anyerror!void {
-    var point = Point{ .x = 1, .y = 2 };
-
+pub fn main() !void {
     // Convert Point to JSON string
-    var serialized = try json.toString(std.heap.page_allocator, point);
-    defer std.heap.page_allocator.free(serialized);
+    const string = try json.toString(allocator, Point{ .x = 1, .y = 2 });
+    defer allocator.free(string);
 
     // Convert JSON string to Point
-    var deserialized = try json.fromString(Point, serialized);
+    const point = try json.fromString(Point, string);
 
     // Print results
-    std.debug.print("{s}\n", .{serialized});   // {"x":1,"y":2}
-    std.debug.print("{s}\n", .{deserialized}); // Point{ .x = 1, .y = 2 }
+    print("{s}\n", .{string}); // {"x":1,"y":2}
+    print("{s}\n", .{point});  // Point{ .x = 1, .y = 2 }
 }
 ```
 
