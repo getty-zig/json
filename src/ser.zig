@@ -175,13 +175,13 @@ fn _Map(comptime W: type, comptime F: type) type {
                 self.state = .Rest;
                 // TODO: serde-json passes in a MapKeySerializer here instead
                 // of self. This works though, so should we change it?
-                getty.ser.serialize(&self.ser.serializer(), key) catch return S.Error.Io;
+                getty.serialize(self.ser.serializer(), key) catch return S.Error.Io;
                 self.ser.formatter.endObjectKey(self.ser.writer) catch return S.Error.Io;
             }
 
             fn serializeValue(self: *Self, value: anytype) S.Error!void {
                 self.ser.formatter.beginObjectValue(self.ser.writer) catch return S.Error.Io;
-                getty.ser.serialize(&self.ser.serializer(), value) catch return S.Error.Io;
+                getty.serialize(self.ser.serializer(), value) catch return S.Error.Io;
                 self.ser.formatter.endObjectValue(self.ser.writer) catch return S.Error.Io;
             }
 
@@ -215,7 +215,7 @@ fn _Map(comptime W: type, comptime F: type) type {
             fn serializeElement(self: *Self, value: anytype) S.Error!S.Ok {
                 self.ser.formatter.beginArrayValue(self.ser.writer, self.state == .First) catch return S.Error.Io;
                 self.state = .Rest;
-                getty.ser.serialize(&self.ser.serializer(), value) catch return S.Error.Io;
+                getty.serialize(self.ser.serializer(), value) catch return S.Error.Io;
                 self.ser.formatter.endArrayValue(self.ser.writer) catch return S.Error.Io;
             }
 
@@ -275,7 +275,7 @@ pub fn toWriter(writer: anytype, value: anytype) !void {
     var serializer = Serializer(@TypeOf(writer), @TypeOf(f)).init(writer, f);
     const s = serializer.serializer();
 
-    try getty.ser.serialize(&s, value);
+    try getty.serialize(s, value);
 }
 
 /// Returns an owned slice of a serialized JSON string.
