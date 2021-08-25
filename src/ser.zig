@@ -336,11 +336,38 @@ test "toWriter - Struct" {
         .x = 1,
         .y = 2,
         .z = .{ .x = true, .y = .{ 1, 2, 3 } },
-    }, "{\"x\":1,\"y\":2,\"z\":{\"x\":true,\"y\":[1,2,3]}}");
+    },
+        \\{"x":1,"y":2,"z":{"x":true,"y":[1,2,3]}}
+    );
 }
 
 test "toWriter - Tuple" {
-    try t(.{ 1, true, "hello" }, "[1,true,\"hello\"]");
+    try t(.{ 1, true, "hello" },
+        \\[1,true,"hello"]
+    );
+}
+
+test "toWriter - ArrayList" {
+    var list = std.ArrayList(i32).init(std.testing.allocator);
+    defer list.deinit();
+
+    try list.append(1);
+    try list.append(2);
+    try list.append(3);
+
+    try t(list, "[1,2,3]");
+}
+
+test "toWriter - HashMap" {
+    var map = std.StringHashMap(i32).init(std.testing.allocator);
+    defer map.deinit();
+
+    try map.put("x", 1);
+    try map.put("y", 2);
+
+    try t(map,
+        \\{"x":1,"y":2}
+    );
 }
 
 fn t(input: anytype, output: []const u8) !void {
