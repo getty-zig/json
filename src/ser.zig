@@ -266,20 +266,44 @@ fn Serialize(S: anytype, comptime Ok: type, comptime Error: type) type {
     };
 }
 
-/// Serializes a value using the JSON serializer into a provided writer.
+/// Serialize the given value as JSON into the given I/O stream.
 pub fn toWriter(writer: anytype, value: anytype) !void {
-    var formatter = CompactFormatter(@TypeOf(writer)){};
-    const f = formatter.formatter();
+    var f = CompactFormatter(@TypeOf(writer)){};
+    var s = Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
-    var serializer = Serializer(@TypeOf(writer), @TypeOf(f)).init(writer, f);
-    const s = serializer.serializer();
-
-    try getty.serialize(s, value);
+    try getty.serialize(s.serializer(), value);
 }
 
-/// Returns an owned slice of a serialized JSON string.
+/// Serialize the given value as pretty-printed JSON into the given I/O stream.
+pub fn toWriterPretty(writer: anytype, value: anytype) !void {
+    var f = PrettyFormatter(@TypeOf(writer)).init();
+    var s = Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
+
+    try getty.serialize(s.serializer(), value);
+}
+
+/// Serialize the given value as JSON into the given I/O stream with the given
+/// visitor.
+pub fn toWriterWith(writer: anytype, value: anytype, visitor: anytype) !void {
+    var f = CompactFormatter(@TypeOf(writer)){};
+    var s = Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
+
+    try getty.serializeWith(s.serializer(), value, visitor);
+}
+
+/// Serialize the given value as pretty-printed JSON into the given I/O stream
+/// with the given visitor.
+pub fn toWriterPrettyWith(writer: anytype, value: anytype, visitor: anytype) !void {
+    var f = PrettyFormatter(@TypeOf(writer)).init();
+    var s = Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
+
+    try getty.serializeWith(s.serializer(), value, visitor);
+}
+
+/// Serialize the given value as a JSON string.
 ///
-/// The caller is responsible for freeing the returned memory.
+/// The serialized string is an owned slice. The caller is responsible for
+/// freeing the returned memory.
 pub fn toString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
     var array_list = std.ArrayList(u8).init(allocator);
     errdefer array_list.deinit();
@@ -288,25 +312,40 @@ pub fn toString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
     return array_list.toOwnedSlice();
 }
 
-/// Serializes a value using the JSON serializer into a provided writer, using the pretty formatter.
-pub fn toPrettyWriter(writer: anytype, value: anytype) !void {
-    var formatter = PrettyFormatter(@TypeOf(writer)).init();
-    const f = formatter.formatter();
-
-    var serializer = Serializer(@TypeOf(writer), @TypeOf(f)).init(writer, f);
-    const s = serializer.serializer();
-
-    try getty.serialize(s, value);
-}
-
-/// Returns an owned slice of a serialized JSON string.
+/// Serialize the given value as a pretty-printed JSON string.
 ///
-/// The caller is responsible for freeing the returned memory.
-pub fn toPretty(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
+/// The serialized string is an owned slice. The caller is responsible for
+/// freeing the returned memory.
+pub fn toStringPretty(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
     var array_list = std.ArrayList(u8).init(allocator);
     errdefer array_list.deinit();
 
-    try toPrettyWriter(array_list.writer(), value);
+    try toWriterPretty(array_list.writer(), value);
+    return array_list.toOwnedSlice();
+}
+
+/// Serialize the given value as a JSON string with the given visitor.
+///
+/// The serialized string is an owned slice. The caller is responsible for
+/// freeing the returned memory.
+pub fn toStringWith(allocator: *std.mem.Allocator, value: anytype, visitor: anytype) ![]const u8 {
+    var array_list = std.ArrayList(u8).init(allocator);
+    errdefer array_list.deinit();
+
+    try toWriterWith(array_list.writer(), value, visitor);
+    return array_list.toOwnedSlice();
+}
+
+/// Serialize the given value as a pretty-printed JSON string with the given
+/// visitor.
+///
+/// The serialized string is an owned slice. The caller is responsible for
+/// freeing the returned memory.
+pub fn toStringPrettyWith(allocator: *std.mem.Allocator, value: anytype, visitor: anytype) ![]const u8 {
+    var array_list = std.ArrayList(u8).init(allocator);
+    errdefer array_list.deinit();
+
+    try toWriterPrettyWith(array_list.writer(), value, visitor);
     return array_list.toOwnedSlice();
 }
 
@@ -377,7 +416,11 @@ test "toWriter - Struct" {
     try t(.compact, struct { x: void }{ .x = {} }, "{}");
     try t(
         .compact,
-        struct { x: i32, y: i32, z: struct { x: bool, y: [3]i8 } }{ .x = 1, .y = 2, .z = .{ .x = true, .y = .{ 1, 2, 3 } } },
+        struct { x: i32, y: i32, z: struct { x: bool, y: [3]i8 } }{
+            .x = 1,
+            .y = 2,
+            .z = .{ .x = true, .y = .{ 1, 2, 3 } },
+        },
         "{\"x\":1,\"y\":2,\"z\":{\"x\":true,\"y\":[1,2,3]}}",
     );
 }
@@ -441,9 +484,9 @@ test "toPrettyWriter - Struct" {
     );
 }
 
-const Formatters = enum { compact, pretty };
+const Format = enum { compact, pretty };
 
-fn t(formatter: Formatters, value: anytype, expected: []const u8) !void {
+fn t(format: Format, value: anytype, expected: []const u8) !void {
     const ValidationWriter = struct {
         remaining: []const u8,
 
@@ -500,9 +543,9 @@ fn t(formatter: Formatters, value: anytype, expected: []const u8) !void {
 
     var w = ValidationWriter.init(expected);
 
-    try switch (formatter) {
+    try switch (format) {
         .compact => toWriter(w.writer(), value),
-        .pretty => toPrettyWriter(w.writer(), value),
+        .pretty => toWriterPretty(w.writer(), value),
     };
 
     if (w.remaining.len > 0) {
