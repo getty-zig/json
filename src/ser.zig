@@ -98,11 +98,11 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
                 if (length) |l| {
                     if (l == 0) {
                         self.formatter.endArray(self.writer) catch return Error.Io;
-                        return Sequence{ .ser = self, .state = .Empty };
+                        return Sequence{ .ser = self, .state = .empty };
                     }
                 }
 
-                return Sequence{ .ser = self, .state = .First };
+                return Sequence{ .ser = self, .state = .first };
             }
 
             fn serializeString(self: *Self, value: anytype) Error!Ok {
@@ -117,11 +117,11 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
                 if (length) |l| {
                     if (l == 0) {
                         self.formatter.endObject(self.writer) catch return Error.Io;
-                        return Map{ .ser = self, .state = .Empty };
+                        return Map{ .ser = self, .state = .empty };
                     }
                 }
 
-                return Map{ .ser = self, .state = .First };
+                return Map{ .ser = self, .state = .first };
             }
 
             fn serializeStruct(self: *Self, name: []const u8, length: usize) Error!Struct {
@@ -141,18 +141,16 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
     };
 }
 
-const State = enum {
-    Empty,
-    First,
-    Rest,
-};
-
 fn _Map(comptime W: type, comptime F: type) type {
     const S = Serializer(W, F);
 
     return struct {
         ser: *S,
-        state: State,
+        state: enum {
+            empty,
+            first,
+            rest,
+        },
 
         const Self = @This();
 
@@ -173,8 +171,8 @@ fn _Map(comptime W: type, comptime F: type) type {
 
         const _M = struct {
             fn serializeKey(self: *Self, key: anytype) S.Error!void {
-                self.ser.formatter.beginObjectKey(self.ser.writer, self.state == .First) catch return S.Error.Io;
-                self.state = .Rest;
+                self.ser.formatter.beginObjectKey(self.ser.writer, self.state == .first) catch return S.Error.Io;
+                self.state = .rest;
                 // TODO: serde-json passes in a MapKeySerializer here instead
                 // of self. This works though, so should we change it?
                 getty.serialize(self.ser.serializer(), key) catch return S.Error.Io;
@@ -194,7 +192,7 @@ fn _Map(comptime W: type, comptime F: type) type {
 
             fn end(self: *Self) S.Error!S.Ok {
                 switch (self.state) {
-                    .Empty => {},
+                    .empty => {},
                     else => self.ser.formatter.endObject(self.ser.writer) catch return S.Error.Io,
                 }
             }
@@ -215,15 +213,15 @@ fn _Map(comptime W: type, comptime F: type) type {
 
         const _SE = struct {
             fn serializeElement(self: *Self, value: anytype) S.Error!S.Ok {
-                self.ser.formatter.beginArrayValue(self.ser.writer, self.state == .First) catch return S.Error.Io;
-                self.state = .Rest;
+                self.ser.formatter.beginArrayValue(self.ser.writer, self.state == .first) catch return S.Error.Io;
+                self.state = .rest;
                 getty.serialize(self.ser.serializer(), value) catch return S.Error.Io;
                 self.ser.formatter.endArrayValue(self.ser.writer) catch return S.Error.Io;
             }
 
             fn end(self: *Self) S.Error!S.Ok {
                 switch (self.state) {
-                    .Empty => {},
+                    .empty => {},
                     else => self.ser.formatter.endArray(self.ser.writer) catch return S.Error.Io,
                 }
             }
