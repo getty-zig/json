@@ -234,59 +234,59 @@ pub fn formatEscapedString(writer: anytype, formatter: anytype, bytes: []const u
     }
 }
 
-const PrettyFormatter = @import("formatters/pretty.zig").Formatter;
+//const PrettyFormatter = @import("formatters/pretty.zig").Formatter;
 
-test "formatter" {
-    var stdout = std.io.getStdOut();
-    const writer = stdout.writer();
+//test "formatter" {
+//var stdout = std.io.getStdOut();
+//const writer = stdout.writer();
 
-    var pretty_formatter = PrettyFormatter(@TypeOf(writer)).init();
-    const formatter = pretty_formatter.formatter();
+//var pretty_formatter = PrettyFormatter(@TypeOf(writer)).init();
+//const formatter = pretty_formatter.formatter();
 
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
 
-    try formatter.writeBool(writer, false);
+//try formatter.writeBool(writer, false);
 
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
 
-    try formatter.writeInt(writer, 12345);
+//try formatter.writeInt(writer, 12345);
 
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
 
-    try formatter.writeFloat(writer, 3.1415);
+//try formatter.writeFloat(writer, 3.1415);
 
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
 
-    try formatter.writeNull(writer);
+//try formatter.writeNull(writer);
 
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
 
-    try formatter.beginArray(writer);
-    try formatter.beginArrayValue(writer, true);
-    try formatter.writeBool(writer, true);
-    try formatter.endArrayValue(writer);
-    try formatter.beginArrayValue(writer, false);
-    try formatter.writeBool(writer, false);
-    try formatter.endArrayValue(writer);
-    try formatter.endArray(writer);
+//try formatter.beginArray(writer);
+//try formatter.beginArrayValue(writer, true);
+//try formatter.writeBool(writer, true);
+//try formatter.endArrayValue(writer);
+//try formatter.beginArrayValue(writer, false);
+//try formatter.writeBool(writer, false);
+//try formatter.endArrayValue(writer);
+//try formatter.endArray(writer);
 
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-    try formatter.writeNumberString(writer, "\n");
-}
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//try formatter.writeNumberString(writer, "\n");
+//}
