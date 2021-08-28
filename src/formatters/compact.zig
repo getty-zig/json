@@ -54,7 +54,7 @@ pub fn Formatter(comptime Writer: type) type {
                 var buf: [512]u8 = undefined;
                 var stream = std.io.fixedBufferStream(&buf);
 
-                std.fmt.formatFloatDecimal(value, std.fmt.FormatOptions{}, stream.writer()) catch |err| switch (err) {
+                std.fmt.formatFloatScientific(value, std.fmt.FormatOptions{}, stream.writer()) catch |err| switch (err) {
                     error.NoSpaceLeft => unreachable,
                     else => unreachable, // TODO: handle error
                 };
