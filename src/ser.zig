@@ -358,6 +358,17 @@ test "toWriter - Array" {
     try t(.compact, [_]T{ T{ .x = 10 }, T{ .x = 100 }, T{ .x = 1000 } }, "[{\"x\":10},{\"x\":100},{\"x\":1000}]");
 }
 
+test "toWriter - ArrayList" {
+    var list = std.ArrayList(i32).init(std.testing.allocator);
+    defer list.deinit();
+
+    try list.append(1);
+    try list.append(2);
+    try list.append(3);
+
+    try t(.compact, list, "[1,2,3]");
+}
+
 test "toWriter - Bool" {
     try t(.compact, true, "true");
     try t(.compact, false, "false");
@@ -370,6 +381,16 @@ test "toWriter - Enum" {
 
 test "toWriter - Error" {
     try t(.compact, error.Foobar, "\"Foobar\"");
+}
+
+test "toWriter - HashMap" {
+    var map = std.StringHashMap(i32).init(std.testing.allocator);
+    defer map.deinit();
+
+    try map.put("x", 1);
+    try map.put("y", 2);
+
+    try t(.compact, map, "{\"x\":1,\"y\":2}");
 }
 
 test "toWriter - Integer" {
@@ -439,27 +460,6 @@ test "toWriter - Vector" {
 
 test "toWriter - Void" {
     try t(.compact, {}, "null");
-}
-
-test "toWriter - ArrayList" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit();
-
-    try list.append(1);
-    try list.append(2);
-    try list.append(3);
-
-    try t(.compact, list, "[1,2,3]");
-}
-
-test "toWriter - HashMap" {
-    var map = std.StringHashMap(i32).init(std.testing.allocator);
-    defer map.deinit();
-
-    try map.put("x", 1);
-    try map.put("y", 2);
-
-    try t(.compact, map, "{\"x\":1,\"y\":2}");
 }
 
 test "toPrettyWriter - Struct" {
