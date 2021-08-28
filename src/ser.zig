@@ -68,6 +68,7 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             _S.serializeStruct,
             _S.serializeTuple,
             _S.serializeVariant,
+            _S.serializeNull,
         );
 
         const _S = struct {
