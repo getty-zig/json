@@ -316,7 +316,10 @@ pub fn toPretty(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
 test "toWriter - Array" {
     try t(.compact, [_]i8{}, "[]");
     try t(.compact, [_]i8{1}, "[1]");
-    try t(.compact, [_]i8{ 1, 2 }, "[1,2]");
+    try t(.compact, [_]i8{ 1, 2, 3, 4 }, "[1,2,3,4]");
+
+    const T = struct { x: i32 };
+    try t(.compact, [_]T{ T{ .x = 10 }, T{ .x = 100 }, T{ .x = 1000 } }, "[{\"x\":10},{\"x\":100},{\"x\":1000}]");
 }
 
 test "toWriter - Bool" {
@@ -325,8 +328,12 @@ test "toWriter - Bool" {
 }
 
 test "toWriter - Enum" {
-    try t(.compact, enum { Foo }.Foo, "\"Foo\"");
-    try t(.compact, .Foo, "\"Foo\"");
+    try t(.compact, enum { foo }.foo, "\"foo\"");
+    try t(.compact, .foo, "\"foo\"");
+}
+
+test "toWriter - Error" {
+    try t(.compact, error.Foobar, "\"Foobar\"");
 }
 
 test "toWriter - Integer" {
@@ -338,35 +345,60 @@ test "toWriter - Integer" {
 }
 
 test "toWriter - Float" {
-    try t(.compact, 1.0, "1");
-    try t(.compact, 3.1415, "3.1415");
-    try t(.compact, -1.0, "-1");
-    try t(.compact, 0.0, "0");
+    try t(.compact, 0.0, "0.0e+00");
+    try t(.compact, 1.0, "1.0e+00");
+    try t(.compact, -1.0, "-1.0e+00");
+
+    try t(.compact, @as(f32, 42.0), "4.2e+01");
+    try t(.compact, @as(f64, 42.0), "4.2e+01");
 }
 
 test "toWriter - Null" {
     try t(.compact, null, "null");
+
+    try t(.compact, @as(?u8, null), "null");
+    try t(.compact, @as(?*u8, null), "null");
 }
 
 test "toWriter - String" {
-    try t(.compact, "Foobar", "\"Foobar\"");
+    try t(.compact, "foobar", "\"foobar\"");
+    try t(.compact, "with\nescapes\r", "\"with\\nescapes\\r\"");
+    try t(.compact, "with unicode\u{1}", "\"with unicode\\u0001\"");
+    try t(.compact, "with unicode\u{80}", "\"with unicode\u{80}\"");
+    try t(.compact, "with unicode\u{FF}", "\"with unicode\u{FF}\"");
+    try t(.compact, "with unicode\u{100}", "\"with unicode\u{100}\"");
+    try t(.compact, "with unicode\u{800}", "\"with unicode\u{800}\"");
+    try t(.compact, "with unicode\u{8000}", "\"with unicode\u{8000}\"");
+    try t(.compact, "with unicode\u{D799}", "\"with unicode\u{D799}\"");
+    try t(.compact, "with unicode\u{10000}", "\"with unicode\u{10000}\"");
+    try t(.compact, "with unicode\u{10FFFF}", "\"with unicode\u{10FFFF}\"");
+    try t(.compact, "/", "\"/\"");
 }
 
 test "toWriter - Struct" {
     try t(.compact, struct {}{}, "{}");
-    try t(.compact, struct { x: i32, y: i32, z: struct { x: bool, y: [3]i8 } }{
-        .x = 1,
-        .y = 2,
-        .z = .{ .x = true, .y = .{ 1, 2, 3 } },
-    },
-        \\{"x":1,"y":2,"z":{"x":true,"y":[1,2,3]}}
+    try t(.compact, struct { x: void }{ .x = {} }, "{}");
+    try t(
+        .compact,
+        struct { x: i32, y: i32, z: struct { x: bool, y: [3]i8 } }{ .x = 1, .y = 2, .z = .{ .x = true, .y = .{ 1, 2, 3 } } },
+        "{\"x\":1,\"y\":2,\"z\":{\"x\":true,\"y\":[1,2,3]}}",
     );
 }
 
 test "toWriter - Tuple" {
-    try t(.compact, .{ 1, true, "hello" },
-        \\[1,true,"hello"]
-    );
+    try t(.compact, .{ 1, true, "ring" }, "[1,true,\"ring\"]");
+}
+
+test "toWriter - Tagged Union" {
+    try t(.compact, union(enum) { Foo: i32, Bar: bool }{ .Foo = 42 }, "42");
+}
+
+test "toWriter - Vector" {
+    try t(.compact, @splat(2, @as(u32, 1)), "[1,1]");
+}
+
+test "toWriter - Void" {
+    try t(.compact, {}, "null");
 }
 
 test "toWriter - ArrayList" {
@@ -387,12 +419,10 @@ test "toWriter - HashMap" {
     try map.put("x", 1);
     try map.put("y", 2);
 
-    try t(.compact, map,
-        \\{"x":1,"y":2}
-    );
+    try t(.compact, map, "{\"x\":1,\"y\":2}");
 }
 
-test "toWriter - Struct (pretty)" {
+test "toPrettyWriter - Struct" {
     try t(.pretty, struct {}{}, "{}");
     try t(.pretty, struct { x: i32, y: i32, z: struct { x: bool, y: [3]i8 } }{
         .x = 1,
@@ -414,20 +444,75 @@ test "toWriter - Struct (pretty)" {
     );
 }
 
-const TestFormatterEnum = enum { compact, pretty };
+const Formatters = enum { compact, pretty };
 
-fn t(formatter: TestFormatterEnum, input: anytype, output: []const u8) !void {
-    var array_list = std.ArrayList(u8).init(std.testing.allocator);
-    defer array_list.deinit();
+fn t(formatter: Formatters, value: anytype, expected: []const u8) !void {
+    const ValidationWriter = struct {
+        remaining: []const u8,
 
-    try switch (formatter) {
-        .compact => toWriter(array_list.writer(), input),
-        .pretty => toPrettyWriter(array_list.writer(), input),
+        const Self = @This();
+
+        pub const Error = error{
+            TooMuchData,
+            DifferentData,
+        };
+
+        fn init(s: []const u8) Self {
+            return .{ .remaining = s };
+        }
+
+        /// Implements `std.io.Writer`.
+        pub fn writer(self: *Self) std.io.Writer(*Self, Error, write) {
+            return .{ .context = self };
+        }
+
+        fn write(self: *Self, bytes: []const u8) Error!usize {
+            if (self.remaining.len < bytes.len) {
+                std.debug.warn("\n" ++
+                    \\======= expected: =======
+                    \\{s}
+                    \\======== found: =========
+                    \\{s}
+                    \\=========================
+                , .{
+                    self.remaining,
+                    bytes,
+                });
+                return error.TooMuchData;
+            }
+
+            if (!std.mem.eql(u8, self.remaining[0..bytes.len], bytes)) {
+                std.debug.warn("\n" ++
+                    \\======= expected: =======
+                    \\{s}
+                    \\======== found: =========
+                    \\{s}
+                    \\=========================
+                , .{
+                    self.remaining[0..bytes.len],
+                    bytes,
+                });
+                return error.DifferentData;
+            }
+
+            self.remaining = self.remaining[bytes.len..];
+
+            return bytes.len;
+        }
     };
 
-    try std.testing.expectEqualSlices(u8, array_list.items, output);
+    var w = ValidationWriter.init(expected);
+
+    try switch (formatter) {
+        .compact => toWriter(w.writer(), value),
+        .pretty => toPrettyWriter(w.writer(), value),
+    };
+
+    if (w.remaining.len > 0) {
+        return error.NotEnoughData;
+    }
 }
 
-comptime {
+test {
     std.testing.refAllDecls(@This());
 }
