@@ -33,10 +33,11 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
             Eof,
         };
 
-        const Map = _Map(W, F);
-        const Sequence = _Map(W, F);
-        const Struct = _Map(W, F);
-        const Tuple = _Map(W, F);
+        const Ser = Serialize(Self);
+        const Map = Ser;
+        const Sequence = Ser;
+        const Struct = Ser;
+        const Tuple = Ser;
 
         pub fn init(writer: W, formatter: F) Self {
             return .{
@@ -141,9 +142,7 @@ pub fn Serializer(comptime W: type, comptime F: type) type {
     };
 }
 
-fn _Map(comptime W: type, comptime F: type) type {
-    const S = Serializer(W, F);
-
+fn Serialize(S: anytype) type {
     return struct {
         ser: *S,
         state: enum {
