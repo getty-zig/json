@@ -3,6 +3,7 @@ const std = @import("std");
 
 const formatEscapedString = @import("formatter.zig").formatEscapedString;
 const CompactFormatter = @import("formatters/compact.zig").Formatter;
+const PrettyFormatter = @import("formatters/pretty.zig").Formatter;
 
 pub fn Serializer(comptime W: type, comptime F: type) type {
     return struct {
@@ -289,48 +290,70 @@ pub fn toString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
     return array_list.toOwnedSlice();
 }
 
+/// Serializes a value using the JSON serializer into a provided writer, using the pretty formatter.
+pub fn toPrettyWriter(writer: anytype, value: anytype) !void {
+    var formatter = PrettyFormatter(@TypeOf(writer)).init();
+    const f = formatter.formatter();
+
+    var serializer = Serializer(@TypeOf(writer), @TypeOf(f)).init(writer, f);
+    const s = serializer.serializer();
+
+    try getty.serialize(s, value);
+}
+
+/// Returns an owned slice of a serialized JSON string.
+///
+/// The caller is responsible for freeing the returned memory.
+pub fn toPretty(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
+    var array_list = std.ArrayList(u8).init(allocator);
+    errdefer array_list.deinit();
+
+    try toPrettyWriter(array_list.writer(), value);
+    return array_list.toOwnedSlice();
+}
+
 test "toWriter - Array" {
-    try t([_]i8{}, "[]");
-    try t([_]i8{1}, "[1]");
-    try t([_]i8{ 1, 2 }, "[1,2]");
+    try t(.compact, [_]i8{}, "[]");
+    try t(.compact, [_]i8{1}, "[1]");
+    try t(.compact, [_]i8{ 1, 2 }, "[1,2]");
 }
 
 test "toWriter - Bool" {
-    try t(true, "true");
-    try t(false, "false");
+    try t(.compact, true, "true");
+    try t(.compact, false, "false");
 }
 
 test "toWriter - Enum" {
-    try t(enum { Foo }.Foo, "\"Foo\"");
-    try t(.Foo, "\"Foo\"");
+    try t(.compact, enum { Foo }.Foo, "\"Foo\"");
+    try t(.compact, .Foo, "\"Foo\"");
 }
 
 test "toWriter - Integer" {
-    try t('A', "65");
-    try t(std.math.maxInt(u32), "4294967295");
-    try t(std.math.maxInt(u64), "18446744073709551615");
-    try t(std.math.minInt(i32), "-2147483648");
-    try t(std.math.maxInt(i64), "9223372036854775807");
+    try t(.compact, 'A', "65");
+    try t(.compact, std.math.maxInt(u32), "4294967295");
+    try t(.compact, std.math.maxInt(u64), "18446744073709551615");
+    try t(.compact, std.math.minInt(i32), "-2147483648");
+    try t(.compact, std.math.maxInt(i64), "9223372036854775807");
 }
 
 test "toWriter - Float" {
-    try t(1.0, "1");
-    try t(3.1415, "3.1415");
-    try t(-1.0, "-1");
-    try t(0.0, "0");
+    try t(.compact, 1.0, "1");
+    try t(.compact, 3.1415, "3.1415");
+    try t(.compact, -1.0, "-1");
+    try t(.compact, 0.0, "0");
 }
 
 test "toWriter - Null" {
-    try t(null, "null");
+    try t(.compact, null, "null");
 }
 
 test "toWriter - String" {
-    try t("Foobar", "\"Foobar\"");
+    try t(.compact, "Foobar", "\"Foobar\"");
 }
 
 test "toWriter - Struct" {
-    try t(struct {}{}, "{}");
-    try t(struct { x: i32, y: i32, z: struct { x: bool, y: [3]i8 } }{
+    try t(.compact, struct {}{}, "{}");
+    try t(.compact, struct { x: i32, y: i32, z: struct { x: bool, y: [3]i8 } }{
         .x = 1,
         .y = 2,
         .z = .{ .x = true, .y = .{ 1, 2, 3 } },
@@ -340,7 +363,7 @@ test "toWriter - Struct" {
 }
 
 test "toWriter - Tuple" {
-    try t(.{ 1, true, "hello" },
+    try t(.compact, .{ 1, true, "hello" },
         \\[1,true,"hello"]
     );
 }
@@ -353,7 +376,7 @@ test "toWriter - ArrayList" {
     try list.append(2);
     try list.append(3);
 
-    try t(list, "[1,2,3]");
+    try t(.compact, list, "[1,2,3]");
 }
 
 test "toWriter - HashMap" {
@@ -363,16 +386,44 @@ test "toWriter - HashMap" {
     try map.put("x", 1);
     try map.put("y", 2);
 
-    try t(map,
+    try t(.compact, map,
         \\{"x":1,"y":2}
     );
 }
 
-fn t(input: anytype, output: []const u8) !void {
+test "toWriter - Struct (pretty)" {
+    try t(.pretty, struct {}{}, "{}");
+    try t(.pretty, struct { x: i32, y: i32, z: struct { x: bool, y: [3]i8 } }{
+        .x = 1,
+        .y = 2,
+        .z = .{ .x = true, .y = .{ 1, 2, 3 } },
+    },
+        \\{
+        \\  "x": 1,
+        \\  "y": 2,
+        \\  "z": {
+        \\    "x": true,
+        \\    "y": [
+        \\      1,
+        \\      2,
+        \\      3
+        \\    ]
+        \\  }
+        \\}
+    );
+}
+
+const TestFormatterEnum = enum { compact, pretty };
+
+fn t(formatter: TestFormatterEnum, input: anytype, output: []const u8) !void {
     var array_list = std.ArrayList(u8).init(std.testing.allocator);
     defer array_list.deinit();
 
-    try toWriter(array_list.writer(), input);
+    try switch (formatter) {
+        .compact => toWriter(array_list.writer(), input),
+        .pretty => toPrettyWriter(array_list.writer(), input),
+    };
+
     try std.testing.expectEqualSlices(u8, array_list.items, output);
 }
 
