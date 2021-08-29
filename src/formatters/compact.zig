@@ -1,16 +1,16 @@
-const _formatter = @import("../formatter.zig");
+const fmt = @import("../formatter.zig");
 const std = @import("std");
 
 pub fn Formatter(comptime Writer: type) type {
     return struct {
         const Self = @This();
 
-        /// Implements `_formatter.Formatter`.
+        /// Implements `json.Formatter`.
         pub fn formatter(self: *Self) F {
             return .{ .context = self };
         }
 
-        const F = _formatter.Formatter(
+        const F = fmt.Formatter(
             *Self,
             Writer,
             _F.writeNull,
@@ -80,7 +80,7 @@ pub fn Formatter(comptime Writer: type) type {
             }
 
             /// TODO: Figure out what to do on ascii control
-            fn writeCharEscape(_: *Self, writer: Writer, value: _formatter.CharEscape) Writer.Error!void {
+            fn writeCharEscape(_: *Self, writer: Writer, value: fmt.CharEscape) Writer.Error!void {
                 switch (value) {
                     .ascii => |v| {
                         const HEX_DIGITS: []const u8 = "0123456789abcdef";
