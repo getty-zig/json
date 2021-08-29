@@ -1,7 +1,7 @@
 const getty = @import("getty");
+const json = @import("../lib.zig");
 const std = @import("std");
 
-const json = @import("../lib.zig");
 const formatEscapedString = json.formatEscapedString;
 const CompactFormatter = json.CompactFormatter;
 const PrettyFormatter = json.PrettyFormatter;

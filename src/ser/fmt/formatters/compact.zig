@@ -1,6 +1,6 @@
+const json = @import("../../../lib.zig");
 const std = @import("std");
 
-const json = @import("../../../lib.zig");
 const CharEscape = json.CharEscape;
 const Formatter = json.Formatter;
 
