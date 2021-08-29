@@ -1,9 +1,10 @@
 const getty = @import("getty");
 const std = @import("std");
 
-const formatEscapedString = @import("formatter.zig").formatEscapedString;
-const CompactFormatter = @import("formatters/compact.zig").Formatter;
-const PrettyFormatter = @import("formatters/pretty.zig").Formatter;
+const lib = @import("../lib.zig");
+const formatEscapedString = lib.formatEscapedString;
+const CompactFormatter = lib.CompactFormatter;
+const PrettyFormatter = lib.PrettyFormatter;
 
 pub fn Serializer(comptime W: type, comptime F: type) type {
     return struct {

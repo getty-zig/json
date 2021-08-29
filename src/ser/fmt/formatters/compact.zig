@@ -1,7 +1,10 @@
-const fmt = @import("../formatter.zig");
 const std = @import("std");
 
-pub fn Formatter(comptime Writer: type) type {
+const lib = @import("../../../lib.zig");
+const CharEscape = lib.CharEscape;
+const Formatter = lib.Formatter;
+
+pub fn CompactFormatter(comptime Writer: type) type {
     return struct {
         const Self = @This();
 
@@ -10,7 +13,7 @@ pub fn Formatter(comptime Writer: type) type {
             return .{ .context = self };
         }
 
-        const F = fmt.Formatter(
+        const F = Formatter(
             *Self,
             Writer,
             _F.writeNull,
@@ -80,7 +83,7 @@ pub fn Formatter(comptime Writer: type) type {
             }
 
             /// TODO: Figure out what to do on ascii control
-            fn writeCharEscape(_: *Self, writer: Writer, value: fmt.CharEscape) Writer.Error!void {
+            fn writeCharEscape(_: *Self, writer: Writer, value: CharEscape) Writer.Error!void {
                 switch (value) {
                     .ascii => |v| {
                         const HEX_DIGITS: []const u8 = "0123456789abcdef";

@@ -9,6 +9,9 @@ pkgs:
       LICENSE
       build.zig
       src/*.zig
+      src/ser/*.zig
+      src/ser/fmt/*.zig
+      src/ser/fmt/formatters/*.zig
 deps:
   getty:
     src:

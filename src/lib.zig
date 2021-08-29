@@ -1,5 +1,5 @@
-pub usingnamespace @import("ser.zig");
-
-pub const Formatter = @import("formatter.zig").Formatter;
-pub const CompactFormatter = @import("formatters/compact.zig").Formatter;
-pub const PrettyFormatter = @import("formatters/pretty.zig").Formatter;
+pub usingnamespace @import("ser/ser.zig");
+pub usingnamespace @import("ser/fmt/escape.zig");
+pub usingnamespace @import("ser/fmt/formatter.zig");
+pub usingnamespace @import("ser/fmt/formatters/compact.zig");
+pub usingnamespace @import("ser/fmt/formatters/pretty.zig");
