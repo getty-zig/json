@@ -1,8 +1,8 @@
 const std = @import("std");
 
-const lib = @import("../../../lib.zig");
-const CharEscape = lib.CharEscape;
-const Formatter = lib.Formatter;
+const json = @import("../../../lib.zig");
+const CharEscape = json.CharEscape;
+const Formatter = json.Formatter;
 
 pub fn CompactFormatter(comptime Writer: type) type {
     return struct {
