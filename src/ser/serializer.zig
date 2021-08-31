@@ -276,7 +276,7 @@ pub fn toWriter(writer: anytype, value: anytype) !void {
 }
 
 /// Serialize the given value as pretty-printed JSON into the given I/O stream.
-pub fn toWriterPretty(writer: anytype, value: anytype) !void {
+pub fn toPrettyWriter(writer: anytype, value: anytype) !void {
     var f = PrettyFormatter(@TypeOf(writer)).init();
     var s = Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
@@ -294,7 +294,7 @@ pub fn toWriterWith(writer: anytype, value: anytype, visitor: anytype) !void {
 
 /// Serialize the given value as pretty-printed JSON into the given I/O stream
 /// with the given visitor.
-pub fn toWriterPrettyWith(writer: anytype, value: anytype, visitor: anytype) !void {
+pub fn toPrettyWriterWith(writer: anytype, value: anytype, visitor: anytype) !void {
     var f = PrettyFormatter(@TypeOf(writer)).init();
     var s = Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
@@ -317,11 +317,11 @@ pub fn toString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toStringPretty(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
+pub fn toPrettyString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
     var array_list = std.ArrayList(u8).init(allocator);
     errdefer array_list.deinit();
 
-    try toWriterPretty(array_list.writer(), value);
+    try toPrettyWriter(array_list.writer(), value);
     return array_list.toOwnedSlice();
 }
 
@@ -342,11 +342,11 @@ pub fn toStringWith(allocator: *std.mem.Allocator, value: anytype, visitor: anyt
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toStringPrettyWith(allocator: *std.mem.Allocator, value: anytype, visitor: anytype) ![]const u8 {
+pub fn toPrettyStringWith(allocator: *std.mem.Allocator, value: anytype, visitor: anytype) ![]const u8 {
     var array_list = std.ArrayList(u8).init(allocator);
     errdefer array_list.deinit();
 
-    try toWriterPrettyWith(array_list.writer(), value, visitor);
+    try toPrettyWriterWith(array_list.writer(), value, visitor);
     return array_list.toOwnedSlice();
 }
 
@@ -546,7 +546,7 @@ fn t(format: Format, value: anytype, expected: []const u8) !void {
 
     try switch (format) {
         .compact => toWriter(w.writer(), value),
-        .pretty => toWriterPretty(w.writer(), value),
+        .pretty => toPrettyWriter(w.writer(), value),
     };
 
     if (w.remaining.len > 0) {
