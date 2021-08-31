@@ -6,14 +6,14 @@ const formatEscapedString = json.formatEscapedString;
 const CompactFormatter = json.CompactFormatter;
 const PrettyFormatter = json.PrettyFormatter;
 
-pub fn Serializer(comptime W: type, comptime F: type) type {
+pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
     return struct {
-        writer: W,
-        formatter: F,
+        writer: Writer,
+        formatter: Formatter,
 
         const Self = @This();
 
-        pub fn init(writer: W, formatter: F) Self {
+        pub fn init(writer: Writer, formatter: Formatter) Self {
             return .{
                 .writer = writer,
                 .formatter = formatter,
