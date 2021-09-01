@@ -34,15 +34,15 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
             _S.Struct,
             _S.Tuple,
             _S.serializeBool,
+            _S.serializeEnum,
             _S.serializeFloat,
             _S.serializeInt,
+            _S.serializeMap,
             _S.serializeNull,
             _S.serializeSequence,
             _S.serializeString,
-            _S.serializeMap,
             _S.serializeStruct,
             _S.serializeTuple,
-            _S.serializeVariant,
             _S.serializeNull,
         );
 
@@ -76,6 +76,10 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
 
             fn serializeBool(self: *Self, value: bool) Error!Ok {
                 self.formatter.writeBool(self.writer, value) catch return Error.Io;
+            }
+
+            fn serializeEnum(self: *Self, value: anytype) Error!Ok {
+                serializeString(self, @tagName(value)) catch return Error.Io;
             }
 
             fn serializeFloat(self: *Self, value: anytype) Error!Ok {
@@ -134,10 +138,6 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
 
             fn serializeTuple(self: *Self, length: ?usize) Error!Tuple {
                 return serializeSequence(self, length);
-            }
-
-            fn serializeVariant(self: *Self, value: anytype) Error!Ok {
-                serializeString(self, @tagName(value)) catch return Error.Io;
             }
         };
     };
