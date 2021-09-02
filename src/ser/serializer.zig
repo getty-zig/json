@@ -52,7 +52,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
                 /// Failure to read or write bytes on an IO stream.
                 Io,
 
-                /// Input was not syntactically valid JSON.
+                /// Input was syntactically incorrect.
                 Syntax,
 
                 /// Input data was semantically incorrect.
