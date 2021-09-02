@@ -68,11 +68,10 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
                 Eof,
             };
 
-            const Ser = Serialize(Self, Ok, Error);
-            const Map = Ser;
-            const Sequence = Ser;
-            const Struct = Ser;
-            const Tuple = Ser;
+            const Map = Access(Self, Ok, Error);
+            const Sequence = Access(Self, Ok, Error);
+            const Struct = Access(Self, Ok, Error);
+            const Tuple = Access(Self, Ok, Error);
 
             fn serializeBool(self: *Self, value: bool) Error!Ok {
                 self.formatter.writeBool(self.writer, value) catch return Error.Io;
@@ -143,7 +142,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
     };
 }
 
-fn Serialize(S: anytype, comptime Ok: type, comptime Error: type) type {
+fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
     return struct {
         ser: *S,
         state: enum {
