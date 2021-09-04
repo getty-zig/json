@@ -72,17 +72,10 @@ pub fn Deserializer(comptime Reader: type) type {
 
                 if (tokens.next() catch return Error.Input) |token| {
                     switch (token) {
-                        .Number => |num| {
-                            if (num.is_integer) return Error.Input;
-
-                            return try visitor.visitFloat(
-                                Error,
-                                std.fmt.parseFloat(
-                                    @TypeOf(visitor).Value,
-                                    num.slice(self.scratch.items, num.count),
-                                ) catch return Error.Input,
-                            );
-                        },
+                        .Number => |num| return try visitor.visitFloat(
+                            Error,
+                            std.fmt.parseFloat(@TypeOf(visitor).Value, num.slice(self.scratch.items, tokens.i - 1)) catch return Error.Input,
+                        ),
                         else => {},
                     }
                 }
@@ -91,21 +84,25 @@ pub fn Deserializer(comptime Reader: type) type {
             }
 
             fn deserializeInt(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+                const Value = @TypeOf(visitor).Value;
                 var tokens = std.json.TokenStream.init(self.scratch.items);
 
                 if (tokens.next() catch return Error.Input) |token| {
                     switch (token) {
-                        .Number => |num| {
-                            if (!num.is_integer) return Error.Input;
-
-                            return try visitor.visitInt(
+                        .Number => |num| switch (num.is_integer) {
+                            true => return try visitor.visitInt(
                                 Error,
-                                std.fmt.parseInt(
-                                    @TypeOf(visitor).Value,
-                                    num.slice(self.scratch.items, num.count),
-                                    10,
-                                ) catch return Error.Input,
-                            );
+                                std.fmt.parseInt(Value, num.slice(self.scratch.items, tokens.i - 1), 10) catch return Error.Input,
+                            ),
+                            false => {
+                                const float = std.fmt.parseFloat(f128, num.slice(self.scratch.items, tokens.i - 1)) catch return Error.Input;
+
+                                if (std.math.round(float) != float or (float > std.math.maxInt(Value) or float < std.math.minInt(Value))) {
+                                    return Error.Input;
+                                }
+
+                                return visitor.visitFloat(Error, float);
+                            },
                         },
                         else => {},
                     }
@@ -137,11 +134,15 @@ test {
 test {
     try std.testing.expectEqual(@as(u32, 1), try fromString(std.testing.allocator, u32, "1"));
     try std.testing.expectEqual(@as(i32, -1), try fromString(std.testing.allocator, i32, "-1"));
+    try std.testing.expectEqual(@as(u32, 1), try fromString(std.testing.allocator, u32, "1.0"));
+    try std.testing.expectEqual(@as(i32, -1), try fromString(std.testing.allocator, i32, "-1.0"));
 }
 
 test {
     try std.testing.expectEqual(@as(f32, 3.14), try fromString(std.testing.allocator, f32, "3.14"));
     try std.testing.expectEqual(@as(f64, 3.14), try fromString(std.testing.allocator, f64, "3.14"));
+    try std.testing.expectEqual(@as(f32, 3.0), try fromString(std.testing.allocator, f32, "3"));
+    try std.testing.expectEqual(@as(f64, 3.0), try fromString(std.testing.allocator, f64, "3"));
 }
 
 test {
