@@ -288,7 +288,7 @@ pub fn toWriterWith(writer: anytype, value: anytype, visitor: anytype) !void {
     var f = CompactFormatter(@TypeOf(writer)){};
     var s = Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
-    try getty.serializeWith(s.serializer(), value, visitor);
+    try getty.serializeWith(s.serializer(), visitor, value);
 }
 
 /// Serialize the given value as pretty-printed JSON into the given I/O stream
@@ -297,7 +297,7 @@ pub fn toPrettyWriterWith(writer: anytype, value: anytype, visitor: anytype) !vo
     var f = PrettyFormatter(@TypeOf(writer)).init();
     var s = Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
-    try getty.serializeWith(s.serializer(), value, visitor);
+    try getty.serializeWith(s.serializer(), visitor, value);
 }
 
 /// Serialize the given value as a JSON string.
