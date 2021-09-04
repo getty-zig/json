@@ -34,8 +34,7 @@ pub fn Deserializer(comptime Reader: type) type {
             _D.deserializeBool,
             undefined,
             //_D.deserializeEnum,
-            undefined,
-            //_D.deserializeFloat,
+            _D.deserializeFloat,
             _D.deserializeInt,
             undefined,
             //_D.deserializeMap,
@@ -84,6 +83,23 @@ pub fn Deserializer(comptime Reader: type) type {
 
                 return Error.Input;
             }
+
+            fn deserializeFloat(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+                var tokens = std.json.TokenStream.init(self.scratch.items);
+
+                if (tokens.next() catch return Error.Input) |token| {
+                    switch (token) {
+                        .Number => |num| {
+                            if (num.is_integer) return Error.Input;
+
+                            return try visitor.visitFloat(Error, std.fmt.parseFloat(@TypeOf(visitor).Value, self.scratch.items) catch return Error.Input);
+                        },
+                        else => {},
+                    }
+                }
+
+                return Error.Input;
+            }
         };
     };
 }
@@ -106,6 +122,11 @@ test {
 test {
     try std.testing.expectEqual(@as(u32, 1), try fromString(std.testing.allocator, u32, "1"));
     try std.testing.expectEqual(@as(i32, -1), try fromString(std.testing.allocator, i32, "-1"));
+}
+
+test {
+    try std.testing.expectEqual(@as(f32, 3.14), try fromString(std.testing.allocator, f32, "3.14"));
+    try std.testing.expectEqual(@as(f64, 3.14), try fromString(std.testing.allocator, f64, "3.14"));
 }
 
 test {
