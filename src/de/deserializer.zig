@@ -32,13 +32,11 @@ pub fn Deserializer(comptime Reader: type) type {
             *Self,
             _D.Error,
             _D.deserializeBool,
-            //_D.deserializeBool,
             undefined,
             //_D.deserializeEnum,
             undefined,
             //_D.deserializeFloat,
-            undefined,
-            //_D.deserializeInt,
+            _D.deserializeInt,
             undefined,
             //_D.deserializeMap,
             undefined,
@@ -60,11 +58,28 @@ pub fn Deserializer(comptime Reader: type) type {
                 var tokens = std.json.TokenStream.init(self.scratch.items);
 
                 if (tokens.next() catch return Error.Input) |token| {
-                    return try switch (token) {
-                        .True => visitor.visitBool(Error, true),
-                        .False => visitor.visitBool(Error, false),
-                        else => Error.Input,
-                    };
+                    switch (token) {
+                        .True => return try visitor.visitBool(Error, true),
+                        .False => return try visitor.visitBool(Error, false),
+                        else => {},
+                    }
+                }
+
+                return Error.Input;
+            }
+
+            fn deserializeInt(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+                var tokens = std.json.TokenStream.init(self.scratch.items);
+
+                if (tokens.next() catch return Error.Input) |token| {
+                    switch (token) {
+                        .Number => |num| {
+                            if (!num.is_integer) return Error.Input;
+
+                            return try visitor.visitInt(Error, std.fmt.parseInt(@TypeOf(visitor).Value, self.scratch.items, 10) catch return Error.Input);
+                        },
+                        else => {},
+                    }
                 }
 
                 return Error.Input;
@@ -86,6 +101,11 @@ pub fn fromString(allocator: *std.mem.Allocator, comptime T: type, string: []con
 test {
     try std.testing.expectEqual(true, try fromString(std.testing.allocator, bool, "true"));
     try std.testing.expectEqual(false, try fromString(std.testing.allocator, bool, "false"));
+}
+
+test {
+    try std.testing.expectEqual(@as(u32, 1), try fromString(std.testing.allocator, u32, "1"));
+    try std.testing.expectEqual(@as(i32, -1), try fromString(std.testing.allocator, i32, "-1"));
 }
 
 test {
