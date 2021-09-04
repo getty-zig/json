@@ -67,23 +67,6 @@ pub fn Deserializer(comptime Reader: type) type {
                 return Error.Input;
             }
 
-            fn deserializeInt(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
-                var tokens = std.json.TokenStream.init(self.scratch.items);
-
-                if (tokens.next() catch return Error.Input) |token| {
-                    switch (token) {
-                        .Number => |num| {
-                            if (!num.is_integer) return Error.Input;
-
-                            return try visitor.visitInt(Error, std.fmt.parseInt(@TypeOf(visitor).Value, self.scratch.items, 10) catch return Error.Input);
-                        },
-                        else => {},
-                    }
-                }
-
-                return Error.Input;
-            }
-
             fn deserializeFloat(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
                 var tokens = std.json.TokenStream.init(self.scratch.items);
 
@@ -92,7 +75,37 @@ pub fn Deserializer(comptime Reader: type) type {
                         .Number => |num| {
                             if (num.is_integer) return Error.Input;
 
-                            return try visitor.visitFloat(Error, std.fmt.parseFloat(@TypeOf(visitor).Value, self.scratch.items) catch return Error.Input);
+                            return try visitor.visitFloat(
+                                Error,
+                                std.fmt.parseFloat(
+                                    @TypeOf(visitor).Value,
+                                    num.slice(self.scratch.items, num.count),
+                                ) catch return Error.Input,
+                            );
+                        },
+                        else => {},
+                    }
+                }
+
+                return Error.Input;
+            }
+
+            fn deserializeInt(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+                var tokens = std.json.TokenStream.init(self.scratch.items);
+
+                if (tokens.next() catch return Error.Input) |token| {
+                    switch (token) {
+                        .Number => |num| {
+                            if (!num.is_integer) return Error.Input;
+
+                            return try visitor.visitInt(
+                                Error,
+                                std.fmt.parseInt(
+                                    @TypeOf(visitor).Value,
+                                    num.slice(self.scratch.items, num.count),
+                                    10,
+                                ) catch return Error.Input,
+                            );
                         },
                         else => {},
                     }
