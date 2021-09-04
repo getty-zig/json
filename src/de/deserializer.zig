@@ -104,14 +104,16 @@ pub fn Deserializer(comptime Reader: type) type {
     };
 }
 
-pub fn fromString(allocator: *std.mem.Allocator, comptime T: type, string: []const u8) !T {
-    var fbs = std.io.fixedBufferStream(string);
-    const reader = fbs.reader();
-
+pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anytype) !T {
     var deserializer = Deserializer(@TypeOf(reader)).init(allocator, reader);
     defer deserializer.deinit();
 
     return try getty.deserialize(T, deserializer.deserializer());
+}
+
+pub fn fromString(allocator: *std.mem.Allocator, comptime T: type, string: []const u8) !T {
+    var fbs = std.io.fixedBufferStream(string);
+    return try fromReader(fbs.reader());
 }
 
 test {
