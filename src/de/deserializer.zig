@@ -94,15 +94,10 @@ pub fn Deserializer(comptime Reader: type) type {
                                 Error,
                                 std.fmt.parseInt(Value, num.slice(self.scratch.items, tokens.i - 1), 10) catch return Error.Input,
                             ),
-                            false => {
-                                const float = std.fmt.parseFloat(f128, num.slice(self.scratch.items, tokens.i - 1)) catch return Error.Input;
-
-                                if (std.math.round(float) != float or (float > std.math.maxInt(Value) or float < std.math.minInt(Value))) {
-                                    return Error.Input;
-                                }
-
-                                return visitor.visitFloat(Error, float);
-                            },
+                            false => return visitor.visitFloat(
+                                Error,
+                                std.fmt.parseFloat(f128, num.slice(self.scratch.items, tokens.i - 1)) catch return Error.Input,
+                            ),
                         },
                         else => {},
                     }
