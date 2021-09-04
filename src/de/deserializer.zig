@@ -113,7 +113,7 @@ pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anyty
 
 pub fn fromString(allocator: *std.mem.Allocator, comptime T: type, string: []const u8) !T {
     var fbs = std.io.fixedBufferStream(string);
-    return try fromReader(fbs.reader());
+    return try fromReader(allocator, T, fbs.reader());
 }
 
 test {
