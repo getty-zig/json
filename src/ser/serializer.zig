@@ -27,7 +27,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
             _S.Ok,
             _S.Error,
             _S.MapSerialize,
-            _S.SeqSerialize,
+            _S.SequenceSerialize,
             _S.StructSerialize,
             _S.TupleSerialize,
             _S.serializeBool,
@@ -36,7 +36,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
             _S.serializeInt,
             _S.serializeMap,
             _S.serializeNull,
-            _S.serializeSeq,
+            _S.serializeSequence,
             _S.serializeString,
             _S.serializeStruct,
             _S.serializeTuple,
@@ -66,7 +66,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
             };
 
             const MapSerialize = Access(Self, Ok, Error);
-            const SeqSerialize = Access(Self, Ok, Error);
+            const SequenceSerialize = Access(Self, Ok, Error);
             const StructSerialize = Access(Self, Ok, Error);
             const TupleSerialize = Access(Self, Ok, Error);
 
@@ -107,17 +107,17 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
                 self.formatter.writeNull(self.writer) catch return Error.Io;
             }
 
-            fn serializeSeq(self: *Self, length: ?usize) Error!SeqSerialize {
+            fn serializeSequence(self: *Self, length: ?usize) Error!SequenceSerialize {
                 self.formatter.beginArray(self.writer) catch return Error.Io;
 
                 if (length) |l| {
                     if (l == 0) {
                         self.formatter.endArray(self.writer) catch return Error.Io;
-                        return SeqSerialize{ .ser = self, .state = .empty };
+                        return SequenceSerialize{ .ser = self, .state = .empty };
                     }
                 }
 
-                return SeqSerialize{ .ser = self, .state = .first };
+                return SequenceSerialize{ .ser = self, .state = .first };
             }
 
             fn serializeString(self: *Self, value: anytype) Error!Ok {
@@ -133,7 +133,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
             }
 
             fn serializeTuple(self: *Self, length: ?usize) Error!TupleSerialize {
-                return serializeSeq(self, length);
+                return serializeSequence(self, length);
             }
         };
     };
@@ -190,8 +190,8 @@ fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
             }
         };
 
-        /// Implements `getty.ser.SeqSerialize`.
-        pub usingnamespace getty.ser.SeqSerialize(
+        /// Implements `getty.ser.SequenceSerialize`.
+        pub usingnamespace getty.ser.SequenceSerialize(
             *Self,
             Ok,
             Error,
