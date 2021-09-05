@@ -1,40 +1,13 @@
-const json = @import("../../../lib.zig");
 const std = @import("std");
 
-const CharEscape = json.CharEscape;
-const Formatter = json.Formatter;
+const ser = @import("../../../lib.zig").ser;
 
-pub fn PrettyFormatter(comptime Writer: type) type {
+const CharEscape = ser.CharEscape;
+const Formatter = ser.Formatter;
+
+pub fn CompactFormatter(comptime Writer: type) type {
     return struct {
-        current: usize,
-        has_value: bool,
-        indent: []const u8,
-
         const Self = @This();
-
-        /// Construct a pretty printer formatter that defaults to using two
-        /// spaces for indentation.
-        pub fn init() Self {
-            return initWithIndent("  ");
-        }
-
-        /// Construct a pretty printer formatter that uses the `indent` string
-        /// for indentation.
-        pub fn initWithIndent(indent: []const u8) Self {
-            return .{
-                .current = 0,
-                .has_value = false,
-                .indent = indent,
-            };
-        }
-
-        fn doIndent(self: *Self, writer: anytype) Writer.Error!void {
-            var i: usize = 0;
-
-            while (i < self.current) : (i += 1) {
-                try writer.writeAll(self.indent);
-            }
-        }
 
         /// Implements `json.ser.Formatter`.
         pub usingnamespace Formatter(
@@ -77,10 +50,11 @@ pub fn PrettyFormatter(comptime Writer: type) type {
             }
 
             fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
+                // this should be enough to display all decimal places of a decimal f64 number.
                 var buf: [512]u8 = undefined;
                 var stream = std.io.fixedBufferStream(&buf);
 
-                std.fmt.formatFloatDecimal(value, std.fmt.FormatOptions{}, stream.writer()) catch |err| switch (err) {
+                std.fmt.formatFloatScientific(value, std.fmt.FormatOptions{}, stream.writer()) catch |err| switch (err) {
                     error.NoSpaceLeft => unreachable,
                     else => unreachable, // TODO: handle error
                 };
@@ -138,64 +112,35 @@ pub fn PrettyFormatter(comptime Writer: type) type {
                 }
             }
 
-            fn beginArray(self: *Self, writer: Writer) Writer.Error!void {
-                self.current += 1;
-                self.has_value = false;
+            fn beginArray(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("[");
             }
 
-            fn endArray(self: *Self, writer: Writer) Writer.Error!void {
-                self.current -= 1;
-
-                if (self.has_value) {
-                    try writer.writeAll("\n");
-                    try self.doIndent(writer);
-                }
-
+            fn endArray(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("]");
             }
 
-            fn beginArrayValue(self: *Self, writer: Writer, first: bool) Writer.Error!void {
-                if (first) {
-                    try writer.writeAll("\n");
-                } else {
-                    try writer.writeAll(",\n");
-                }
-
-                try self.doIndent(writer);
+            fn beginArrayValue(_: *Self, writer: Writer, first: bool) Writer.Error!void {
+                if (!first)
+                    try writer.writeAll(",");
             }
 
             fn endArrayValue(self: *Self, writer: Writer) Writer.Error!void {
+                _ = self;
                 _ = writer;
-
-                self.has_value = true;
             }
 
-            fn beginObject(self: *Self, writer: Writer) Writer.Error!void {
-                self.current += 1;
-                self.has_value = false;
+            fn beginObject(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("{");
             }
 
-            fn endObject(self: *Self, writer: Writer) Writer.Error!void {
-                self.current -= 1;
-
-                if (self.has_value) {
-                    try writer.writeAll("\n");
-                    try self.doIndent(writer);
-                }
-
+            fn endObject(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("}");
             }
 
-            fn beginObjectKey(self: *Self, writer: Writer, first: bool) Writer.Error!void {
-                if (first) {
-                    try writer.writeAll("\n");
-                } else {
-                    try writer.writeAll(",\n");
-                }
-
-                try self.doIndent(writer);
+            fn beginObjectKey(_: *Self, writer: Writer, first: bool) Writer.Error!void {
+                if (!first)
+                    try writer.writeAll(",");
             }
 
             fn endObjectKey(self: *Self, writer: Writer) Writer.Error!void {
@@ -203,16 +148,13 @@ pub fn PrettyFormatter(comptime Writer: type) type {
                 _ = writer;
             }
 
-            fn beginObjectValue(self: *Self, writer: Writer) Writer.Error!void {
-                _ = self;
-
-                try writer.writeAll(": ");
+            fn beginObjectValue(_: *Self, writer: Writer) Writer.Error!void {
+                try writer.writeAll(":");
             }
 
             fn endObjectValue(self: *Self, writer: Writer) Writer.Error!void {
+                _ = self;
                 _ = writer;
-
-                self.has_value = true;
             }
 
             fn writeRawFragment(self: *Self, writer: Writer, value: []const u8) Writer.Error!void {

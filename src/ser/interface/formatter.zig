@@ -1,4 +1,4 @@
-const CharEscape = @import("../../lib.zig").CharEscape;
+const CharEscape = @import("../../lib.zig").ser.CharEscape;
 
 pub fn Formatter(
     comptime Context: type,
