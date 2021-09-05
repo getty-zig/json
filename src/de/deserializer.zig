@@ -24,11 +24,8 @@ pub fn Deserializer(comptime Reader: type) type {
             self.scratch.deinit();
         }
 
-        pub fn deserializer(self: *Self) D {
-            return .{ .context = self };
-        }
-
-        const D = getty.de.Deserializer(
+        /// Implements `getty.de.Deserializer`.
+        pub usingnamespace getty.de.Deserializer(
             *Self,
             _D.Error,
             _D.deserializeBool,

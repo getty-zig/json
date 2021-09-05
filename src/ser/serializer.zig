@@ -21,11 +21,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
         }
 
         /// Implements `getty.ser.Serializer`.
-        pub fn serializer(self: *Self) S {
-            return .{ .context = self };
-        }
-
-        const S = getty.ser.Serializer(
+        pub usingnamespace getty.ser.Serializer(
             *Self,
             _S.Ok,
             _S.Error,
@@ -154,11 +150,7 @@ fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
         const Self = @This();
 
         /// Implements `getty.ser.Map`.
-        pub fn map(self: *Self) M {
-            return .{ .context = self };
-        }
-
-        const M = getty.ser.Map(
+        pub usingnamespace getty.ser.Map(
             *Self,
             Ok,
             Error,
@@ -198,11 +190,7 @@ fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
         };
 
         /// Implements `getty.ser.Sequence`.
-        pub fn sequence(self: *Self) SE {
-            return .{ .context = self };
-        }
-
-        const SE = getty.ser.Sequence(
+        pub usingnamespace getty.ser.Sequence(
             *Self,
             Ok,
             Error,
@@ -227,11 +215,7 @@ fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
         };
 
         /// Implements `getty.ser.Struct`.
-        pub fn structure(self: *Self) ST {
-            return .{ .context = self };
-        }
-
-        const ST = getty.ser.Structure(
+        pub usingnamespace getty.ser.Structure(
             *Self,
             Ok,
             Error,
@@ -252,11 +236,7 @@ fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
         };
 
         /// Implements `getty.ser.Sequence`.
-        pub fn tuple(self: *Self) T {
-            return .{ .context = self };
-        }
-
-        const T = getty.ser.Tuple(
+        pub usingnamespace getty.ser.Tuple(
             *Self,
             Ok,
             Error,

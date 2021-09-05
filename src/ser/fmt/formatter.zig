@@ -24,7 +24,7 @@ pub fn Formatter(
     comptime endObjectValueFn: fn (Context, Writer) Writer.Error!void,
     comptime rawFragmentFn: fn (Context, Writer, []const u8) Writer.Error!void,
 ) type {
-    return struct {
+    const T = struct {
         context: Context,
 
         const Self = @This();
@@ -126,6 +126,12 @@ pub fn Formatter(
 
         pub fn writeRawFragment(self: Self, writer: Writer, value: []const u8) Writer.Error!void {
             try rawFragmentFn(self.context, writer, value);
+        }
+    };
+
+    return struct {
+        pub fn formatter(self: Context) T {
+            return .{ .context = self };
         }
     };
 }

@@ -8,12 +8,8 @@ pub fn CompactFormatter(comptime Writer: type) type {
     return struct {
         const Self = @This();
 
-        /// Implements `json.Formatter`.
-        pub fn formatter(self: *Self) F {
-            return .{ .context = self };
-        }
-
-        const F = Formatter(
+        /// Implements `json.ser.Formatter`.
+        pub usingnamespace Formatter(
             *Self,
             Writer,
             _F.writeNull,
