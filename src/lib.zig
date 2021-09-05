@@ -18,12 +18,8 @@ pub const Formatter = @import("ser/fmt/formatter.zig").Formatter;
 pub const CompactFormatter = @import("ser/fmt/formatters/compact.zig").CompactFormatter;
 pub const PrettyFormatter = @import("ser/fmt/formatters/pretty.zig").PrettyFormatter;
 
-// de
-
 const Deserializer = @import("de/deserializer.zig");
 
 test {
-    refAllDecls(@This());
+    @import("std").testing.refAllDecls(@This());
 }
-
-const refAllDecls = @import("std").testing.refAllDecls;

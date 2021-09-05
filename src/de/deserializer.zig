@@ -35,8 +35,7 @@ pub fn Deserializer(comptime Reader: type) type {
             _D.deserializeInt,
             undefined,
             //_D.deserializeMap,
-            undefined,
-            //_D.deserializeOptional,
+            _D.deserializeOptional,
             undefined,
             //_D.deserializeSequence,
             undefined,
@@ -102,6 +101,19 @@ pub fn Deserializer(comptime Reader: type) type {
 
                 return Error.Input;
             }
+
+            fn deserializeOptional(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+                var tokens = std.json.TokenStream.init(self.scratch.items);
+
+                if (tokens.next() catch return Error.Input) |token| {
+                    return try switch (token) {
+                        .Null => visitor.visitNull(Error),
+                        else => visitor.visitSome(self.deserializer()),
+                    };
+                }
+
+                return Error.Input;
+            }
         };
     };
 }
@@ -118,23 +130,28 @@ pub fn fromString(allocator: *std.mem.Allocator, comptime T: type, string: []con
     return try fromReader(allocator, T, fbs.reader());
 }
 
-test {
+test "bool" {
     try std.testing.expectEqual(true, try fromString(std.testing.allocator, bool, "true"));
     try std.testing.expectEqual(false, try fromString(std.testing.allocator, bool, "false"));
 }
 
-test {
+test "int" {
     try std.testing.expectEqual(@as(u32, 1), try fromString(std.testing.allocator, u32, "1"));
     try std.testing.expectEqual(@as(i32, -1), try fromString(std.testing.allocator, i32, "-1"));
     try std.testing.expectEqual(@as(u32, 1), try fromString(std.testing.allocator, u32, "1.0"));
     try std.testing.expectEqual(@as(i32, -1), try fromString(std.testing.allocator, i32, "-1.0"));
 }
 
-test {
+test "float" {
     try std.testing.expectEqual(@as(f32, 3.14), try fromString(std.testing.allocator, f32, "3.14"));
     try std.testing.expectEqual(@as(f64, 3.14), try fromString(std.testing.allocator, f64, "3.14"));
     try std.testing.expectEqual(@as(f32, 3.0), try fromString(std.testing.allocator, f32, "3"));
     try std.testing.expectEqual(@as(f64, 3.0), try fromString(std.testing.allocator, f64, "3"));
+}
+
+test "optional" {
+    try std.testing.expectEqual(@as(?i32, null), try fromString(std.testing.allocator, ?i32, "null"));
+    try std.testing.expectEqual(@as(?i32, 42), try fromString(std.testing.allocator, ?i32, "42"));
 }
 
 test {
