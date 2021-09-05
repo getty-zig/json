@@ -26,17 +26,17 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
             *Self,
             _S.Ok,
             _S.Error,
-            _S.Map,
-            _S.Sequence,
-            _S.Struct,
-            _S.Tuple,
+            _S.MapSerialize,
+            _S.SeqSerialize,
+            _S.StructSerialize,
+            _S.TupleSerialize,
             _S.serializeBool,
             _S.serializeEnum,
             _S.serializeFloat,
             _S.serializeInt,
             _S.serializeMap,
             _S.serializeNull,
-            _S.serializeSequence,
+            _S.serializeSeq,
             _S.serializeString,
             _S.serializeStruct,
             _S.serializeTuple,
@@ -65,10 +65,10 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
                 Eof,
             };
 
-            const Map = Access(Self, Ok, Error);
-            const Sequence = Access(Self, Ok, Error);
-            const Struct = Access(Self, Ok, Error);
-            const Tuple = Access(Self, Ok, Error);
+            const MapSerialize = Access(Self, Ok, Error);
+            const SeqSerialize = Access(Self, Ok, Error);
+            const StructSerialize = Access(Self, Ok, Error);
+            const TupleSerialize = Access(Self, Ok, Error);
 
             fn serializeBool(self: *Self, value: bool) Error!Ok {
                 self.formatter.writeBool(self.writer, value) catch return Error.Io;
@@ -90,34 +90,34 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
                 self.formatter.writeInt(self.writer, value) catch return Error.Io;
             }
 
-            fn serializeMap(self: *Self, length: ?usize) Error!Map {
+            fn serializeMap(self: *Self, length: ?usize) Error!MapSerialize {
                 self.formatter.beginObject(self.writer) catch return Error.Io;
 
                 if (length) |l| {
                     if (l == 0) {
                         self.formatter.endObject(self.writer) catch return Error.Io;
-                        return Map{ .ser = self, .state = .empty };
+                        return MapSerialize{ .ser = self, .state = .empty };
                     }
                 }
 
-                return Map{ .ser = self, .state = .first };
+                return MapSerialize{ .ser = self, .state = .first };
             }
 
             fn serializeNull(self: *Self) Error!Ok {
                 self.formatter.writeNull(self.writer) catch return Error.Io;
             }
 
-            fn serializeSequence(self: *Self, length: ?usize) Error!Sequence {
+            fn serializeSeq(self: *Self, length: ?usize) Error!SeqSerialize {
                 self.formatter.beginArray(self.writer) catch return Error.Io;
 
                 if (length) |l| {
                     if (l == 0) {
                         self.formatter.endArray(self.writer) catch return Error.Io;
-                        return Sequence{ .ser = self, .state = .empty };
+                        return SeqSerialize{ .ser = self, .state = .empty };
                     }
                 }
 
-                return Sequence{ .ser = self, .state = .first };
+                return SeqSerialize{ .ser = self, .state = .first };
             }
 
             fn serializeString(self: *Self, value: anytype) Error!Ok {
@@ -126,14 +126,14 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
                 self.formatter.endString(self.writer) catch return Error.Io;
             }
 
-            fn serializeStruct(self: *Self, name: []const u8, length: usize) Error!Struct {
+            fn serializeStruct(self: *Self, name: []const u8, length: usize) Error!StructSerialize {
                 _ = name;
 
                 return serializeMap(self, length);
             }
 
-            fn serializeTuple(self: *Self, length: ?usize) Error!Tuple {
-                return serializeSequence(self, length);
+            fn serializeTuple(self: *Self, length: ?usize) Error!TupleSerialize {
+                return serializeSeq(self, length);
             }
         };
     };
@@ -150,8 +150,8 @@ fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
 
         const Self = @This();
 
-        /// Implements `getty.ser.Map`.
-        pub usingnamespace getty.ser.Map(
+        /// Implements `getty.ser.MapSerialize`.
+        pub usingnamespace getty.ser.MapSerialize(
             *Self,
             Ok,
             Error,
@@ -190,8 +190,8 @@ fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
             }
         };
 
-        /// Implements `getty.ser.Sequence`.
-        pub usingnamespace getty.ser.Sequence(
+        /// Implements `getty.ser.SeqSerialize`.
+        pub usingnamespace getty.ser.SeqSerialize(
             *Self,
             Ok,
             Error,
@@ -215,8 +215,8 @@ fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
             }
         };
 
-        /// Implements `getty.ser.Struct`.
-        pub usingnamespace getty.ser.Structure(
+        /// Implements `getty.ser.StructSerialize`.
+        pub usingnamespace getty.ser.StructSerialize(
             *Self,
             Ok,
             Error,
@@ -226,18 +226,18 @@ fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
 
         const _ST = struct {
             fn serializeField(self: *Self, comptime key: []const u8, value: anytype) Error!void {
-                const m = self.map();
+                const m = self.mapSerialize();
                 try m.serializeEntry(key, value);
             }
 
             fn end(self: *Self) Error!Ok {
-                const m = self.map();
+                const m = self.mapSerialize();
                 try m.end();
             }
         };
 
-        /// Implements `getty.ser.Sequence`.
-        pub usingnamespace getty.ser.Tuple(
+        /// Implements `getty.ser.TupleSerialize`.
+        pub usingnamespace getty.ser.TupleSerialize(
             *Self,
             Ok,
             Error,
