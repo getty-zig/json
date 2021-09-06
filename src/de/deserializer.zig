@@ -39,8 +39,7 @@ pub fn Deserializer(comptime Reader: type) type {
             undefined,
             //_D.deserializeMap,
             _D.deserializeOptional,
-            undefined,
-            //_D.deserializeSequence,
+            _D.deserializeSequence,
             undefined,
             //_D.deserializeString,
             undefined,
@@ -93,6 +92,30 @@ pub fn Deserializer(comptime Reader: type) type {
                             ),
                         },
                         else => {},
+                    }
+                }
+
+                return Error.Input;
+            }
+
+            fn deserializeSequence(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+                var access = struct {
+                    d: @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
+
+                    pub usingnamespace getty.de.SequenceAccess(
+                        *@This(),
+                        Error,
+                        nextElementSeed,
+                    );
+
+                    fn nextElementSeed(a: *@This(), seed: anytype) !?@TypeOf(seed).Value {
+                        return try seed.deserialize(a.d);
+                    }
+                }{ .d = self.deserializer() };
+
+                if (self.tokens.next() catch return Error.Input) |token| {
+                    if (token == .ArrayBegin) {
+                        return try visitor.visitSequence(access.sequenceAccess());
                     }
                 }
 

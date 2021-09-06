@@ -17,6 +17,15 @@ pub fn fromString(allocator: *std.mem.Allocator, comptime T: type, string: []con
     return try fromReader(allocator, T, fbs.reader());
 }
 
+test "array" {
+    try std.testing.expectEqual([2]bool{ false, false }, try fromString(std.testing.allocator, [2]bool, "[false,false]"));
+    try std.testing.expectEqual([2]bool{ true, true }, try fromString(std.testing.allocator, [2]bool, "[true,true]"));
+    try std.testing.expectEqual([2]bool{ true, false }, try fromString(std.testing.allocator, [2]bool, "[true,false]"));
+    try std.testing.expectEqual([2]bool{ false, true }, try fromString(std.testing.allocator, [2]bool, "[false,true]"));
+
+    try std.testing.expectEqual([5]i32{ 1, 2, 3, 4, 5 }, try fromString(std.testing.allocator, [5]i32, "[1,2,3,4,5]"));
+}
+
 test "bool" {
     try std.testing.expectEqual(true, try fromString(std.testing.allocator, bool, "true"));
     try std.testing.expectEqual(false, try fromString(std.testing.allocator, bool, "false"));
