@@ -3,25 +3,25 @@ const std = @import("std");
 
 pub fn Deserializer(comptime Reader: type) type {
     return struct {
+        buffer: std.ArrayList(u8),
         reader: Reader,
-        scratch: std.ArrayList(u8),
         tokens: std.json.TokenStream,
 
         const Self = @This();
 
         pub fn init(allocator: *std.mem.Allocator, reader: Reader) Self {
             var d = Self{
+                .buffer = std.ArrayList(u8).init(allocator),
                 .reader = reader,
-                .scratch = std.ArrayList(u8).init(allocator),
                 .tokens = undefined,
             };
-            d.reader.readAllArrayList(&d.scratch, 10 * 1024 * 1024) catch unreachable;
-            d.tokens = std.json.TokenStream.init(d.scratch.items);
+            d.reader.readAllArrayList(&d.buffer, 10 * 1024 * 1024) catch unreachable;
+            d.tokens = std.json.TokenStream.init(d.buffer.items);
             return d;
         }
 
         pub fn deinit(self: *Self) void {
-            self.scratch.deinit();
+            self.buffer.deinit();
         }
 
         /// Implements `getty.de.Deserializer`.
@@ -64,7 +64,7 @@ pub fn Deserializer(comptime Reader: type) type {
                     switch (token) {
                         .Number => |num| return try visitor.visitFloat(
                             Error,
-                            std.fmt.parseFloat(@TypeOf(visitor).Value, num.slice(self.scratch.items, self.tokens.i - 1)) catch return Error.Input,
+                            std.fmt.parseFloat(@TypeOf(visitor).Value, num.slice(self.buffer.items, self.tokens.i - 1)) catch return Error.Input,
                         ),
                         else => {},
                     }
@@ -81,11 +81,11 @@ pub fn Deserializer(comptime Reader: type) type {
                         .Number => |num| switch (num.is_integer) {
                             true => return try visitor.visitInt(
                                 Error,
-                                std.fmt.parseInt(Value, num.slice(self.scratch.items, self.tokens.i - 1), 10) catch return Error.Input,
+                                std.fmt.parseInt(Value, num.slice(self.buffer.items, self.tokens.i - 1), 10) catch return Error.Input,
                             ),
                             false => return visitor.visitFloat(
                                 Error,
-                                std.fmt.parseFloat(f128, num.slice(self.scratch.items, self.tokens.i - 1)) catch return Error.Input,
+                                std.fmt.parseFloat(f128, num.slice(self.buffer.items, self.tokens.i - 1)) catch return Error.Input,
                             ),
                         },
                         else => {},
