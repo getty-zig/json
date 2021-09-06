@@ -5,6 +5,7 @@ pub fn Deserializer(comptime Reader: type) type {
     return struct {
         reader: Reader,
         scratch: std.ArrayList(u8),
+        tokens: std.json.TokenStream,
         //remaining_depth: u8 = 128,
         //single_precision: bool = false,
         //disable_recursion_limit: bool = false,
@@ -15,8 +16,10 @@ pub fn Deserializer(comptime Reader: type) type {
             var d = Self{
                 .reader = reader,
                 .scratch = std.ArrayList(u8).init(allocator),
+                .tokens = undefined,
             };
             d.reader.readAllArrayList(&d.scratch, 10 * 1024 * 1024) catch unreachable;
+            d.tokens = std.json.TokenStream.init(d.scratch.items);
             return d;
         }
 
@@ -49,9 +52,7 @@ pub fn Deserializer(comptime Reader: type) type {
             const Error = error{Input};
 
             fn deserializeBool(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
-                var tokens = std.json.TokenStream.init(self.scratch.items);
-
-                if (tokens.next() catch return Error.Input) |token| {
+                if (self.tokens.next() catch return Error.Input) |token| {
                     switch (token) {
                         .True => return try visitor.visitBool(Error, true),
                         .False => return try visitor.visitBool(Error, false),
@@ -63,13 +64,11 @@ pub fn Deserializer(comptime Reader: type) type {
             }
 
             fn deserializeFloat(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
-                var tokens = std.json.TokenStream.init(self.scratch.items);
-
-                if (tokens.next() catch return Error.Input) |token| {
+                if (self.tokens.next() catch return Error.Input) |token| {
                     switch (token) {
                         .Number => |num| return try visitor.visitFloat(
                             Error,
-                            std.fmt.parseFloat(@TypeOf(visitor).Value, num.slice(self.scratch.items, tokens.i - 1)) catch return Error.Input,
+                            std.fmt.parseFloat(@TypeOf(visitor).Value, num.slice(self.scratch.items, self.tokens.i - 1)) catch return Error.Input,
                         ),
                         else => {},
                     }
@@ -80,18 +79,17 @@ pub fn Deserializer(comptime Reader: type) type {
 
             fn deserializeInt(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
                 const Value = @TypeOf(visitor).Value;
-                var tokens = std.json.TokenStream.init(self.scratch.items);
 
-                if (tokens.next() catch return Error.Input) |token| {
+                if (self.tokens.next() catch return Error.Input) |token| {
                     switch (token) {
                         .Number => |num| switch (num.is_integer) {
                             true => return try visitor.visitInt(
                                 Error,
-                                std.fmt.parseInt(Value, num.slice(self.scratch.items, tokens.i - 1), 10) catch return Error.Input,
+                                std.fmt.parseInt(Value, num.slice(self.scratch.items, self.tokens.i - 1), 10) catch return Error.Input,
                             ),
                             false => return visitor.visitFloat(
                                 Error,
-                                std.fmt.parseFloat(f128, num.slice(self.scratch.items, tokens.i - 1)) catch return Error.Input,
+                                std.fmt.parseFloat(f128, num.slice(self.scratch.items, self.tokens.i - 1)) catch return Error.Input,
                             ),
                         },
                         else => {},
@@ -102,12 +100,20 @@ pub fn Deserializer(comptime Reader: type) type {
             }
 
             fn deserializeOptional(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
-                var tokens = std.json.TokenStream.init(self.scratch.items);
+                const tokens = self.tokens;
 
-                if (tokens.next() catch return Error.Input) |token| {
+                if (self.tokens.next() catch return Error.Input) |token| {
                     return try switch (token) {
                         .Null => visitor.visitNull(Error),
-                        else => visitor.visitSome(self.deserializer()),
+                        else => blk: {
+                            // Get back the token we just ate if it was an
+                            // actual value so that whenever the next
+                            // deserialize method is called by visitSome,
+                            // they'll eat the token we just saw instead of
+                            // whatever is after it.
+                            self.tokens = tokens;
+                            break :blk visitor.visitSome(self.deserializer());
+                        },
                     };
                 }
 
@@ -115,9 +121,7 @@ pub fn Deserializer(comptime Reader: type) type {
             }
 
             fn deserializeVoid(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
-                var tokens = std.json.TokenStream.init(self.scratch.items);
-
-                if (tokens.next() catch return Error.Input) |token| {
+                if (self.tokens.next() catch return Error.Input) |token| {
                     if (token == .Null) {
                         return try visitor.visitVoid(Error);
                     }
