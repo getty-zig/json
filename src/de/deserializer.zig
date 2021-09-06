@@ -73,14 +73,12 @@ pub fn Deserializer(comptime Reader: type) type {
         }
 
         fn deserializeInt(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
-            const Value = @TypeOf(visitor).Value;
-
             if (self.tokens.next() catch return Error.Input) |token| {
                 switch (token) {
                     .Number => |num| switch (num.is_integer) {
                         true => return try visitor.visitInt(
                             Error,
-                            std.fmt.parseInt(Value, num.slice(self.buffer.items, self.tokens.i - 1), 10) catch return Error.Input,
+                            std.fmt.parseInt(@TypeOf(visitor).Value, num.slice(self.buffer.items, self.tokens.i - 1), 10) catch return Error.Input,
                         ),
                         false => return visitor.visitFloat(
                             Error,
