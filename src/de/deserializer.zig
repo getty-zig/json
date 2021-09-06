@@ -42,8 +42,7 @@ pub fn Deserializer(comptime Reader: type) type {
             //_D.deserializeString,
             undefined,
             //_D.deserializeStruct,
-            undefined,
-            //_D.deserializeVoid,
+            _D.deserializeVoid,
         );
 
         const _D = struct {
@@ -110,6 +109,18 @@ pub fn Deserializer(comptime Reader: type) type {
                         .Null => visitor.visitNull(Error),
                         else => visitor.visitSome(self.deserializer()),
                     };
+                }
+
+                return Error.Input;
+            }
+
+            fn deserializeVoid(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+                var tokens = std.json.TokenStream.init(self.scratch.items);
+
+                if (tokens.next() catch return Error.Input) |token| {
+                    if (token == .Null) {
+                        return try visitor.visitVoid(Error);
+                    }
                 }
 
                 return Error.Input;

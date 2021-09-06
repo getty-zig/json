@@ -41,6 +41,12 @@ test "optional" {
     try std.testing.expectEqual(@as(?i32, 42), try fromString(std.testing.allocator, ?i32, "42"));
 }
 
+test "void" {
+    try std.testing.expectEqual({}, try fromString(std.testing.allocator, void, "null"));
+    try std.testing.expectError(error.Input, fromString(std.testing.allocator, void, "true"));
+    try std.testing.expectError(error.Input, fromString(std.testing.allocator, void, "1"));
+}
+
 test {
     std.testing.refAllDecls(@This());
 }
