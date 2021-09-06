@@ -6,9 +6,6 @@ pub fn Deserializer(comptime Reader: type) type {
         reader: Reader,
         scratch: std.ArrayList(u8),
         tokens: std.json.TokenStream,
-        //remaining_depth: u8 = 128,
-        //single_precision: bool = false,
-        //disable_recursion_limit: bool = false,
 
         const Self = @This();
 
