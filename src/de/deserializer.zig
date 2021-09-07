@@ -103,13 +103,30 @@ pub fn Deserializer(comptime Reader: type) type {
                 );
 
                 fn nextElementSeed(a: *@This(), seed: anytype) !?@TypeOf(seed).Value {
+                    const tokens = a.d.context.tokens;
+
+                    if (a.d.context.tokens.next() catch return Error.Input) |token| {
+                        if (token == .ArrayEnd) {
+                            return null;
+                        }
+                    } else {
+                        return Error.Input;
+                    }
+
+                    a.d.context.tokens = tokens;
                     return try seed.deserialize(a.d);
                 }
             }{ .d = self.deserializer() };
 
             if (self.tokens.next() catch return Error.Input) |token| {
                 if (token == .ArrayBegin) {
-                    return try visitor.visitSequence(access.sequenceAccess());
+                    const value = try visitor.visitSequence(access.sequenceAccess());
+
+                    if (self.tokens.next() catch return Error.Input) |tok| {
+                        if (tok == .ArrayEnd) {
+                            return value;
+                        }
+                    }
                 }
             }
 

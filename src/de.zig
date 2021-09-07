@@ -24,6 +24,9 @@ test "array" {
     try std.testing.expectEqual([2]bool{ false, true }, try fromString(std.testing.allocator, [2]bool, "[false,true]"));
 
     try std.testing.expectEqual([5]i32{ 1, 2, 3, 4, 5 }, try fromString(std.testing.allocator, [5]i32, "[1,2,3,4,5]"));
+
+    try std.testing.expectEqual([2][1]i32{ .{1}, .{2} }, try fromString(std.testing.allocator, [2][1]i32, "[[1],[2]]"));
+    try std.testing.expectEqual([2][1][3]i32{ .{.{ 1, 2, 3 }}, .{.{ 4, 5, 6 }} }, try fromString(std.testing.allocator, [2][1][3]i32, "[[[1,2,3]],[[4,5,6]]]"));
 }
 
 test "bool" {
