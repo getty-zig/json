@@ -10,8 +10,8 @@ pkgs:
       build.zig
       src/*.zig
       src/ser/*.zig
-      src/ser/fmt/*.zig
-      src/ser/fmt/formatters/*.zig
+      src/ser/interface/*.zig
+      src/de/*.zig
 deps:
   getty:
     src:
