@@ -55,6 +55,16 @@ test "slice" {
     try std.testing.expect(std.mem.eql(u8, "Hello, World!", string));
 }
 
+test "struct" {
+    const got = try fromString(std.testing.allocator, struct { x: i32, y: []const u8 },
+        \\{"x":1,"y":"Hello"}
+    );
+    defer std.testing.allocator.free(got.y);
+
+    try std.testing.expectEqual(@as(i32, 1), got.x);
+    try std.testing.expect(std.mem.eql(u8, "Hello", got.y));
+}
+
 test "optional" {
     try std.testing.expectEqual(@as(?i32, null), try fromString(std.testing.allocator, ?i32, "null"));
     try std.testing.expectEqual(@as(?i32, 42), try fromString(std.testing.allocator, ?i32, "42"));

@@ -33,13 +33,11 @@ pub fn Deserializer(comptime Reader: type) type {
             //deserializeEnum,
             deserializeFloat,
             deserializeInt,
-            undefined,
-            //deserializeMap,
+            deserializeMap,
             deserializeOptional,
             deserializeSequence,
             deserializeSlice,
-            undefined,
-            //deserializeStruct,
+            deserializeStruct,
             deserializeVoid,
         );
 
@@ -85,6 +83,67 @@ pub fn Deserializer(comptime Reader: type) type {
                         ),
                     },
                     else => {},
+                }
+            }
+
+            return Error.Input;
+        }
+
+        fn deserializeMap(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
+            var access = struct {
+                allocator: ?*std.mem.Allocator,
+                d: @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
+
+                pub usingnamespace getty.de.MapAccess(
+                    *@This(),
+                    Error,
+                    nextKeySeed,
+                    nextValueSeed,
+                );
+
+                fn nextKeySeed(a: *@This(), seed: anytype) !?@TypeOf(seed).Value {
+                    const tokens = a.d.context.tokens;
+
+                    if (a.d.context.tokens.next() catch return Error.Input) |token| {
+                        if (token == .ObjectEnd) {
+                            return null;
+                        }
+                    } else {
+                        return Error.Input;
+                    }
+
+                    a.d.context.tokens = tokens;
+                    return try seed.deserialize(a.allocator, a.d);
+                }
+
+                fn nextValueSeed(a: *@This(), seed: anytype) !@TypeOf(seed).Value {
+                    //const tokens = a.d.context.tokens;
+
+                    //if (a.d.context.tokens.next() catch return Error.Input) |token| {
+                    //if (token == .ObjectEnd) {
+                    //return null;
+                    //}
+                    //} else {
+                    //return Error.Input;
+                    //}
+
+                    //a.d.context.tokens = tokens;
+                    return try seed.deserialize(a.allocator, a.d);
+                }
+            }{
+                .allocator = allocator,
+                .d = self.deserializer(),
+            };
+
+            if (self.tokens.next() catch return Error.Input) |token| {
+                if (token == .ObjectBegin) {
+                    const value = try visitor.visitMap(allocator, access.mapAccess());
+
+                    if (self.tokens.next() catch return Error.Input) |tok| {
+                        if (tok == .ObjectEnd) {
+                            return value;
+                        }
+                    }
                 }
             }
 
@@ -147,6 +206,10 @@ pub fn Deserializer(comptime Reader: type) type {
             }
 
             return Error.Input;
+        }
+
+        fn deserializeStruct(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
+            return try deserializeMap(self, allocator, visitor);
         }
 
         fn deserializeOptional(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
