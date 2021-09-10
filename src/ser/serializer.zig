@@ -167,13 +167,13 @@ fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
                 self.state = .rest;
                 // TODO: serde-json passes in a MapKeySerializer here instead
                 // of self. This works though, so should we change it?
-                getty.serialize(self.ser.serializer(), key) catch return Error.Io;
+                getty.serialize(key, self.ser.serializer()) catch return Error.Io;
                 self.ser.formatter.endObjectKey(self.ser.writer) catch return Error.Io;
             }
 
             fn serializeValue(self: *Self, value: anytype) Error!void {
                 self.ser.formatter.beginObjectValue(self.ser.writer) catch return Error.Io;
-                getty.serialize(self.ser.serializer(), value) catch return Error.Io;
+                getty.serialize(value, self.ser.serializer()) catch return Error.Io;
                 self.ser.formatter.endObjectValue(self.ser.writer) catch return Error.Io;
             }
 
@@ -203,7 +203,7 @@ fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
             fn serializeElement(self: *Self, value: anytype) Error!Ok {
                 self.ser.formatter.beginArrayValue(self.ser.writer, self.state == .first) catch return Error.Io;
                 self.state = .rest;
-                getty.serialize(self.ser.serializer(), value) catch return Error.Io;
+                getty.serialize(value, self.ser.serializer()) catch return Error.Io;
                 self.ser.formatter.endArrayValue(self.ser.writer) catch return Error.Io;
             }
 

@@ -10,37 +10,37 @@ pub const ser = struct {
 };
 
 /// Serialize the given value as JSON into the given I/O stream.
-pub fn toWriter(writer: anytype, value: anytype) !void {
+pub fn toWriter(value: anytype, writer: anytype) !void {
     var f = ser.CompactFormatter(@TypeOf(writer)){};
     var s = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
-    try getty.serialize(s.serializer(), value);
+    try getty.serialize(value, s.serializer());
 }
 
 /// Serialize the given value as pretty-printed JSON into the given I/O stream.
-pub fn toPrettyWriter(writer: anytype, value: anytype) !void {
+pub fn toPrettyWriter(value: anytype, writer: anytype) !void {
     var f = ser.PrettyFormatter(@TypeOf(writer)).init();
     var s = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
-    try getty.serialize(s.serializer(), value);
+    try getty.serialize(value, s.serializer());
 }
 
 /// Serialize the given value as JSON into the given I/O stream with the given
 /// visitor.
-pub fn toWriterWith(writer: anytype, value: anytype, visitor: anytype) !void {
+pub fn toWriterWith(value: anytype, writer: anytype, visitor: anytype) !void {
     var f = ser.CompactFormatter(@TypeOf(writer)){};
     var s = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
-    try getty.serializeWith(s.serializer(), visitor, value);
+    try getty.serializeWith(value, s.serializer(), visitor);
 }
 
 /// Serialize the given value as pretty-printed JSON into the given I/O stream
 /// with the given visitor.
-pub fn toPrettyWriterWith(writer: anytype, value: anytype, visitor: anytype) !void {
+pub fn toPrettyWriterWith(value: anytype, writer: anytype, visitor: anytype) !void {
     var f = ser.PrettyFormatter(@TypeOf(writer)).init();
     var s = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
-    try getty.serializeWith(s.serializer(), visitor, value);
+    try getty.serializeWith(value, s.serializer(), visitor);
 }
 
 /// Serialize the given value as a JSON string.
@@ -51,7 +51,7 @@ pub fn toString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
     var array_list = std.ArrayList(u8).init(allocator);
     errdefer array_list.deinit();
 
-    try toWriter(array_list.writer(), value);
+    try toWriter(value, array_list.writer());
     return array_list.toOwnedSlice();
 }
 
@@ -63,7 +63,7 @@ pub fn toPrettyString(allocator: *std.mem.Allocator, value: anytype) ![]const u8
     var array_list = std.ArrayList(u8).init(allocator);
     errdefer array_list.deinit();
 
-    try toPrettyWriter(array_list.writer(), value);
+    try toPrettyWriter(value, array_list.writer());
     return array_list.toOwnedSlice();
 }
 
@@ -75,7 +75,7 @@ pub fn toStringWith(allocator: *std.mem.Allocator, value: anytype, visitor: anyt
     var array_list = std.ArrayList(u8).init(allocator);
     errdefer array_list.deinit();
 
-    try toWriterWith(array_list.writer(), value, visitor);
+    try toWriterWith(value, array_list.writer(), visitor);
     return array_list.toOwnedSlice();
 }
 
@@ -88,7 +88,7 @@ pub fn toPrettyStringWith(allocator: *std.mem.Allocator, value: anytype, visitor
     var array_list = std.ArrayList(u8).init(allocator);
     errdefer array_list.deinit();
 
-    try toPrettyWriterWith(array_list.writer(), value, visitor);
+    try toPrettyWriterWith(value, array_list.writer(), visitor);
     return array_list.toOwnedSlice();
 }
 
@@ -287,8 +287,8 @@ fn t(format: Format, value: anytype, expected: []const u8) !void {
     var w = ValidationWriter.init(expected);
 
     try switch (format) {
-        .compact => toWriter(w.writer(), value),
-        .pretty => toPrettyWriter(w.writer(), value),
+        .compact => toWriter(value, w.writer()),
+        .pretty => toPrettyWriter(value, w.writer()),
     };
 
     if (w.remaining.len > 0) {
