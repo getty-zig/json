@@ -6,7 +6,7 @@ pub const de = struct {
 };
 
 pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anytype) !T {
-    var deserializer = de.Deserializer(@TypeOf(reader)).init(allocator, reader);
+    var deserializer = de.Deserializer.init(allocator, reader);
     defer deserializer.deinit();
 
     return try getty.deserialize(allocator, T, deserializer.deserializer());
