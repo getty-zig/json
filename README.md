@@ -34,7 +34,7 @@ pub fn main() !void {
 
     // Print results
     print("{s}\n", .{string}); // {"x":1,"y":2}
-    print("{s}\n", .{point});  // Point{ .x = 1, .y = 2 }
+    print("{s}\n", .{point}); // Point{ .x = 1, .y = 2 }
 }
 ```
 
