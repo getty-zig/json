@@ -38,7 +38,7 @@ pub fn Deserializer(comptime Reader: type) type {
             deserializeOptional,
             deserializeSequence,
             undefined,
-            //deserializeString,
+            //deserializeSlice,
             undefined,
             //deserializeStruct,
             deserializeVoid,
@@ -92,8 +92,11 @@ pub fn Deserializer(comptime Reader: type) type {
             return Error.Input;
         }
 
-        fn deserializeSequence(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+        fn deserializeSequence(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
+            _ = allocator;
+
             var access = struct {
+                allocator: ?*std.mem.Allocator,
                 d: @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
 
                 pub usingnamespace getty.de.SequenceAccess(
@@ -114,9 +117,12 @@ pub fn Deserializer(comptime Reader: type) type {
                     }
 
                     a.d.context.tokens = tokens;
-                    return try seed.deserialize(a.d);
+                    return try seed.deserialize(a.allocator, a.d);
                 }
-            }{ .d = self.deserializer() };
+            }{
+                .allocator = allocator,
+                .d = self.deserializer(),
+            };
 
             if (self.tokens.next() catch return Error.Input) |token| {
                 if (token == .ArrayBegin) {
@@ -133,7 +139,7 @@ pub fn Deserializer(comptime Reader: type) type {
             return Error.Input;
         }
 
-        fn deserializeOptional(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+        fn deserializeOptional(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
             const tokens = self.tokens;
 
             if (self.tokens.next() catch return Error.Input) |token| {
@@ -146,7 +152,7 @@ pub fn Deserializer(comptime Reader: type) type {
                         // they'll eat the token we just saw instead of
                         // whatever is after it.
                         self.tokens = tokens;
-                        break :blk visitor.visitSome(self.deserializer());
+                        break :blk visitor.visitSome(allocator, self.deserializer());
                     },
                 };
             }

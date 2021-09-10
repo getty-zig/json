@@ -9,7 +9,7 @@ pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anyty
     var deserializer = de.Deserializer(@TypeOf(reader)).init(allocator, reader);
     defer deserializer.deinit();
 
-    return try getty.deserialize(T, deserializer.deserializer());
+    return try getty.deserialize(allocator, T, deserializer.deserializer());
 }
 
 pub fn fromString(allocator: *std.mem.Allocator, comptime T: type, string: []const u8) !T {
