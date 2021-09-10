@@ -48,6 +48,13 @@ test "float" {
     try std.testing.expectEqual(@as(f64, 3.0), try fromString(std.testing.allocator, f64, "3"));
 }
 
+test "slice" {
+    const string = try fromString(std.testing.allocator, []const u8, "\"Hello, World!\"");
+    defer std.testing.allocator.free(string);
+
+    try std.testing.expect(std.mem.eql(u8, "Hello, World!", string));
+}
+
 test "optional" {
     try std.testing.expectEqual(@as(?i32, null), try fromString(std.testing.allocator, ?i32, "null"));
     try std.testing.expectEqual(@as(?i32, 42), try fromString(std.testing.allocator, ?i32, "42"));
