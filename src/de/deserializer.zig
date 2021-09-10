@@ -62,7 +62,7 @@ pub fn Deserializer(comptime Reader: type) type {
                 switch (token) {
                     .Number => |num| return try visitor.visitFloat(
                         Error,
-                        std.fmt.parseFloat(@TypeOf(visitor).Value, num.slice(self.buffer.items, self.tokens.i - 1)) catch return Error.Input,
+                        std.fmt.parseFloat(@TypeOf(visitor).Value, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
                     ),
                     else => {},
                 }
@@ -77,11 +77,11 @@ pub fn Deserializer(comptime Reader: type) type {
                     .Number => |num| switch (num.is_integer) {
                         true => return try visitor.visitInt(
                             Error,
-                            std.fmt.parseInt(@TypeOf(visitor).Value, num.slice(self.buffer.items, self.tokens.i - 1), 10) catch return Error.Input,
+                            std.fmt.parseInt(@TypeOf(visitor).Value, num.slice(self.tokens.slice, self.tokens.i - 1), 10) catch return Error.Input,
                         ),
                         false => return visitor.visitFloat(
                             Error,
-                            std.fmt.parseFloat(f128, num.slice(self.buffer.items, self.tokens.i - 1)) catch return Error.Input,
+                            std.fmt.parseFloat(f128, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
                         ),
                     },
                     else => {},
