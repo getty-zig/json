@@ -139,7 +139,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
     };
 }
 
-fn Access(S: anytype, comptime Ok: type, comptime Error: type) type {
+fn Access(comptime S: type, comptime Ok: type, comptime Error: type) type {
     return struct {
         ser: *S,
         state: enum {
