@@ -197,7 +197,17 @@ pub const Deserializer = struct {
     fn deserializeSlice(self: *Self, allocator: *std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
-                .String => |str| return visitor.visitSlice(allocator, Error, str.slice(self.tokens.slice, self.tokens.i - 1)) catch Error.Input,
+                .String => |str| {
+                    if (std.meta.Child(@TypeOf(visitor).Value) != u8) {
+                        @compileError("cannot deserialize JSON string into non-byte slice");
+                    }
+
+                    return visitor.visitSlice(
+                        allocator,
+                        Error,
+                        str.slice(self.tokens.slice, self.tokens.i - 1),
+                    ) catch Error.Input;
+                },
                 else => {},
             }
         }
