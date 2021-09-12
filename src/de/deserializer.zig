@@ -148,8 +148,6 @@ pub const Deserializer = struct {
     }
 
     fn deserializeSequence(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
-        _ = allocator;
-
         var access = struct {
             allocator: ?*std.mem.Allocator,
             d: @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
