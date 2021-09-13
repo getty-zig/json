@@ -61,6 +61,75 @@ test "slice (string)" {
     try expect(eql(u8, "Hello, World!", string));
 }
 
+test "slice (non-string)" {
+    // scalar child
+    {
+        const want = [_]i32{ 1, 2, 3, 4, 5 };
+        const got = try fromString(testing.allocator, []i32, "[1,2,3,4,5]");
+        defer testing.allocator.free(got);
+
+        try expectEqual([]i32, @TypeOf(got));
+        try expect(eql(i32, &want, got));
+    }
+
+    // array child
+    {
+        const wants = .{
+            [3]u32{ 1, 2, 3 },
+            [3]u32{ 4, 5, 6 },
+            [3]u32{ 7, 8, 9 },
+        };
+        const got = try fromString(testing.allocator, [][3]u32,
+            \\[[1,2,3],[4,5,6],[7,8,9]]
+        );
+        defer testing.allocator.free(got);
+
+        try expectEqual([][3]u32, @TypeOf(got));
+        inline for (wants) |want, i| try expect(eql(u32, &want, &got[i]));
+    }
+
+    // slice child
+    {
+        const wants = .{
+            [_]u8{ 1, 2, 3 },
+            [_]u8{ 4, 5 },
+            [_]u8{6},
+            [_]u8{ 7, 8, 9, 10 },
+        };
+        const got = try fromString(testing.allocator, [][]u8,
+            \\[[1,2,3],[4,5],[6],[7,8,9,10]]
+        );
+        defer {
+            for (got) |elem| testing.allocator.free(elem);
+            testing.allocator.free(got);
+        }
+
+        try expectEqual([][]u8, @TypeOf(got));
+        inline for (wants) |want, i| try expect(eql(u8, &want, got[i]));
+    }
+
+    // string child
+    {
+        const wants = .{
+            "Foo",
+            "Bar",
+            "Foobar",
+        };
+        const got = try fromString(testing.allocator, [][]const u8,
+            \\["Foo","Bar","Foobar"]
+        );
+        defer {
+            for (got) |elem| testing.allocator.free(elem);
+            testing.allocator.free(got);
+        }
+
+        try expectEqual([][]const u8, @TypeOf(got));
+        inline for (wants) |want, i| {
+            try expect(eql(u8, want, got[i]));
+        }
+    }
+}
+
 test "struct" {
     const got = try fromString(testing.allocator, struct { x: i32, y: []const u8 },
         \\{"x":1,"y":"Hello"}
