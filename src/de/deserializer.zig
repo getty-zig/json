@@ -115,13 +115,7 @@ pub const Deserializer = struct {
                     Error,
                 ){ .allocator = allocator, .d = self.deserializer() };
 
-                const value = try visitor.visitSequence(allocator, access.sequenceAccess());
-
-                if (self.tokens.next() catch return Error.Input) |tok| {
-                    if (tok == .ArrayEnd) {
-                        return value;
-                    }
-                }
+                return try visitor.visitSequence(allocator, access.sequenceAccess());
             }
         }
 
