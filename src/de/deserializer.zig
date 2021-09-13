@@ -1,34 +1,6 @@
 const getty = @import("getty");
 const std = @import("std");
 
-fn SequenceAccess(comptime D: type, comptime Error: type) type {
-    return struct {
-        allocator: ?*std.mem.Allocator,
-        d: D,
-
-        pub usingnamespace getty.de.SequenceAccess(
-            *@This(),
-            Error,
-            nextElementSeed,
-        );
-
-        fn nextElementSeed(a: *@This(), seed: anytype) !?@TypeOf(seed).Value {
-            const tokens = a.d.context.tokens;
-
-            if (a.d.context.tokens.next() catch return Error.Input) |token| {
-                if (token == .ArrayEnd) {
-                    return null;
-                }
-            } else {
-                return Error.Input;
-            }
-
-            a.d.context.tokens = tokens;
-            return try seed.deserialize(a.allocator, a.d);
-        }
-    };
-}
-
 pub const Deserializer = struct {
     buffer: std.ArrayList(u8),
     tokens: std.json.TokenStream,
@@ -115,42 +87,13 @@ pub const Deserializer = struct {
     }
 
     fn deserializeMap(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
-        var access = struct {
-            allocator: ?*std.mem.Allocator,
-            d: @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
-
-            pub usingnamespace getty.de.MapAccess(
-                *@This(),
-                Error,
-                nextKeySeed,
-                nextValueSeed,
-            );
-
-            fn nextKeySeed(a: *@This(), seed: anytype) !?@TypeOf(seed).Value {
-                const tokens = a.d.context.tokens;
-
-                if (a.d.context.tokens.next() catch return Error.Input) |token| {
-                    if (token == .ObjectEnd) {
-                        return null;
-                    }
-                } else {
-                    return Error.Input;
-                }
-
-                a.d.context.tokens = tokens;
-                return try seed.deserialize(a.allocator, a.d);
-            }
-
-            fn nextValueSeed(a: *@This(), seed: anytype) !@TypeOf(seed).Value {
-                return try seed.deserialize(a.allocator, a.d);
-            }
-        }{
-            .allocator = allocator,
-            .d = self.deserializer(),
-        };
-
         if (self.tokens.next() catch return Error.Input) |token| {
             if (token == .ObjectBegin) {
+                var access = MapAccess(
+                    @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
+                    Error,
+                ){ .allocator = allocator, .d = self.deserializer() };
+
                 const value = try visitor.visitMap(allocator, access.mapAccess());
 
                 if (self.tokens.next() catch return Error.Input) |tok| {
@@ -170,10 +113,7 @@ pub const Deserializer = struct {
                 var access = SequenceAccess(
                     @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
                     Error,
-                ){
-                    .allocator = allocator,
-                    .d = self.deserializer(),
-                };
+                ){ .allocator = allocator, .d = self.deserializer() };
 
                 const value = try visitor.visitSequence(allocator, access.sequenceAccess());
 
@@ -195,10 +135,7 @@ pub const Deserializer = struct {
                     var access = SequenceAccess(
                         @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
                         Error,
-                    ){
-                        .allocator = allocator,
-                        .d = self.deserializer(),
-                    };
+                    ){ .allocator = allocator, .d = self.deserializer() };
 
                     return try visitor.visitSequence(allocator, access.sequenceAccess());
                 },
@@ -253,3 +190,64 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 };
+
+fn SequenceAccess(comptime D: type, comptime Error: type) type {
+    return struct {
+        allocator: ?*std.mem.Allocator,
+        d: D,
+
+        pub usingnamespace getty.de.SequenceAccess(
+            *@This(),
+            Error,
+            nextElementSeed,
+        );
+
+        fn nextElementSeed(a: *@This(), seed: anytype) !?@TypeOf(seed).Value {
+            const tokens = a.d.context.tokens;
+
+            if (a.d.context.tokens.next() catch return Error.Input) |token| {
+                if (token == .ArrayEnd) {
+                    return null;
+                }
+            } else {
+                return Error.Input;
+            }
+
+            a.d.context.tokens = tokens;
+            return try seed.deserialize(a.allocator, a.d);
+        }
+    };
+}
+
+fn MapAccess(comptime D: type, comptime Error: type) type {
+    return struct {
+        allocator: ?*std.mem.Allocator,
+        d: D,
+
+        pub usingnamespace getty.de.MapAccess(
+            *@This(),
+            Error,
+            nextKeySeed,
+            nextValueSeed,
+        );
+
+        fn nextKeySeed(a: *@This(), seed: anytype) !?@TypeOf(seed).Value {
+            const tokens = a.d.context.tokens;
+
+            if (a.d.context.tokens.next() catch return Error.Input) |token| {
+                if (token == .ObjectEnd) {
+                    return null;
+                }
+            } else {
+                return Error.Input;
+            }
+
+            a.d.context.tokens = tokens;
+            return try seed.deserialize(a.allocator, a.d);
+        }
+
+        fn nextValueSeed(a: *@This(), seed: anytype) !@TypeOf(seed).Value {
+            return try seed.deserialize(a.allocator, a.d);
+        }
+    };
+}
