@@ -48,7 +48,7 @@ pub fn toPrettyWriterWith(value: anytype, writer: anytype, visitor: anytype) !vo
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
 pub fn toString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
-    var array_list = std.ArrayList(u8).init(allocator);
+    var array_list = std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer array_list.deinit();
 
     try toWriter(value, array_list.writer());
@@ -60,7 +60,7 @@ pub fn toString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
 pub fn toPrettyString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
-    var array_list = std.ArrayList(u8).init(allocator);
+    var array_list = std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer array_list.deinit();
 
     try toPrettyWriter(value, array_list.writer());
@@ -72,7 +72,7 @@ pub fn toPrettyString(allocator: *std.mem.Allocator, value: anytype) ![]const u8
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
 pub fn toStringWith(allocator: *std.mem.Allocator, value: anytype, visitor: anytype) ![]const u8 {
-    var array_list = std.ArrayList(u8).init(allocator);
+    var array_list = std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer array_list.deinit();
 
     try toWriterWith(value, array_list.writer(), visitor);
@@ -85,7 +85,7 @@ pub fn toStringWith(allocator: *std.mem.Allocator, value: anytype, visitor: anyt
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
 pub fn toPrettyStringWith(allocator: *std.mem.Allocator, value: anytype, visitor: anytype) ![]const u8 {
-    var array_list = std.ArrayList(u8).init(allocator);
+    var array_list = std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer array_list.deinit();
 
     try toPrettyWriterWith(value, array_list.writer(), visitor);
