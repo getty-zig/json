@@ -94,13 +94,7 @@ pub const Deserializer = struct {
                     Error,
                 ){ .allocator = allocator, .d = self.deserializer() };
 
-                const value = try visitor.visitMap(allocator, access.mapAccess());
-
-                if (self.tokens.next() catch return Error.Input) |tok| {
-                    if (tok == .ObjectEnd) {
-                        return value;
-                    }
-                }
+                return try visitor.visitMap(allocator, access.mapAccess());
             }
         }
 
