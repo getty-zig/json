@@ -21,12 +21,16 @@ pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anyty
 pub fn fromSlice(comptime T: type, slice: []const u8) !T {
     switch (@typeInfo(T)) {
         .Struct, .Pointer => @compileError("cannot deserialize into type `" ++ @typeName(T) ++ "` without allocation"),
-        else => return try getty.deserialize(null, T, de.Deserializer.init(slice).deserializer()),
+        else => {
+            var deserializer = de.Deserializer.init(slice);
+            return try getty.deserialize(null, T, deserializer.deserializer());
+        },
     }
 }
 
 pub fn fromSliceAlloc(allocator: *std.mem.Allocator, comptime T: type, slice: []const u8) !T {
-    return try getty.deserialize(allocator, T, de.Deserializer.init(slice).deserializer());
+    var deserializer = de.Deserializer.init(slice);
+    return try getty.deserialize(allocator, T, deserializer.deserializer());
 }
 
 test "array" {
