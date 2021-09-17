@@ -2,23 +2,33 @@ const getty = @import("getty");
 const std = @import("std");
 
 pub const Deserializer = struct {
-    buffer: std.ArrayList(u8),
+    allocator: ?*std.mem.Allocator = null,
     tokens: std.json.TokenStream,
 
     const Self = @This();
 
-    pub fn init(allocator: *std.mem.Allocator, reader: anytype) Self {
-        var d = Self{
-            .buffer = std.ArrayList(u8).init(allocator),
-            .tokens = undefined,
+    pub fn init(comptime slice: []const u8) Self {
+        return Self{
+            .tokens = std.json.TokenStream.init(slice),
         };
-        reader.readAllArrayList(&d.buffer, 10 * 1024 * 1024) catch unreachable;
-        d.tokens = std.json.TokenStream.init(d.buffer.items);
+    }
+
+    pub fn new(allocator: *std.mem.Allocator, reader: anytype) Self {
+        var d = Self{
+            .allocator = allocator,
+            .tokens = blk: {
+                const slice = reader.readAllAlloc(allocator, 10 * 1024 * 1024) catch unreachable;
+                break :blk std.json.TokenStream.init(slice);
+            },
+        };
+
         return d;
     }
 
-    pub fn deinit(self: *Self) void {
-        self.buffer.deinit();
+    pub fn destroy(self: *Self) void {
+        if (self.allocator) |allocator| {
+            allocator.free(self.tokens.slice);
+        }
     }
 
     /// Implements `getty.de.Deserializer`.

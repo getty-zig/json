@@ -12,15 +12,18 @@ pub const de = struct {
 };
 
 pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anytype) !T {
-    var deserializer = de.Deserializer.init(allocator, reader);
-    defer deserializer.deinit();
+    var deserializer = de.Deserializer.new(allocator, reader);
+    defer deserializer.destroy();
 
     return try getty.deserialize(allocator, T, deserializer.deserializer());
 }
 
-pub fn fromString(allocator: *std.mem.Allocator, comptime T: type, string: []const u8) !T {
-    var fbs = std.io.fixedBufferStream(string);
-    return try fromReader(allocator, T, fbs.reader());
+pub fn fromString(allocator: *std.mem.Allocator, comptime T: type, slice: []const u8) !T {
+    return try fromReader(allocator, T, std.io.fixedBufferStream(slice).reader());
+}
+
+pub fn fromComptimeString(comptime T: type, comptime slice: []const u8) !T {
+    return try getty.deserialize(null, T, de.Deserializer.init(slice).deserializer());
 }
 
 test "array" {
