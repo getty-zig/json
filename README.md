@@ -26,14 +26,14 @@ const Point = struct {
 
 pub fn main() !void {
     // Convert Point to JSON string
-    const string = try json.toString(allocator, Point{ .x = 1, .y = 2 });
-    defer allocator.free(string);
+    const slice = try json.toSlice(allocator, Point{ .x = 1, .y = 2 });
+    defer allocator.free(slice);
 
     // Convert JSON string to Point
-    const point = try json.fromSlice(allocator, Point, string);
+    const point = try json.fromSlice(allocator, Point, slice);
 
     // Print results
-    print("{s}\n", .{string}); // {"x":1,"y":2}
+    print("{s}\n", .{slice}); // {"x":1,"y":2}
     print("{s}\n", .{point}); // Point{ .x = 1, .y = 2 }
 }
 ```

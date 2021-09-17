@@ -47,7 +47,7 @@ pub fn toPrettyWriterWith(value: anytype, writer: anytype, visitor: anytype) !vo
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
+pub fn toSlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
@@ -59,7 +59,7 @@ pub fn toString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toPrettyString(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
+pub fn toPrettySlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
@@ -71,7 +71,7 @@ pub fn toPrettyString(allocator: *std.mem.Allocator, value: anytype) ![]const u8
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toStringWith(allocator: *std.mem.Allocator, value: anytype, visitor: anytype) ![]const u8 {
+pub fn toSliceWith(allocator: *std.mem.Allocator, value: anytype, visitor: anytype) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
@@ -84,7 +84,7 @@ pub fn toStringWith(allocator: *std.mem.Allocator, value: anytype, visitor: anyt
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toPrettyStringWith(allocator: *std.mem.Allocator, value: anytype, visitor: anytype) ![]const u8 {
+pub fn toPrettySliceWith(allocator: *std.mem.Allocator, value: anytype, visitor: anytype) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
