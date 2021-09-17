@@ -102,7 +102,11 @@ pub const Deserializer = struct {
                 var access = MapAccess(
                     @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
                     Error,
-                ){ .allocator = allocator, .d = self.deserializer() };
+                ){
+                    .arena = if (allocator) |alloc| std.heap.ArenaAllocator.init(alloc) else null,
+                    .d = self.deserializer(),
+                };
+                errdefer if (access.arena) |arena| arena.deinit();
 
                 return try visitor.visitMap(allocator, access.mapAccess());
             }
@@ -219,7 +223,7 @@ fn SequenceAccess(comptime D: type, comptime Error: type) type {
 
 fn MapAccess(comptime D: type, comptime Error: type) type {
     return struct {
-        allocator: ?*std.mem.Allocator,
+        arena: ?std.heap.ArenaAllocator,
         d: D,
 
         pub usingnamespace getty.de.MapAccess(
@@ -242,7 +246,7 @@ fn MapAccess(comptime D: type, comptime Error: type) type {
         }
 
         fn nextValueSeed(a: *@This(), seed: anytype) !@TypeOf(seed).Value {
-            return try seed.deserialize(a.allocator, a.d);
+            return try seed.deserialize(if (a.arena) |*arena| &arena.allocator else null, a.d);
         }
     };
 }
