@@ -19,22 +19,17 @@ const json = @import("json");
 const allocator = std.heap.page_allocator;
 const print = std.debug.print;
 
-const Point = struct {
-    x: i32,
-    y: i32,
-};
-
-pub fn main() !void {
-    // Convert Point to JSON string
-    const slice = try json.toSlice(allocator, Point{ .x = 1, .y = 2 });
+pub fn main() anyerror!void {
+    // Convert to JSON string
+    const slice = try json.toSlice(allocator, .{ .x = 1, .y = 2 });
     defer allocator.free(slice);
 
-    // Convert JSON string to Point
-    const point = try json.fromSlice(allocator, Point, slice);
+    // Convert from JSON string
+    const point = try json.fromSlice(allocator, struct { x: i32, y: i32 }, slice);
 
     // Print results
     print("{s}\n", .{slice}); // {"x":1,"y":2}
-    print("{s}\n", .{point}); // Point{ .x = 1, .y = 2 }
+    print("{s}\n", .{point}); // struct:13:49{ .x = 1, .y = 2 }
 }
 ```
 
