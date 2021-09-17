@@ -18,7 +18,7 @@ pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anyty
     return try getty.deserialize(allocator, T, deserializer.deserializer());
 }
 
-pub fn fromString(allocator: *std.mem.Allocator, comptime T: type, slice: []const u8) !T {
+pub fn fromSlice(allocator: *std.mem.Allocator, comptime T: type, slice: []const u8) !T {
     return try fromReader(allocator, T, std.io.fixedBufferStream(slice).reader());
 }
 
@@ -27,38 +27,38 @@ pub fn fromComptimeString(comptime T: type, comptime slice: []const u8) !T {
 }
 
 test "array" {
-    try expectEqual([2]bool{ false, false }, try fromString(testing.allocator, [2]bool, "[false,false]"));
-    try expectEqual([2]bool{ true, true }, try fromString(testing.allocator, [2]bool, "[true,true]"));
-    try expectEqual([2]bool{ true, false }, try fromString(testing.allocator, [2]bool, "[true,false]"));
-    try expectEqual([2]bool{ false, true }, try fromString(testing.allocator, [2]bool, "[false,true]"));
+    try expectEqual([2]bool{ false, false }, try fromSlice(testing.allocator, [2]bool, "[false,false]"));
+    try expectEqual([2]bool{ true, true }, try fromSlice(testing.allocator, [2]bool, "[true,true]"));
+    try expectEqual([2]bool{ true, false }, try fromSlice(testing.allocator, [2]bool, "[true,false]"));
+    try expectEqual([2]bool{ false, true }, try fromSlice(testing.allocator, [2]bool, "[false,true]"));
 
-    try expectEqual([5]i32{ 1, 2, 3, 4, 5 }, try fromString(testing.allocator, [5]i32, "[1,2,3,4,5]"));
+    try expectEqual([5]i32{ 1, 2, 3, 4, 5 }, try fromSlice(testing.allocator, [5]i32, "[1,2,3,4,5]"));
 
-    try expectEqual([2][1]i32{ .{1}, .{2} }, try fromString(testing.allocator, [2][1]i32, "[[1],[2]]"));
-    try expectEqual([2][1][3]i32{ .{.{ 1, 2, 3 }}, .{.{ 4, 5, 6 }} }, try fromString(testing.allocator, [2][1][3]i32, "[[[1,2,3]],[[4,5,6]]]"));
+    try expectEqual([2][1]i32{ .{1}, .{2} }, try fromSlice(testing.allocator, [2][1]i32, "[[1],[2]]"));
+    try expectEqual([2][1][3]i32{ .{.{ 1, 2, 3 }}, .{.{ 4, 5, 6 }} }, try fromSlice(testing.allocator, [2][1][3]i32, "[[[1,2,3]],[[4,5,6]]]"));
 }
 
 test "bool" {
-    try expectEqual(true, try fromString(testing.allocator, bool, "true"));
-    try expectEqual(false, try fromString(testing.allocator, bool, "false"));
+    try expectEqual(true, try fromSlice(testing.allocator, bool, "true"));
+    try expectEqual(false, try fromSlice(testing.allocator, bool, "false"));
 }
 
 test "int" {
-    try expectEqual(@as(u32, 1), try fromString(testing.allocator, u32, "1"));
-    try expectEqual(@as(i32, -1), try fromString(testing.allocator, i32, "-1"));
-    try expectEqual(@as(u32, 1), try fromString(testing.allocator, u32, "1.0"));
-    try expectEqual(@as(i32, -1), try fromString(testing.allocator, i32, "-1.0"));
+    try expectEqual(@as(u32, 1), try fromSlice(testing.allocator, u32, "1"));
+    try expectEqual(@as(i32, -1), try fromSlice(testing.allocator, i32, "-1"));
+    try expectEqual(@as(u32, 1), try fromSlice(testing.allocator, u32, "1.0"));
+    try expectEqual(@as(i32, -1), try fromSlice(testing.allocator, i32, "-1.0"));
 }
 
 test "float" {
-    try expectEqual(@as(f32, 3.14), try fromString(testing.allocator, f32, "3.14"));
-    try expectEqual(@as(f64, 3.14), try fromString(testing.allocator, f64, "3.14"));
-    try expectEqual(@as(f32, 3.0), try fromString(testing.allocator, f32, "3"));
-    try expectEqual(@as(f64, 3.0), try fromString(testing.allocator, f64, "3"));
+    try expectEqual(@as(f32, 3.14), try fromSlice(testing.allocator, f32, "3.14"));
+    try expectEqual(@as(f64, 3.14), try fromSlice(testing.allocator, f64, "3.14"));
+    try expectEqual(@as(f32, 3.0), try fromSlice(testing.allocator, f32, "3"));
+    try expectEqual(@as(f64, 3.0), try fromSlice(testing.allocator, f64, "3"));
 }
 
 test "slice (string)" {
-    const string = try fromString(testing.allocator, []const u8, "\"Hello, World!\"");
+    const string = try fromSlice(testing.allocator, []const u8, "\"Hello, World!\"");
     defer testing.allocator.free(string);
 
     try expect(eql(u8, "Hello, World!", string));
@@ -68,7 +68,7 @@ test "slice (non-string)" {
     // scalar child
     {
         const want = [_]i32{ 1, 2, 3, 4, 5 };
-        const got = try fromString(testing.allocator, []i32, "[1,2,3,4,5]");
+        const got = try fromSlice(testing.allocator, []i32, "[1,2,3,4,5]");
         defer testing.allocator.free(got);
 
         try expectEqual([]i32, @TypeOf(got));
@@ -82,7 +82,7 @@ test "slice (non-string)" {
             [3]u32{ 4, 5, 6 },
             [3]u32{ 7, 8, 9 },
         };
-        const got = try fromString(testing.allocator, [][3]u32,
+        const got = try fromSlice(testing.allocator, [][3]u32,
             \\[[1,2,3],[4,5,6],[7,8,9]]
         );
         defer testing.allocator.free(got);
@@ -99,7 +99,7 @@ test "slice (non-string)" {
             [_]u8{6},
             [_]u8{ 7, 8, 9, 10 },
         };
-        const got = try fromString(testing.allocator, [][]u8,
+        const got = try fromSlice(testing.allocator, [][]u8,
             \\[[1,2,3],[4,5],[6],[7,8,9,10]]
         );
         defer {
@@ -118,7 +118,7 @@ test "slice (non-string)" {
             "Bar",
             "Foobar",
         };
-        const got = try fromString(testing.allocator, [][]const u8,
+        const got = try fromSlice(testing.allocator, [][]const u8,
             \\["Foo","Bar","Foobar"]
         );
         defer {
@@ -134,7 +134,7 @@ test "slice (non-string)" {
 }
 
 test "struct" {
-    const got = try fromString(testing.allocator, struct { x: i32, y: []const u8 },
+    const got = try fromSlice(testing.allocator, struct { x: i32, y: []const u8 },
         \\{"x":1,"y":"Hello"}
     );
     defer testing.allocator.free(got.y);
@@ -144,14 +144,14 @@ test "struct" {
 }
 
 test "optional" {
-    try expectEqual(@as(?i32, null), try fromString(testing.allocator, ?i32, "null"));
-    try expectEqual(@as(?i32, 42), try fromString(testing.allocator, ?i32, "42"));
+    try expectEqual(@as(?i32, null), try fromSlice(testing.allocator, ?i32, "null"));
+    try expectEqual(@as(?i32, 42), try fromSlice(testing.allocator, ?i32, "42"));
 }
 
 test "void" {
-    try expectEqual({}, try fromString(testing.allocator, void, "null"));
-    try testing.expectError(error.Input, fromString(testing.allocator, void, "true"));
-    try testing.expectError(error.Input, fromString(testing.allocator, void, "1"));
+    try expectEqual({}, try fromSlice(testing.allocator, void, "null"));
+    try testing.expectError(error.Input, fromSlice(testing.allocator, void, "true"));
+    try testing.expectError(error.Input, fromSlice(testing.allocator, void, "1"));
 }
 
 test {

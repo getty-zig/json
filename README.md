@@ -30,7 +30,7 @@ pub fn main() !void {
     defer allocator.free(string);
 
     // Convert JSON string to Point
-    const point = try json.fromString(allocator, Point, string);
+    const point = try json.fromSlice(allocator, Point, string);
 
     // Print results
     print("{s}\n", .{string}); // {"x":1,"y":2}
