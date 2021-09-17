@@ -230,18 +230,15 @@ fn MapAccess(comptime D: type, comptime Error: type) type {
         );
 
         fn nextKeySeed(a: *@This(), seed: anytype) !?@TypeOf(seed).Value {
-            const tokens = a.d.context.tokens;
-
             if (a.d.context.tokens.next() catch return Error.Input) |token| {
-                if (token == .ObjectEnd) {
-                    return null;
-                }
-            } else {
-                return Error.Input;
+                return switch (token) {
+                    .ObjectEnd => null,
+                    .String => |str| str.slice(a.d.context.tokens.slice, a.d.context.tokens.i - 1),
+                    else => Error.Input,
+                };
             }
 
-            a.d.context.tokens = tokens;
-            return try seed.deserialize(a.allocator, a.d);
+            return Error.Input;
         }
 
         fn nextValueSeed(a: *@This(), seed: anytype) !@TypeOf(seed).Value {

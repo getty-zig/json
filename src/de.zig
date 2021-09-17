@@ -19,13 +19,12 @@ pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anyty
 }
 
 pub fn fromSlice(comptime T: type, slice: []const u8) !T {
-    switch (@typeInfo(T)) {
-        .Struct, .Pointer => @compileError("cannot deserialize into type `" ++ @typeName(T) ++ "` without allocation"),
-        else => {
-            var deserializer = de.Deserializer.init(slice);
-            return try getty.deserialize(null, T, deserializer.deserializer());
-        },
+    if (@typeInfo(T) == .Pointer) {
+        @compileError("cannot deserialize into type `" ++ @typeName(T) ++ "` without allocation. Use `json.fromSliceAlloc` instead.");
     }
+
+    var deserializer = de.Deserializer.init(slice);
+    return try getty.deserialize(null, T, deserializer.deserializer());
 }
 
 pub fn fromSliceAlloc(allocator: *std.mem.Allocator, comptime T: type, slice: []const u8) !T {
@@ -141,13 +140,25 @@ test "slice (non-string)" {
 }
 
 test "struct" {
-    const got = try fromSliceAlloc(testing.allocator, struct { x: i32, y: []const u8 },
-        \\{"x":1,"y":"Hello"}
-    );
-    defer testing.allocator.free(got.y);
+    // no allocation
+    {
+        const got = try fromSlice(struct { x: i32, y: i32 },
+            \\{"x":1,"y":2}
+        );
 
-    try expectEqual(@as(i32, 1), got.x);
-    try expect(eql(u8, "Hello", got.y));
+        try expectEqual(@as(i32, 1), got.x);
+        try expectEqual(@as(i32, 2), got.y);
+    }
+
+    // allocation
+    {
+        const got = try fromSliceAlloc(testing.allocator, struct { x: []const u8 },
+            \\{"x":"Hello"}
+        );
+        defer testing.allocator.free(got.x);
+
+        try expect(eql(u8, "Hello", got.x));
+    }
 }
 
 test "optional" {
