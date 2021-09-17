@@ -2,32 +2,32 @@ const getty = @import("getty");
 const std = @import("std");
 
 pub const Deserializer = struct {
-    allocator: ?*std.mem.Allocator = null,
+    buffer: ?std.ArrayList(u8) = null,
     tokens: std.json.TokenStream,
 
     const Self = @This();
 
-    pub fn init(comptime slice: []const u8) Self {
+    pub fn init(slice: []const u8) Self {
         return Self{
             .tokens = std.json.TokenStream.init(slice),
         };
     }
 
-    pub fn new(allocator: *std.mem.Allocator, reader: anytype) Self {
+    pub fn fromReader(allocator: *std.mem.Allocator, reader: anytype) !Self {
         var d = Self{
-            .allocator = allocator,
-            .tokens = blk: {
-                const slice = reader.readAllAlloc(allocator, 10 * 1024 * 1024) catch unreachable;
-                break :blk std.json.TokenStream.init(slice);
-            },
+            .buffer = std.ArrayList(u8).init(allocator),
+            .tokens = undefined,
         };
+
+        try reader.readAllArrayList(d.buffer.?, 10 * 1024 * 1024);
+        d.tokens = std.json.TokenStream.init(d.buffer.?.items);
 
         return d;
     }
 
-    pub fn destroy(self: *Self) void {
-        if (self.allocator) |allocator| {
-            allocator.free(self.tokens.slice);
+    pub fn deinit(self: *Self) void {
+        if (self.buffer) |list| {
+            list.deinit();
         }
     }
 
