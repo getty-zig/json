@@ -22,7 +22,7 @@ pub fn fromSlice(allocator: *std.mem.Allocator, comptime T: type, slice: []const
     return try fromReader(allocator, T, std.io.fixedBufferStream(slice).reader());
 }
 
-pub fn fromComptimeString(comptime T: type, comptime slice: []const u8) !T {
+pub fn fromString(comptime T: type, comptime slice: []const u8) !T {
     return try getty.deserialize(null, T, de.Deserializer.init(slice).deserializer());
 }
 
