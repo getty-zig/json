@@ -25,11 +25,11 @@ pub fn main() anyerror!void {
     defer allocator.free(slice);
 
     // Convert from JSON string
-    const point = try json.fromSliceAlloc(allocator, struct { x: i32, y: i32 }, slice);
+    const point = try json.fromSlice(struct { x: i32, y: i32 }, slice);
 
     // Print results
     print("{s}\n", .{slice}); // {"x":1,"y":2}
-    print("{s}\n", .{point}); // struct:13:49{ .x = 1, .y = 2 }
+    print("{s}\n", .{point}); // struct:13:38{ .x = 1, .y = 2 }
 }
 ```
 
