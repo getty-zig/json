@@ -121,7 +121,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
 
         fn serializeString(self: *Self, value: anytype) Error!Ok {
             self.formatter.beginString(self.writer) catch return Error.Io;
-            formatEscapedString(self.writer, self.formatter, value) catch return Error.Io;
+            formatEscapedString(self.writer, self.formatter, value) catch return Error.Syntax;
             self.formatter.endString(self.writer) catch return Error.Io;
         }
 
