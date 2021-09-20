@@ -2,7 +2,6 @@ const std = @import("std");
 
 const ser = @import("../../../lib.zig").ser;
 
-const CharEscape = ser.CharEscape;
 const Formatter = ser.Formatter;
 
 pub fn CompactFormatter(comptime Writer: type) type {
@@ -79,35 +78,43 @@ pub fn CompactFormatter(comptime Writer: type) type {
                 try writer.writeAll(value);
             }
 
-            /// TODO: Figure out what to do on ascii control
-            fn writeCharEscape(_: *Self, writer: Writer, value: CharEscape) Writer.Error!void {
+            fn writeCharEscape(_: *Self, writer: Writer, value: u21) Writer.Error!void {
                 switch (value) {
-                    .ascii => |v| {
-                        const HEX_DIGITS: []const u8 = "0123456789abcdef";
-                        const s = &[_]u8{
-                            '\\',
-                            'u',
-                            '0',
-                            '0',
-                            HEX_DIGITS[v >> 4],
-                            HEX_DIGITS[v & 0xF],
-                        };
+                    ser.DOUBLE_QUOTE => try writer.writeAll("\\\""),
+                    ser.BACKSLASH => try writer.writeAll("\\\\"),
+                    ser.BACKSPACE => try writer.writeAll("\\b"),
+                    ser.TAB => try writer.writeAll("\\t"),
+                    ser.NEWLINE => try writer.writeAll("\\n"),
+                    ser.FORM_FEED => try writer.writeAll("\\f"),
+                    ser.CARRIAGE_RETURN => try writer.writeAll("\\r"),
+                    else => switch (value) {
+                        0x00...0x1F, 0x7F, 0x2028, 0x2029 => {
+                            // If the character is in the Basic Multilingual Plane
+                            // (U+0000 through U+FFFF), then it may be represented as a
+                            // six-character sequence: a reverse solidus, followed by
+                            // the lowercase letter u, followed by four hexadecimal
+                            // digits that encode the character's code point.
+                            try writer.writeAll("\\u");
+                            try std.fmt.formatIntValue(value, "x", std.fmt.FormatOptions{ .width = 4, .fill = '0' }, writer);
+                        },
+                        else => if (value > 0xFFFF) {
+                            // To escape an extended character that is not in
+                            // the Basic Multilingual Plane, the character is
+                            // represented as a 12-character sequence, encoding
+                            // the UTF-16 surrogate pair.
+                            std.debug.assert(value <= 0x10FFFF);
 
-                        try writer.writeAll(s);
-                    },
-                    .non_ascii => |v| {
-                        const s = switch (v) {
-                            .Quote => "\\\"",
-                            .ReverseSolidus => "\\\\",
-                            .Solidus => "\\/",
-                            .Backspace => "\\",
-                            .FormFeed => "\\f",
-                            .LineFeed => "\\n",
-                            .CarriageReturn => "\\r",
-                            .Tab => "\\t",
-                        };
+                            const high = @intCast(u16, (value - 0x10000) >> 10) + 0xD800;
+                            const low = @intCast(u16, value & 0x3FF) + 0xDC00;
 
-                        try writer.writeAll(s);
+                            try writer.writeAll("\\u");
+                            try std.fmt.formatIntValue(high, "x", std.fmt.FormatOptions{ .width = 4, .fill = '0' }, writer);
+                            try writer.writeAll("\\u");
+                            try std.fmt.formatIntValue(low, "x", std.fmt.FormatOptions{ .width = 4, .fill = '0' }, writer);
+                        } else {
+                            // UNREACHABLE: these codepoints should not be escaped.
+                            unreachable;
+                        },
                     },
                 }
             }

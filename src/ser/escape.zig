@@ -1,103 +1,71 @@
-pub const CharEscape = union(enum) {
-    // An escaped ASCII plane control character (usually escaped as `\u00XX`
-    // where `XX` are two hex characters)
-    ascii: u8,
+const std = @import("std");
 
-    non_ascii: enum(u8) {
-        /// An escaped quote `"`
-        Quote,
+pub const DOUBLE_QUOTE = '\"';
+pub const BACKSLASH = '\\';
+pub const BACKSPACE = 0x08;
+pub const TAB = '\t';
+pub const NEWLINE = '\n';
+pub const FORM_FEED = 0x0C;
+pub const CARRIAGE_RETURN = '\r';
 
-        /// An escaped reverse solidus `\`
-        ReverseSolidus,
+/// From Fastly, the JSON escape rules are as follows (in priority order):
+///
+///     1. If the code point is the double quote (0x22), it is escaped as \".
+///
+///     2. If the code point is the backslash (0x5C), it is escaped as \\.
+///
+///     3. The following code points are escaped as follows:
+///
+///         * 0x08 (backspace)       -> \b
+///         * 0x09 (horizontal tab)  -> \t
+///         * 0x0A (newline)         -> \n
+///         * 0x0C (form feed)       -> \f
+///         * 0x0D (carriage return) -> \r
+///
+///     4. If the code point is less than or equal to 0x1F, or is equal to
+///     0x7F, 0x2028, or 0x2029, then it is a control character that wasn't
+///     listed above, and is escaped as \uHHHH where 'HHHH' is the hexadecimal
+///     value of the code point.
+///
+///     5. If the code point is greater than 0xFFFF (i.e., beyond the Basic
+///     Multilingual Plane of Unicode), the code point is converted into a
+///     UTF-16 surrogate pair with the \\u notation (e.g., U+1F601, or '😁',
+///     would be escaped as \uD83D\uDE01).
+///
+///     6. If none of the preceding rules match and there is a sequence of
+///     valid UTF-8 bytes, the bytes are passed through as-is (e.g., the code
+///     point U+0061 would be passed through as 'a').
+///
+///     7. If there is a byte sequence of invalid UTF-8, the conversion fails.
+///
+/// Note that the rules imply that no code points between 0x7F and 0x10000 are
+/// escaped as \\uHHHH except for the code poitns U+2028 and U+2029.
+pub fn escape(bytes: []const u8, writer: anytype, formatter: anytype) !void {
+    var i: usize = 0;
 
-        /// An escaped solidus `/`
-        Solidus,
+    while (i < bytes.len) : (i += 1) {
+        switch (bytes[i]) {
+            DOUBLE_QUOTE, BACKSLASH, BACKSPACE, TAB, NEWLINE, FORM_FEED, CARRIAGE_RETURN => |byte| {
+                try formatter.writeCharEscape(writer, byte);
+            },
+            else => |byte| {
+                const length = std.unicode.utf8ByteSequenceLength(byte) catch unreachable;
+                const codepoint = std.unicode.utf8Decode(bytes[i .. i + length]) catch unreachable;
 
-        /// An escaped backspace character (usually escaped as `\b`)
-        Backspace,
+                switch (codepoint) {
+                    0x00...0x1F, 0x7F, 0x2028, 0x2029 => {
+                        // This branch is for the remaining control characters.
+                        try formatter.writeCharEscape(writer, codepoint);
+                    },
+                    else => if (codepoint > 0xFFFF) {
+                        try formatter.writeCharEscape(writer, codepoint);
+                    } else {
+                        try formatter.writeRawFragment(writer, bytes[i .. i + length]);
+                    },
+                }
 
-        /// An escaped form feed character (usually escaped as `\f`)
-        FormFeed,
-
-        /// An escaped line feed character (usually escaped as `\n`)
-        LineFeed,
-
-        /// An escaped carriage return character (usually escaped as `\r`)
-        CarriageReturn,
-
-        /// An escaped tab character (usually escaped as `\t`)
-        Tab,
-    },
-
-    fn fromEscapeTable(escape: u8, byte: u8) @This() {
-        switch (escape) {
-            BB => return .{ .non_ascii = .Backspace },
-            TT => return .{ .non_ascii = .Tab },
-            NN => return .{ .non_ascii = .LineFeed },
-            FF => return .{ .non_ascii = .FormFeed },
-            RR => return .{ .non_ascii = .CarriageReturn },
-            QU => return .{ .non_ascii = .Quote },
-            BS => return .{ .non_ascii = .ReverseSolidus },
-            UU => return .{ .ascii = byte },
-            else => unreachable,
+                i += length - 1;
+            },
         }
-    }
-};
-
-pub fn formatEscapedString(writer: anytype, formatter: anytype, bytes: []const u8) !void {
-    var start: usize = 0;
-
-    for (bytes) |byte, i| {
-        // TODO: Does byte need to be casted?
-        const escape = ESCAPE[@as(usize, byte)];
-
-        if (escape == 0) {
-            continue;
-        }
-
-        if (start < i) {
-            try formatter.writeStringFragment(writer, bytes[start..i]);
-        }
-
-        const char_escape = CharEscape.fromEscapeTable(escape, byte);
-        try formatter.writeCharEscape(writer, char_escape);
-
-        start = i + 1;
-    }
-
-    if (start != bytes.len) {
-        try formatter.writeStringFragment(writer, bytes[start..]);
     }
 }
-
-const BB: u8 = 'b'; // \x08
-const TT: u8 = 't'; // \x09
-const NN: u8 = 'n'; // \x0A
-const FF: u8 = 'f'; // \x0C
-const RR: u8 = 'r'; // \x0D
-const QU: u8 = '"'; // \x22
-const BS: u8 = '\\'; // \x5C
-const UU: u8 = 'u'; // \x00...\x1F except the ones above
-const __: u8 = 0;
-
-// Lookup table of escape sequences. A value of b'x' at index i means that byte
-// i is escaped as "\x" in JSON. A value of 0 means that byte i is not escaped.
-const ESCAPE = [256]u8{
-    //   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-    UU, UU, UU, UU, UU, UU, UU, UU, BB, TT, NN, UU, FF, RR, UU, UU, // 0
-    UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, UU, // 1
-    __, __, QU, __, __, __, __, __, __, __, __, __, __, __, __, __, // 2
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 3
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 4
-    __, __, __, __, __, __, __, __, __, __, __, __, BS, __, __, __, // 5
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 6
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 7
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 8
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 9
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // A
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // B
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // C
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // D
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // E
-    __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // F
-};

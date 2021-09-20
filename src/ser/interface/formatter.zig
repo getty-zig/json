@@ -1,5 +1,3 @@
-const CharEscape = @import("../../lib.zig").ser.CharEscape;
-
 pub fn Formatter(
     comptime Context: type,
     comptime Writer: type,
@@ -11,7 +9,7 @@ pub fn Formatter(
     comptime beginStringFn: fn (Context, Writer) Writer.Error!void,
     comptime endStringFn: fn (Context, Writer) Writer.Error!void,
     comptime stringFragmentFn: fn (Context, Writer, []const u8) Writer.Error!void,
-    comptime charEscapeFn: fn (Context, Writer, CharEscape) Writer.Error!void,
+    comptime charEscapeFn: fn (Context, Writer, u21) Writer.Error!void,
     comptime beginArrayFn: fn (Context, Writer) Writer.Error!void,
     comptime endArrayFn: fn (Context, Writer) Writer.Error!void,
     comptime beginArrayValueFn: fn (Context, Writer, bool) Writer.Error!void,
@@ -80,7 +78,7 @@ pub fn Formatter(
             try stringFragmentFn(self.context, writer, value);
         }
 
-        pub fn writeCharEscape(self: Self, writer: Writer, value: CharEscape) Writer.Error!void {
+        pub fn writeCharEscape(self: Self, writer: Writer, value: u21) Writer.Error!void {
             try charEscapeFn(self.context, writer, value);
         }
 

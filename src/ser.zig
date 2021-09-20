@@ -161,18 +161,44 @@ test "toWriter - Null" {
 }
 
 test "toWriter - String" {
-    try t(.compact, "foobar", "\"foobar\"");
-    try t(.compact, "with\nescapes\r", "\"with\\nescapes\\r\"");
-    try t(.compact, "with unicode\u{1}", "\"with unicode\\u0001\"");
-    try t(.compact, "with unicode\u{80}", "\"with unicode\u{80}\"");
-    try t(.compact, "with unicode\u{FF}", "\"with unicode\u{FF}\"");
-    try t(.compact, "with unicode\u{100}", "\"with unicode\u{100}\"");
-    try t(.compact, "with unicode\u{800}", "\"with unicode\u{800}\"");
-    try t(.compact, "with unicode\u{8000}", "\"with unicode\u{8000}\"");
-    try t(.compact, "with unicode\u{D799}", "\"with unicode\u{D799}\"");
-    try t(.compact, "with unicode\u{10000}", "\"with unicode\u{10000}\"");
-    try t(.compact, "with unicode\u{10FFFF}", "\"with unicode\u{10FFFF}\"");
-    try t(.compact, "/", "\"/\"");
+    {
+        // Basic strings
+        try t(.compact, "string", "\"string\"");
+    }
+
+    {
+        // Control characters
+        try t(.compact, "\"", "\"\\\"\"");
+        try t(.compact, "\\", "\"\\\\\"");
+        try t(.compact, "\x08", "\"\\b\"");
+        try t(.compact, "\t", "\"\\t\"");
+        try t(.compact, "\n", "\"\\n\"");
+        try t(.compact, "\x0C", "\"\\f\"");
+        try t(.compact, "\r", "\"\\r\"");
+
+        try t(.compact, "\u{0}", "\"\\u0000\"");
+        try t(.compact, "\u{1F}", "\"\\u001f\"");
+        try t(.compact, "\u{7F}", "\"\\u007f\"");
+        try t(.compact, "\u{2028}", "\"\\u2028\"");
+        try t(.compact, "\u{2029}", "\"\\u2029\"");
+    }
+
+    {
+        // Basic Multilingual Plane
+        try t(.compact, "\u{FF}", "\"\u{FF}\"");
+        try t(.compact, "\u{100}", "\"\u{100}\"");
+        try t(.compact, "\u{800}", "\"\u{800}\"");
+        try t(.compact, "\u{8000}", "\"\u{8000}\"");
+        try t(.compact, "\u{D799}", "\"\u{D799}\"");
+    }
+
+    {
+        // Non-Basic Multilingual Plane
+        try t(.compact, "\u{10000}", "\"\\ud800\\udc00\"");
+        try t(.compact, "\u{10FFFF}", "\"\\udbff\\udfff\"");
+        try t(.compact, "😁", "\"\\ud83d\\ude01\"");
+        try t(.compact, "😂", "\"\\ud83d\\ude02\"");
+    }
 }
 
 test "toWriter - Struct" {
