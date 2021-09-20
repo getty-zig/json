@@ -24,118 +24,116 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
         /// Implements `getty.ser.Serializer`.
         pub usingnamespace getty.ser.Serializer(
             *Self,
-            _S.Ok,
-            _S.Error,
-            _S.MapSerialize,
-            _S.SequenceSerialize,
-            _S.StructSerialize,
-            _S.TupleSerialize,
-            _S.serializeBool,
-            _S.serializeEnum,
-            _S.serializeFloat,
-            _S.serializeInt,
-            _S.serializeMap,
-            _S.serializeNull,
-            _S.serializeSequence,
-            _S.serializeString,
-            _S.serializeStruct,
-            _S.serializeTuple,
-            _S.serializeNull,
+            Ok,
+            Error,
+            MapSerialize,
+            SequenceSerialize,
+            StructSerialize,
+            TupleSerialize,
+            serializeBool,
+            serializeEnum,
+            serializeFloat,
+            serializeInt,
+            serializeMap,
+            serializeNull,
+            serializeSequence,
+            serializeString,
+            serializeStruct,
+            serializeTuple,
+            serializeNull,
         );
 
-        const _S = struct {
-            const Ok = void;
-            const Error = error{
-                /// Failure to read or write bytes on an IO stream.
-                Io,
+        const Ok = void;
+        const Error = error{
+            /// Failure to read or write bytes on an IO stream.
+            Io,
 
-                /// Input was syntactically incorrect.
-                Syntax,
+            /// Input was syntactically incorrect.
+            Syntax,
 
-                /// Input data was semantically incorrect.
-                ///
-                /// For example, JSON containing a number is semantically incorrect
-                /// when the type being deserialized into holds a String.
-                Data,
+            /// Input data was semantically incorrect.
+            ///
+            /// For example, JSON containing a number is semantically incorrect
+            /// when the type being deserialized into holds a String.
+            Data,
 
-                /// Prematurely reached the end of the input data.
-                ///
-                /// Callers that process streaming input may be interested in
-                /// retrying the deserialization once more data is available.
-                Eof,
-            };
-
-            const MapSerialize = Serialize(Self, Ok, Error);
-            const SequenceSerialize = Serialize(Self, Ok, Error);
-            const StructSerialize = Serialize(Self, Ok, Error);
-            const TupleSerialize = Serialize(Self, Ok, Error);
-
-            fn serializeBool(self: *Self, value: bool) Error!Ok {
-                self.formatter.writeBool(self.writer, value) catch return Error.Io;
-            }
-
-            fn serializeEnum(self: *Self, value: anytype) Error!Ok {
-                serializeString(self, @tagName(value)) catch return Error.Io;
-            }
-
-            fn serializeFloat(self: *Self, value: anytype) Error!Ok {
-                if (@TypeOf(value) != comptime_float and (std.math.isNan(value) or std.math.isInf(value))) {
-                    self.formatter.writeNull(self.writer) catch return Error.Io;
-                } else {
-                    self.formatter.writeFloat(self.writer, value) catch return Error.Io;
-                }
-            }
-
-            fn serializeInt(self: *Self, value: anytype) Error!Ok {
-                self.formatter.writeInt(self.writer, value) catch return Error.Io;
-            }
-
-            fn serializeMap(self: *Self, length: ?usize) Error!MapSerialize {
-                self.formatter.beginObject(self.writer) catch return Error.Io;
-
-                if (length) |l| {
-                    if (l == 0) {
-                        self.formatter.endObject(self.writer) catch return Error.Io;
-                        return MapSerialize{ .ser = self, .state = .empty };
-                    }
-                }
-
-                return MapSerialize{ .ser = self, .state = .first };
-            }
-
-            fn serializeNull(self: *Self) Error!Ok {
-                self.formatter.writeNull(self.writer) catch return Error.Io;
-            }
-
-            fn serializeSequence(self: *Self, length: ?usize) Error!SequenceSerialize {
-                self.formatter.beginArray(self.writer) catch return Error.Io;
-
-                if (length) |l| {
-                    if (l == 0) {
-                        self.formatter.endArray(self.writer) catch return Error.Io;
-                        return SequenceSerialize{ .ser = self, .state = .empty };
-                    }
-                }
-
-                return SequenceSerialize{ .ser = self, .state = .first };
-            }
-
-            fn serializeString(self: *Self, value: anytype) Error!Ok {
-                self.formatter.beginString(self.writer) catch return Error.Io;
-                formatEscapedString(self.writer, self.formatter, value) catch return Error.Io;
-                self.formatter.endString(self.writer) catch return Error.Io;
-            }
-
-            fn serializeStruct(self: *Self, name: []const u8, length: usize) Error!StructSerialize {
-                _ = name;
-
-                return serializeMap(self, length);
-            }
-
-            fn serializeTuple(self: *Self, length: ?usize) Error!TupleSerialize {
-                return serializeSequence(self, length);
-            }
+            /// Prematurely reached the end of the input data.
+            ///
+            /// Callers that process streaming input may be interested in
+            /// retrying the deserialization once more data is available.
+            Eof,
         };
+
+        const MapSerialize = Serialize(Self, Ok, Error);
+        const SequenceSerialize = Serialize(Self, Ok, Error);
+        const StructSerialize = Serialize(Self, Ok, Error);
+        const TupleSerialize = Serialize(Self, Ok, Error);
+
+        fn serializeBool(self: *Self, value: bool) Error!Ok {
+            self.formatter.writeBool(self.writer, value) catch return Error.Io;
+        }
+
+        fn serializeEnum(self: *Self, value: anytype) Error!Ok {
+            self.serializeString(@tagName(value)) catch return Error.Io;
+        }
+
+        fn serializeFloat(self: *Self, value: anytype) Error!Ok {
+            if (@TypeOf(value) != comptime_float and (std.math.isNan(value) or std.math.isInf(value))) {
+                self.formatter.writeNull(self.writer) catch return Error.Io;
+            } else {
+                self.formatter.writeFloat(self.writer, value) catch return Error.Io;
+            }
+        }
+
+        fn serializeInt(self: *Self, value: anytype) Error!Ok {
+            self.formatter.writeInt(self.writer, value) catch return Error.Io;
+        }
+
+        fn serializeMap(self: *Self, length: ?usize) Error!MapSerialize {
+            self.formatter.beginObject(self.writer) catch return Error.Io;
+
+            if (length) |l| {
+                if (l == 0) {
+                    self.formatter.endObject(self.writer) catch return Error.Io;
+                    return MapSerialize{ .ser = self, .state = .empty };
+                }
+            }
+
+            return MapSerialize{ .ser = self, .state = .first };
+        }
+
+        fn serializeNull(self: *Self) Error!Ok {
+            self.formatter.writeNull(self.writer) catch return Error.Io;
+        }
+
+        fn serializeSequence(self: *Self, length: ?usize) Error!SequenceSerialize {
+            self.formatter.beginArray(self.writer) catch return Error.Io;
+
+            if (length) |l| {
+                if (l == 0) {
+                    self.formatter.endArray(self.writer) catch return Error.Io;
+                    return SequenceSerialize{ .ser = self, .state = .empty };
+                }
+            }
+
+            return SequenceSerialize{ .ser = self, .state = .first };
+        }
+
+        fn serializeString(self: *Self, value: anytype) Error!Ok {
+            self.formatter.beginString(self.writer) catch return Error.Io;
+            formatEscapedString(self.writer, self.formatter, value) catch return Error.Io;
+            self.formatter.endString(self.writer) catch return Error.Io;
+        }
+
+        fn serializeStruct(self: *Self, name: []const u8, length: usize) Error!StructSerialize {
+            _ = name;
+
+            return self.serializeMap(length);
+        }
+
+        fn serializeTuple(self: *Self, length: ?usize) Error!TupleSerialize {
+            return self.serializeSequence(length);
+        }
     };
 }
 
