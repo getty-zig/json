@@ -64,10 +64,10 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
             Eof,
         };
 
-        const MapSerialize = Serialize(Self, Ok, Error);
-        const SequenceSerialize = Serialize(Self, Ok, Error);
-        const StructSerialize = Serialize(Self, Ok, Error);
-        const TupleSerialize = Serialize(Self, Ok, Error);
+        const MapSerialize = Serialize(Self);
+        const SequenceSerialize = Serialize(Self);
+        const StructSerialize = Serialize(Self);
+        const TupleSerialize = Serialize(Self);
 
         fn serializeBool(self: *Self, value: bool) Error!Ok {
             self.formatter.writeBool(self.writer, value) catch return Error.Io;
@@ -137,7 +137,10 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
     };
 }
 
-fn Serialize(comptime S: type, comptime Ok: type, comptime Error: type) type {
+fn Serialize(comptime S: type) type {
+    const Ok = S.Ok;
+    const Error = S.Error;
+
     return struct {
         ser: *S,
         state: enum {
