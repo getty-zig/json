@@ -56,32 +56,22 @@ pub fn escapeChar(writer: anytype, codepoint: u21) !void {
         CARRIAGE_RETURN => try writer.writeAll("\\r"),
         else => switch (codepoint) {
             0x00...0x1F, 0x7F, 0x2028, 0x2029 => {
-                // If the character is in the Basic Multilingual Plane
-                // (U+0000 through U+FFFF), then it may be represented as a
-                // six-character sequence: a reverse solidus, followed by
-                // the lowercase letter u, followed by four hexadecimal
-                // digits that encode the character's code point.
-                const bytes = [_]u8{
+                try writer.writeAll(&[_]u8{
                     '\\',
                     'u',
                     HEX_DIGITS[(codepoint >> 12) & 0xF],
                     HEX_DIGITS[(codepoint >> 8) & 0xF],
                     HEX_DIGITS[(codepoint >> 4) & 0xF],
                     HEX_DIGITS[(codepoint & 0xF)],
-                };
-
-                try writer.writeAll(&bytes);
+                });
             },
             else => if (codepoint > 0xFFFF) {
-                // To escape an extended character that is not in
-                // the Basic Multilingual Plane, the character is
-                // represented as a 12-character sequence, encoding
-                // the UTF-16 surrogate pair.
                 std.debug.assert(codepoint <= 0x10FFFF);
 
                 const high = @intCast(u16, (codepoint - 0x10000) >> 10) + 0xD800;
                 const low = @intCast(u16, codepoint & 0x3FF) + 0xDC00;
-                const bytes = [_]u8{
+
+                try writer.writeAll(&[_]u8{
                     '\\',
                     'u',
                     HEX_DIGITS[(high >> 12) & 0xF],
@@ -94,11 +84,8 @@ pub fn escapeChar(writer: anytype, codepoint: u21) !void {
                     HEX_DIGITS[(low >> 8) & 0xF],
                     HEX_DIGITS[(low >> 4) & 0xF],
                     HEX_DIGITS[(low & 0xF)],
-                };
-
-                try writer.writeAll(&bytes);
+                });
             } else {
-                // `codepoint` doesn't require escaping.
                 @panic("Received code point that does not require escaping.");
             },
         },
