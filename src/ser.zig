@@ -198,6 +198,9 @@ test "toWriter - String" {
         try t(.compact, "\u{10FFFF}", "\"\\udbff\\udfff\"");
         try t(.compact, "😁", "\"\\ud83d\\ude01\"");
         try t(.compact, "😂", "\"\\ud83d\\ude02\"");
+
+        try t(.compact, "hello😁", "\"hello\\ud83d\\ude01\"");
+        try t(.compact, "hello😁world😂", "\"hello\\ud83d\\ude01world\\ud83d\\ude02\"");
     }
 }
 

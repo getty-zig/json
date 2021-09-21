@@ -42,30 +42,50 @@ pub const CARRIAGE_RETURN = '\r';
 /// escaped as \\uHHHH except for the code poitns U+2028 and U+2029.
 pub fn escape(bytes: []const u8, writer: anytype, formatter: anytype) !void {
     var i: usize = 0;
+    var start: usize = 0;
 
     while (i < bytes.len) : (i += 1) {
-        switch (bytes[i]) {
-            DOUBLE_QUOTE, BACKSLASH, BACKSPACE, TAB, NEWLINE, FORM_FEED, CARRIAGE_RETURN => |byte| {
-                try formatter.writeCharEscape(writer, byte);
-            },
-            else => |byte| {
-                const length = std.unicode.utf8ByteSequenceLength(byte) catch unreachable;
-                const codepoint = std.unicode.utf8Decode(bytes[i .. i + length]) catch unreachable;
+        const byte = bytes[i];
+        const length = std.unicode.utf8ByteSequenceLength(byte) catch unreachable;
+        const codepoint = std.unicode.utf8Decode(bytes[i .. i + length]) catch unreachable;
 
+        // Skip byte if it doesn't need escaping.
+        switch (byte) {
+            DOUBLE_QUOTE, BACKSLASH, BACKSPACE, TAB, NEWLINE, FORM_FEED, CARRIAGE_RETURN => {},
+            else => {
                 switch (codepoint) {
-                    0x00...0x1F, 0x7F, 0x2028, 0x2029 => {
-                        // This branch is for the remaining control characters.
-                        try formatter.writeCharEscape(writer, codepoint);
-                    },
-                    else => if (codepoint > 0xFFFF) {
-                        try formatter.writeCharEscape(writer, codepoint);
-                    } else {
-                        try formatter.writeRawFragment(writer, bytes[i .. i + length]);
+                    0x00...0x1F, 0x7F, 0x2028, 0x2029 => {},
+                    else => if (codepoint <= 0xFFFF) {
+                        i += length - 1;
+                        continue;
                     },
                 }
-
-                i += length - 1;
             },
         }
+
+        // Write any non-escaped characters that have been buffered up until
+        // this point.
+        if (start < i) {
+            try formatter.writeRawFragment(writer, bytes[start..i]);
+        }
+
+        switch (byte) {
+            DOUBLE_QUOTE, BACKSLASH, BACKSPACE, TAB, NEWLINE, FORM_FEED, CARRIAGE_RETURN => {
+                try formatter.writeCharEscape(writer, byte);
+            },
+            else => {
+                switch (codepoint) {
+                    0x00...0x1F, 0x7F, 0x2028, 0x2029 => try formatter.writeCharEscape(writer, codepoint),
+                    else => if (codepoint > 0xFFFF) try formatter.writeCharEscape(writer, codepoint),
+                }
+            },
+        }
+
+        i += length - 1;
+        start = i + 1;
+    }
+
+    if (start != bytes.len) {
+        try formatter.writeRawFragment(writer, bytes[start..]);
     }
 }
