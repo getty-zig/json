@@ -34,18 +34,76 @@
 //!   7. If there is a byte sequence of invalid UTF-8, the conversion fails.
 const std = @import("std");
 
-pub const DOUBLE_QUOTE = '\"';
-pub const BACKSLASH = '\\';
-pub const BACKSPACE = 0x08;
-pub const TAB = '\t';
-pub const NEWLINE = '\n';
-pub const FORM_FEED = 0x0C;
-pub const CARRIAGE_RETURN = '\r';
+const DOUBLE_QUOTE = '\"';
+const BACKSLASH = '\\';
+const BACKSPACE = 0x08;
+const TAB = '\t';
+const NEWLINE = '\n';
+const FORM_FEED = 0x0C;
+const CARRIAGE_RETURN = '\r';
 
-pub const HEX_DIGITS = [_]u8{
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-    'a', 'b', 'c', 'd', 'e', 'f',
-};
+const HEX_DIGITS = [_]u8{ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+
+/// Escapes a UTF-8 encoded code point using JSON escape sequences.
+pub fn escapeChar(writer: anytype, codepoint: u21) !void {
+    switch (codepoint) {
+        DOUBLE_QUOTE => try writer.writeAll("\\\""),
+        BACKSLASH => try writer.writeAll("\\\\"),
+        BACKSPACE => try writer.writeAll("\\b"),
+        TAB => try writer.writeAll("\\t"),
+        NEWLINE => try writer.writeAll("\\n"),
+        FORM_FEED => try writer.writeAll("\\f"),
+        CARRIAGE_RETURN => try writer.writeAll("\\r"),
+        else => switch (codepoint) {
+            0x00...0x1F, 0x7F, 0x2028, 0x2029 => {
+                // If the character is in the Basic Multilingual Plane
+                // (U+0000 through U+FFFF), then it may be represented as a
+                // six-character sequence: a reverse solidus, followed by
+                // the lowercase letter u, followed by four hexadecimal
+                // digits that encode the character's code point.
+                const bytes = [_]u8{
+                    '\\',
+                    'u',
+                    HEX_DIGITS[(codepoint >> 12) & 0xF],
+                    HEX_DIGITS[(codepoint >> 8) & 0xF],
+                    HEX_DIGITS[(codepoint >> 4) & 0xF],
+                    HEX_DIGITS[(codepoint & 0xF)],
+                };
+
+                try writer.writeAll(&bytes);
+            },
+            else => if (codepoint > 0xFFFF) {
+                // To escape an extended character that is not in
+                // the Basic Multilingual Plane, the character is
+                // represented as a 12-character sequence, encoding
+                // the UTF-16 surrogate pair.
+                std.debug.assert(codepoint <= 0x10FFFF);
+
+                const high = @intCast(u16, (codepoint - 0x10000) >> 10) + 0xD800;
+                const low = @intCast(u16, codepoint & 0x3FF) + 0xDC00;
+                const bytes = [_]u8{
+                    '\\',
+                    'u',
+                    HEX_DIGITS[(high >> 12) & 0xF],
+                    HEX_DIGITS[(high >> 8) & 0xF],
+                    HEX_DIGITS[(high >> 4) & 0xF],
+                    HEX_DIGITS[(high & 0xF)],
+                    '\\',
+                    'u',
+                    HEX_DIGITS[(low >> 12) & 0xF],
+                    HEX_DIGITS[(low >> 8) & 0xF],
+                    HEX_DIGITS[(low >> 4) & 0xF],
+                    HEX_DIGITS[(low & 0xF)],
+                };
+
+                try writer.writeAll(&bytes);
+            } else {
+                // `codepoint` doesn't require escaping.
+                @panic("Received code point that does not require escaping.");
+            },
+        },
+    }
+}
 
 /// Escapes characters of a UTF-8 encoded string using JSON escape sequences.
 pub fn escape(bytes: []const u8, writer: anytype, formatter: anytype) !void {

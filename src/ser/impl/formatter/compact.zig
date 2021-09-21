@@ -79,63 +79,7 @@ pub fn CompactFormatter(comptime Writer: type) type {
             }
 
             fn writeCharEscape(_: *Self, writer: Writer, value: u21) Writer.Error!void {
-                switch (value) {
-                    ser.DOUBLE_QUOTE => try writer.writeAll("\\\""),
-                    ser.BACKSLASH => try writer.writeAll("\\\\"),
-                    ser.BACKSPACE => try writer.writeAll("\\b"),
-                    ser.TAB => try writer.writeAll("\\t"),
-                    ser.NEWLINE => try writer.writeAll("\\n"),
-                    ser.FORM_FEED => try writer.writeAll("\\f"),
-                    ser.CARRIAGE_RETURN => try writer.writeAll("\\r"),
-                    else => switch (value) {
-                        0x00...0x1F, 0x7F, 0x2028, 0x2029 => {
-                            // If the character is in the Basic Multilingual Plane
-                            // (U+0000 through U+FFFF), then it may be represented as a
-                            // six-character sequence: a reverse solidus, followed by
-                            // the lowercase letter u, followed by four hexadecimal
-                            // digits that encode the character's code point.
-                            const bytes = [_]u8{
-                                '\\',
-                                'u',
-                                ser.HEX_DIGITS[(value >> 12) & 0xF],
-                                ser.HEX_DIGITS[(value >> 8) & 0xF],
-                                ser.HEX_DIGITS[(value >> 4) & 0xF],
-                                ser.HEX_DIGITS[(value & 0xF)],
-                            };
-
-                            try writer.writeAll(&bytes);
-                        },
-                        else => if (value > 0xFFFF) {
-                            // To escape an extended character that is not in
-                            // the Basic Multilingual Plane, the character is
-                            // represented as a 12-character sequence, encoding
-                            // the UTF-16 surrogate pair.
-                            std.debug.assert(value <= 0x10FFFF);
-
-                            const high = @intCast(u16, (value - 0x10000) >> 10) + 0xD800;
-                            const low = @intCast(u16, value & 0x3FF) + 0xDC00;
-                            const bytes = [_]u8{
-                                '\\',
-                                'u',
-                                ser.HEX_DIGITS[(high >> 12) & 0xF],
-                                ser.HEX_DIGITS[(high >> 8) & 0xF],
-                                ser.HEX_DIGITS[(high >> 4) & 0xF],
-                                ser.HEX_DIGITS[(high & 0xF)],
-                                '\\',
-                                'u',
-                                ser.HEX_DIGITS[(low >> 12) & 0xF],
-                                ser.HEX_DIGITS[(low >> 8) & 0xF],
-                                ser.HEX_DIGITS[(low >> 4) & 0xF],
-                                ser.HEX_DIGITS[(low & 0xF)],
-                            };
-
-                            try writer.writeAll(&bytes);
-                        } else {
-                            // UNREACHABLE: these codepoints should not be escaped.
-                            unreachable;
-                        },
-                    },
-                }
+                try ser.escapeChar(writer, value);
             }
 
             fn beginArray(_: *Self, writer: Writer) Writer.Error!void {
