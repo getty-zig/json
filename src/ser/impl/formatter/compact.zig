@@ -94,8 +94,16 @@ pub fn CompactFormatter(comptime Writer: type) type {
                             // six-character sequence: a reverse solidus, followed by
                             // the lowercase letter u, followed by four hexadecimal
                             // digits that encode the character's code point.
-                            try writer.writeAll("\\u");
-                            try std.fmt.formatIntValue(value, "x", std.fmt.FormatOptions{ .width = 4, .fill = '0' }, writer);
+                            const bytes = [_]u8{
+                                '\\',
+                                'u',
+                                ser.HEX_DIGITS[(value >> 12) & 0xF],
+                                ser.HEX_DIGITS[(value >> 8) & 0xF],
+                                ser.HEX_DIGITS[(value >> 4) & 0xF],
+                                ser.HEX_DIGITS[(value & 0xF)],
+                            };
+
+                            try writer.writeAll(&bytes);
                         },
                         else => if (value > 0xFFFF) {
                             // To escape an extended character that is not in
@@ -106,11 +114,22 @@ pub fn CompactFormatter(comptime Writer: type) type {
 
                             const high = @intCast(u16, (value - 0x10000) >> 10) + 0xD800;
                             const low = @intCast(u16, value & 0x3FF) + 0xDC00;
+                            const bytes = [_]u8{
+                                '\\',
+                                'u',
+                                ser.HEX_DIGITS[(high >> 12) & 0xF],
+                                ser.HEX_DIGITS[(high >> 8) & 0xF],
+                                ser.HEX_DIGITS[(high >> 4) & 0xF],
+                                ser.HEX_DIGITS[(high & 0xF)],
+                                '\\',
+                                'u',
+                                ser.HEX_DIGITS[(low >> 12) & 0xF],
+                                ser.HEX_DIGITS[(low >> 8) & 0xF],
+                                ser.HEX_DIGITS[(low >> 4) & 0xF],
+                                ser.HEX_DIGITS[(low & 0xF)],
+                            };
 
-                            try writer.writeAll("\\u");
-                            try std.fmt.formatIntValue(high, "x", std.fmt.FormatOptions{ .width = 4, .fill = '0' }, writer);
-                            try writer.writeAll("\\u");
-                            try std.fmt.formatIntValue(low, "x", std.fmt.FormatOptions{ .width = 4, .fill = '0' }, writer);
+                            try writer.writeAll(&bytes);
                         } else {
                             // UNREACHABLE: these codepoints should not be escaped.
                             unreachable;
