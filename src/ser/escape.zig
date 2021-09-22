@@ -45,7 +45,7 @@ const CARRIAGE_RETURN = '\r';
 const HEX_DIGITS = [_]u8{ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
 /// Escapes a UTF-8 encoded code point using JSON escape sequences.
-pub fn escapeChar(writer: anytype, codepoint: u21) !void {
+pub fn escapeChar(codepoint: u21, writer: anytype) !void {
     switch (codepoint) {
         DOUBLE_QUOTE => try writer.writeAll("\\\""),
         BACKSLASH => try writer.writeAll("\\\\"),

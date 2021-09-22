@@ -106,7 +106,7 @@ pub fn PrettyFormatter(comptime Writer: type) type {
             }
 
             fn writeCharEscape(_: *Self, writer: Writer, value: u21) Writer.Error!void {
-                try ser.escapeChar(writer, value);
+                try ser.escapeChar(value, writer);
             }
 
             fn beginArray(self: *Self, writer: Writer) Writer.Error!void {
