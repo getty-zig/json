@@ -117,10 +117,7 @@ pub fn escape(bytes: []const u8, writer: anytype, formatter: anytype) !void {
         }
 
         // Escape and write out the current code point.
-        switch (codepoint) {
-            0x00...0x1F, DOUBLE_QUOTE, BACKSLASH, 0x7F, 0x2028, 0x2029 => try formatter.writeCharEscape(writer, codepoint),
-            else => if (codepoint > 0xFFFF) try formatter.writeCharEscape(writer, codepoint),
-        }
+        try formatter.writeCharEscape(writer, codepoint);
 
         i += length - 1;
         start = i + 1;
