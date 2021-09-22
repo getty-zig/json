@@ -3,10 +3,6 @@ const std = @import("std");
 
 const ser = @import("../lib.zig").ser;
 
-const escape = ser.escape;
-const CompactFormatter = ser.CompactFormatter;
-const PrettyFormatter = ser.PrettyFormatter;
-
 pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
     return struct {
         writer: Writer,
@@ -125,7 +121,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
             }
 
             self.formatter.beginString(self.writer) catch return Error.Io;
-            escape(value, self.writer, self.formatter) catch return Error.Syntax;
+            ser.escape(value, self.writer, self.formatter) catch return Error.Syntax;
             self.formatter.endString(self.writer) catch return Error.Io;
         }
 
