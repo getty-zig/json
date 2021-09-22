@@ -102,36 +102,24 @@ pub fn escape(bytes: []const u8, writer: anytype, formatter: anytype) !void {
         const length = std.unicode.utf8ByteSequenceLength(byte) catch unreachable;
         const codepoint = std.unicode.utf8Decode(bytes[i .. i + length]) catch unreachable;
 
-        // Skip code point if it doesn't require escaping.
-        switch (byte) {
-            DOUBLE_QUOTE, BACKSLASH, BACKSPACE, TAB, NEWLINE, FORM_FEED, CARRIAGE_RETURN => {},
-            else => {
-                switch (codepoint) {
-                    0x00...0x1F, 0x7F, 0x2028, 0x2029 => {},
-                    else => if (codepoint <= 0xFFFF) {
-                        i += length - 1;
-                        continue;
-                    },
-                }
+        // Skip code points that do not require escaping.
+        switch (codepoint) {
+            0x00...0x1F, DOUBLE_QUOTE, BACKSLASH, 0x7F, 0x2028, 0x2029 => {},
+            else => if (codepoint <= 0xFFFF) {
+                i += length - 1;
+                continue;
             },
         }
 
-        // Write all of the buffered non-escaped code points.
+        // Write out any buffered non-escaped code points.
         if (start < i) {
             try formatter.writeRawFragment(writer, bytes[start..i]);
         }
 
-        // Escape and write the current code point.
-        switch (byte) {
-            DOUBLE_QUOTE, BACKSLASH, BACKSPACE, TAB, NEWLINE, FORM_FEED, CARRIAGE_RETURN => {
-                try formatter.writeCharEscape(writer, byte);
-            },
-            else => {
-                switch (codepoint) {
-                    0x00...0x1F, 0x7F, 0x2028, 0x2029 => try formatter.writeCharEscape(writer, codepoint),
-                    else => if (codepoint > 0xFFFF) try formatter.writeCharEscape(writer, codepoint),
-                }
-            },
+        // Escape and write out the current code point.
+        switch (codepoint) {
+            0x00...0x1F, DOUBLE_QUOTE, BACKSLASH, 0x7F, 0x2028, 0x2029 => try formatter.writeCharEscape(writer, codepoint),
+            else => if (codepoint > 0xFFFF) try formatter.writeCharEscape(writer, codepoint),
         }
 
         i += length - 1;
@@ -139,7 +127,7 @@ pub fn escape(bytes: []const u8, writer: anytype, formatter: anytype) !void {
     }
 
     // If there were no code points that required escaping in the input string,
-    // then write out all of the buffered non-escaped code points.
+    // then write out any buffered non-escaped code points.
     if (start != bytes.len) {
         try formatter.writeRawFragment(writer, bytes[start..]);
     }
