@@ -59,10 +59,10 @@ pub fn escapeChar(writer: anytype, codepoint: u21) !void {
                 try writer.writeAll(&[_]u8{
                     '\\',
                     'u',
-                    HEX_DIGITS[(codepoint >> 12) & 0xF],
-                    HEX_DIGITS[(codepoint >> 8) & 0xF],
-                    HEX_DIGITS[(codepoint >> 4) & 0xF],
-                    HEX_DIGITS[(codepoint & 0xF)],
+                    HEX_DIGITS[codepoint >> 12 & 0xF],
+                    HEX_DIGITS[codepoint >> 8 & 0xF],
+                    HEX_DIGITS[codepoint >> 4 & 0xF],
+                    HEX_DIGITS[codepoint & 0xF],
                 });
             },
             else => if (codepoint > 0xFFFF) {
@@ -74,16 +74,16 @@ pub fn escapeChar(writer: anytype, codepoint: u21) !void {
                 try writer.writeAll(&[_]u8{
                     '\\',
                     'u',
-                    HEX_DIGITS[(high >> 12) & 0xF],
-                    HEX_DIGITS[(high >> 8) & 0xF],
-                    HEX_DIGITS[(high >> 4) & 0xF],
-                    HEX_DIGITS[(high & 0xF)],
+                    HEX_DIGITS[high >> 12 & 0xF],
+                    HEX_DIGITS[high >> 8 & 0xF],
+                    HEX_DIGITS[high >> 4 & 0xF],
+                    HEX_DIGITS[high & 0xF],
                     '\\',
                     'u',
-                    HEX_DIGITS[(low >> 12) & 0xF],
-                    HEX_DIGITS[(low >> 8) & 0xF],
-                    HEX_DIGITS[(low >> 4) & 0xF],
-                    HEX_DIGITS[(low & 0xF)],
+                    HEX_DIGITS[low >> 12 & 0xF],
+                    HEX_DIGITS[low >> 8 & 0xF],
+                    HEX_DIGITS[low >> 4 & 0xF],
+                    HEX_DIGITS[low & 0xF],
                 });
             } else {
                 @panic("Received code point that does not require escaping.");
