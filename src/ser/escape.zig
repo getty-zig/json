@@ -123,8 +123,9 @@ pub fn escape(bytes: []const u8, writer: anytype, formatter: anytype) !void {
         start = i + 1;
     }
 
-    // If there were no code points that required escaping in the input string,
-    // then write out any buffered non-escaped code points.
+    // If the input string is suffixed by code points that do not require
+    // escaping, then they've been buffered, but not written. So, we must write
+    // them out.
     if (start != bytes.len) {
         try formatter.writeRawFragment(writer, bytes[start..]);
     }
