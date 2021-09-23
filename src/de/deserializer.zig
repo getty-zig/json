@@ -31,6 +31,14 @@ pub const Deserializer = struct {
         }
     }
 
+    /// Validates that the input data has been fully deserialized.
+    ///
+    /// This method should always be called after a value has been fully
+    /// deserialized.
+    pub fn end(self: *Self) !void {
+        if (self.tokens.next() catch return Error.Input) |_| return Error.Input else {}
+    }
+
     /// Implements `getty.de.Deserializer`.
     pub usingnamespace getty.de.Deserializer(
         *Self,

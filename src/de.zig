@@ -14,8 +14,10 @@ pub const de = struct {
 pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anytype) !T {
     var deserializer = de.Deserializer.fromReader(allocator, reader);
     defer deserializer.deinit();
+    const value = try getty.deserialize(allocator, T, deserializer.deserializer());
 
-    return try getty.deserialize(allocator, T, deserializer.deserializer());
+    try deserializer.end();
+    return value;
 }
 
 pub fn fromSlice(comptime T: type, slice: []const u8) !T {
@@ -24,12 +26,18 @@ pub fn fromSlice(comptime T: type, slice: []const u8) !T {
     }
 
     var deserializer = de.Deserializer.init(slice);
-    return try getty.deserialize(null, T, deserializer.deserializer());
+    const value = try getty.deserialize(null, T, deserializer.deserializer());
+
+    try deserializer.end();
+    return value;
 }
 
 pub fn fromSliceAlloc(allocator: *std.mem.Allocator, comptime T: type, slice: []const u8) !T {
     var deserializer = de.Deserializer.init(slice);
-    return try getty.deserialize(allocator, T, deserializer.deserializer());
+    const value = try getty.deserialize(allocator, T, deserializer.deserializer());
+
+    try deserializer.end();
+    return value;
 }
 
 test "array" {
