@@ -58,11 +58,11 @@ pub const Deserializer = struct {
 
     const Error = error{Input};
 
-    fn deserializeBool(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeBool(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
-                .True => return try visitor.visitBool(Error, true),
-                .False => return try visitor.visitBool(Error, false),
+                .True => return try visitor.visitBool(allocator, Error, true),
+                .False => return try visitor.visitBool(allocator, Error, false),
                 else => {},
             }
         }
@@ -70,10 +70,11 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeFloat(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeFloat(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .Number => |num| return try visitor.visitFloat(
+                    allocator,
                     Error,
                     std.fmt.parseFloat(@TypeOf(visitor).Value, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
                 ),
@@ -84,15 +85,17 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeInt(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeInt(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .Number => |num| switch (num.is_integer) {
                     true => return try visitor.visitInt(
+                        allocator,
                         Error,
                         std.fmt.parseInt(@TypeOf(visitor).Value, num.slice(self.tokens.slice, self.tokens.i - 1), 10) catch return Error.Input,
                     ),
                     false => return visitor.visitFloat(
+                        allocator,
                         Error,
                         std.fmt.parseFloat(f128, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
                     ),
@@ -138,7 +141,7 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeSlice(self: *Self, allocator: *std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeSlice(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .ArrayBegin => {
@@ -174,7 +177,7 @@ pub const Deserializer = struct {
 
         if (self.tokens.next() catch return Error.Input) |token| {
             return try switch (token) {
-                .Null => visitor.visitNull(Error),
+                .Null => visitor.visitNull(allocator, Error),
                 else => blk: {
                     // Get back the token we just ate if it was an
                     // actual value so that whenever the next
@@ -190,10 +193,10 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeVoid(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeVoid(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             if (token == .Null) {
-                return try visitor.visitVoid(Error);
+                return try visitor.visitVoid(allocator, Error);
             }
         }
 
