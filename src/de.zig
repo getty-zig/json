@@ -33,7 +33,7 @@ pub fn fromSlice(comptime T: type, slice: []const u8) !T {
 }
 
 pub fn fromSliceAlloc(allocator: *std.mem.Allocator, comptime T: type, slice: []const u8) !T {
-    var deserializer = de.Deserializer.init(slice);
+    var deserializer = de.Deserializer.withAllocator(allocator, slice);
     const value = try getty.deserialize(allocator, T, deserializer.deserializer());
 
     try deserializer.end();

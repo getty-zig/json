@@ -2,6 +2,7 @@ const getty = @import("getty");
 const std = @import("std");
 
 pub const Deserializer = struct {
+    allocator: ?*std.mem.Allocator = null,
     buffer: ?std.ArrayList(u8) = null,
     tokens: std.json.TokenStream,
 
@@ -13,8 +14,16 @@ pub const Deserializer = struct {
         };
     }
 
+    pub fn withAllocator(allocator: *std.mem.Allocator, slice: []const u8) Self {
+        return Self{
+            .allocator = allocator,
+            .tokens = std.json.TokenStream.init(slice),
+        };
+    }
+
     pub fn fromReader(allocator: *std.mem.Allocator, reader: anytype) !Self {
         var d = Self{
+            .allocator = allocator,
             .buffer = std.ArrayList(u8).init(allocator),
             .tokens = undefined,
         };
@@ -58,11 +67,11 @@ pub const Deserializer = struct {
 
     const Error = error{Input};
 
-    fn deserializeBool(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeBool(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
-                .True => return try visitor.visitBool(allocator, Error, true),
-                .False => return try visitor.visitBool(allocator, Error, false),
+                .True => return try visitor.visitBool(Error, true),
+                .False => return try visitor.visitBool(Error, false),
                 else => {},
             }
         }
@@ -70,11 +79,10 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeFloat(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeFloat(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .Number => |num| return try visitor.visitFloat(
-                    allocator,
                     Error,
                     std.fmt.parseFloat(@TypeOf(visitor).Value, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
                 ),
@@ -85,17 +93,15 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeInt(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeInt(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .Number => |num| switch (num.is_integer) {
                     true => return try visitor.visitInt(
-                        allocator,
                         Error,
                         std.fmt.parseInt(@TypeOf(visitor).Value, num.slice(self.tokens.slice, self.tokens.i - 1), 10) catch return Error.Input,
                     ),
                     false => return visitor.visitFloat(
-                        allocator,
                         Error,
                         std.fmt.parseFloat(f128, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
                     ),
@@ -107,55 +113,75 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeMap(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeMap(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             if (token == .ObjectBegin) {
-                var access = MapAccess(
-                    @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
-                    Error,
-                ){
-                    .arena = if (allocator) |alloc| std.heap.ArenaAllocator.init(alloc) else null,
+                var access = MapAccess(@typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?, Error){
+                    .arena = if (self.allocator) |allocator| std.heap.ArenaAllocator.init(allocator) else null,
                     .d = self.deserializer(),
                 };
                 errdefer if (access.arena) |arena| arena.deinit();
 
-                return try visitor.visitMap(allocator, access.mapAccess());
+                return try visitor.visitMap(access.mapAccess());
             }
         }
 
         return Error.Input;
     }
 
-    fn deserializeSequence(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeOptional(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+        const tokens = self.tokens;
+
+        if (self.tokens.next() catch return Error.Input) |token| {
+            return try switch (token) {
+                .Null => visitor.visitNull(Error),
+                else => blk: {
+                    // Get back the token we just ate if it was an
+                    // actual value so that whenever the next
+                    // deserialize method is called by visitSome,
+                    // they'll eat the token we just saw instead of
+                    // whatever is after it.
+                    self.tokens = tokens;
+                    break :blk visitor.visitSome(self.deserializer());
+                },
+            };
+        }
+
+        return Error.Input;
+    }
+
+    fn deserializeSequence(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             if (token == .ArrayBegin) {
-                var access = SequenceAccess(
-                    @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
-                    Error,
-                ){ .allocator = allocator, .d = self.deserializer() };
+                var access = SequenceAccess(@typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?, Error){
+                    .allocator = self.allocator,
+                    .d = self.deserializer(),
+                };
 
-                return try visitor.visitSequence(allocator, access.sequenceAccess());
+                return try visitor.visitSequence(access.sequenceAccess());
             }
         }
 
         return Error.Input;
     }
 
-    fn deserializeSlice(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeSlice(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .ArrayBegin => {
                     var access = SequenceAccess(
                         @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
                         Error,
-                    ){ .allocator = allocator, .d = self.deserializer() };
+                    ){
+                        .allocator = self.allocator,
+                        .d = self.deserializer(),
+                    };
 
-                    return try visitor.visitSequence(allocator, access.sequenceAccess());
+                    return try visitor.visitSequence(access.sequenceAccess());
                 },
                 .String => |str| {
                     if (std.meta.Child(@TypeOf(visitor).Value) == u8) {
                         return visitor.visitSlice(
-                            allocator,
                             Error,
                             str.slice(self.tokens.slice, self.tokens.i - 1),
                         ) catch Error.Input;
@@ -168,35 +194,14 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeStruct(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
-        return try deserializeMap(self, allocator, visitor);
+    fn deserializeStruct(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+        return try deserializeMap(self, visitor);
     }
 
-    fn deserializeOptional(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
-        const tokens = self.tokens;
-
-        if (self.tokens.next() catch return Error.Input) |token| {
-            return try switch (token) {
-                .Null => visitor.visitNull(allocator, Error),
-                else => blk: {
-                    // Get back the token we just ate if it was an
-                    // actual value so that whenever the next
-                    // deserialize method is called by visitSome,
-                    // they'll eat the token we just saw instead of
-                    // whatever is after it.
-                    self.tokens = tokens;
-                    break :blk visitor.visitSome(allocator, self.deserializer());
-                },
-            };
-        }
-
-        return Error.Input;
-    }
-
-    fn deserializeVoid(self: *Self, allocator: ?*std.mem.Allocator, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeVoid(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             if (token == .Null) {
-                return try visitor.visitVoid(allocator, Error);
+                return try visitor.visitVoid(Error);
             }
         }
 
@@ -209,16 +214,17 @@ fn SequenceAccess(comptime D: type, comptime Error: type) type {
         allocator: ?*std.mem.Allocator,
         d: D,
 
+        /// Implements `getty.de.SequenceAccess`.
         pub usingnamespace getty.de.SequenceAccess(
             *@This(),
             Error,
             nextElementSeed,
         );
 
-        fn nextElementSeed(a: *@This(), seed: anytype) !?@TypeOf(seed).Value {
-            const tokens = a.d.context.tokens;
+        fn nextElementSeed(self: *@This(), seed: anytype) !?@TypeOf(seed).Value {
+            const tokens = self.d.context.tokens;
 
-            if (a.d.context.tokens.next() catch return Error.Input) |token| {
+            if (self.d.context.tokens.next() catch return Error.Input) |token| {
                 if (token == .ArrayEnd) {
                     return null;
                 }
@@ -226,8 +232,8 @@ fn SequenceAccess(comptime D: type, comptime Error: type) type {
                 return Error.Input;
             }
 
-            a.d.context.tokens = tokens;
-            return try seed.deserialize(a.allocator, a.d);
+            self.d.context.tokens = tokens;
+            return try seed.deserialize(self.allocator orelse null, self.d);
         }
     };
 }
@@ -237,6 +243,7 @@ fn MapAccess(comptime D: type, comptime Error: type) type {
         arena: ?std.heap.ArenaAllocator,
         d: D,
 
+        /// Implements `getty.de.MapAccess`.
         pub usingnamespace getty.de.MapAccess(
             *@This(),
             Error,
@@ -244,11 +251,11 @@ fn MapAccess(comptime D: type, comptime Error: type) type {
             nextValueSeed,
         );
 
-        fn nextKeySeed(a: *@This(), seed: anytype) !?@TypeOf(seed).Value {
-            if (a.d.context.tokens.next() catch return Error.Input) |token| {
+        fn nextKeySeed(self: *@This(), seed: anytype) !?@TypeOf(seed).Value {
+            if (self.d.context.tokens.next() catch return Error.Input) |token| {
                 return switch (token) {
                     .ObjectEnd => null,
-                    .String => |str| str.slice(a.d.context.tokens.slice, a.d.context.tokens.i - 1),
+                    .String => |str| str.slice(self.d.context.tokens.slice, self.d.context.tokens.i - 1),
                     else => Error.Input,
                 };
             }
@@ -256,8 +263,8 @@ fn MapAccess(comptime D: type, comptime Error: type) type {
             return Error.Input;
         }
 
-        fn nextValueSeed(a: *@This(), seed: anytype) !@TypeOf(seed).Value {
-            return try seed.deserialize(if (a.arena) |*arena| &arena.allocator else null, a.d);
+        fn nextValueSeed(self: *@This(), seed: anytype) !@TypeOf(seed).Value {
+            return try seed.deserialize(if (self.arena) |*arena| &arena.allocator else null, self.d);
         }
     };
 }
