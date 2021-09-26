@@ -121,7 +121,7 @@ pub const Deserializer = struct {
                         Error,
                         std.fmt.parseInt(@TypeOf(visitor).Value, num.slice(self.tokens.slice, self.tokens.i - 1), 10) catch return Error.Input,
                     ),
-                    false => return visitor.visitFloat(
+                    false => return try visitor.visitFloat(
                         Error,
                         std.fmt.parseFloat(f128, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
                     ),
