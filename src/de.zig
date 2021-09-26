@@ -57,11 +57,20 @@ test "bool" {
     try expectEqual(false, try fromSlice(bool, "false"));
 }
 
-test "int" {
-    try expectEqual(@as(u32, 1), try fromSlice(u32, "1"));
-    try expectEqual(@as(i32, -1), try fromSlice(i32, "-1"));
-    try expectEqual(@as(u32, 1), try fromSlice(u32, "1.0"));
-    try expectEqual(@as(i32, -1), try fromSlice(i32, "-1.0"));
+test "enum" {
+    const T = enum { foo, bar };
+
+    {
+        // integers
+        try expectEqual(T.foo, try fromSlice(T, "0"));
+        try expectEqual(T.bar, try fromSlice(T, "1"));
+    }
+
+    {
+        // strings
+        try expectEqual(T.foo, try fromSlice(T, "\"foo\""));
+        try expectEqual(T.bar, try fromSlice(T, "\"bar\""));
+    }
 }
 
 test "float" {
@@ -69,6 +78,13 @@ test "float" {
     try expectEqual(@as(f64, 3.14), try fromSlice(f64, "3.14"));
     try expectEqual(@as(f32, 3.0), try fromSlice(f32, "3"));
     try expectEqual(@as(f64, 3.0), try fromSlice(f64, "3"));
+}
+
+test "int" {
+    try expectEqual(@as(u32, 1), try fromSlice(u32, "1"));
+    try expectEqual(@as(i32, -1), try fromSlice(i32, "-1"));
+    try expectEqual(@as(u32, 1), try fromSlice(u32, "1.0"));
+    try expectEqual(@as(i32, -1), try fromSlice(i32, "-1.0"));
 }
 
 test "slice (string)" {

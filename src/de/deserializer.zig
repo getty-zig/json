@@ -53,8 +53,7 @@ pub const Deserializer = struct {
         *Self,
         Error,
         deserializeBool,
-        undefined,
-        //deserializeEnum,
+        deserializeEnum,
         deserializeFloat,
         deserializeInt,
         deserializeMap,
@@ -72,6 +71,27 @@ pub const Deserializer = struct {
             switch (token) {
                 .True => return try visitor.visitBool(Error, true),
                 .False => return try visitor.visitBool(Error, false),
+                else => {},
+            }
+        }
+
+        return Error.Input;
+    }
+
+    fn deserializeEnum(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+        if (self.tokens.next() catch return Error.Input) |token| {
+            switch (token) {
+                .Number => |num| switch (num.is_integer) {
+                    true => return try visitor.visitInt(
+                        Error,
+                        std.fmt.parseInt(std.meta.Tag(@TypeOf(visitor).Value), num.slice(self.tokens.slice, self.tokens.i - 1), 10) catch return Error.Input,
+                    ),
+                    false => {},
+                },
+                .String => |str| return try visitor.visitSlice(
+                    Error,
+                    str.slice(self.tokens.slice, self.tokens.i - 1),
+                ),
                 else => {},
             }
         }
