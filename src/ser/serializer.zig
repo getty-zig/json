@@ -17,8 +17,8 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
             };
         }
 
-        /// Implements `getty.ser.Serializer`.
-        pub usingnamespace getty.ser.Serializer(
+        /// Implements `getty.Serializer`.
+        pub usingnamespace getty.Serializer(
             *Self,
             Ok,
             Error,

@@ -48,8 +48,8 @@ pub const Deserializer = struct {
         if (self.tokens.next() catch return Error.Input) |_| return Error.Input else {}
     }
 
-    /// Implements `getty.de.Deserializer`.
-    pub usingnamespace getty.de.Deserializer(
+    /// Implements `getty.Deserializer`.
+    pub usingnamespace getty.Deserializer(
         *Self,
         Error,
         deserializeBool,
