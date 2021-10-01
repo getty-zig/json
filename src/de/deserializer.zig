@@ -3,15 +3,13 @@ const std = @import("std");
 
 pub const Deserializer = struct {
     allocator: ?*std.mem.Allocator = null,
-    buffer: ?std.ArrayList(u8) = null,
+    scratch: ?[]u8 = null,
     tokens: std.json.TokenStream,
 
     const Self = @This();
 
     pub fn init(slice: []const u8) Self {
-        return Self{
-            .tokens = std.json.TokenStream.init(slice),
-        };
+        return Self{ .tokens = std.json.TokenStream.init(slice) };
     }
 
     pub fn withAllocator(allocator: *std.mem.Allocator, slice: []const u8) Self {
@@ -24,19 +22,18 @@ pub const Deserializer = struct {
     pub fn fromReader(allocator: *std.mem.Allocator, reader: anytype) !Self {
         var d = Self{
             .allocator = allocator,
-            .buffer = std.ArrayList(u8).init(allocator),
+            .scratch = reader.readAllAlloc(allocator, 10 * 1024 * 1024),
             .tokens = undefined,
         };
 
-        try reader.readAllArrayList(d.buffer.?, 10 * 1024 * 1024);
-        d.tokens = std.json.TokenStream.init(d.buffer.?.items);
+        d.tokens = std.json.TokenStream.init(d.scratch.?);
 
         return d;
     }
 
     pub fn deinit(self: *Self) void {
-        if (self.buffer) |list| {
-            list.deinit();
+        if (self.scratch) |scratch| {
+            self.allocator.free(scratch);
         }
     }
 
