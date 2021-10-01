@@ -40,7 +40,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
         );
 
         const Ok = void;
-        const Error = error{
+        const Error = getty.ser.Error || error{
             /// Failure to read or write bytes on an IO stream.
             Io,
 
