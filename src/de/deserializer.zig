@@ -61,9 +61,9 @@ pub const Deserializer = struct {
         deserializeVoid,
     );
 
-    const Error = error{Input};
+    const Error = getty.de.Error || error{Input};
 
-    fn deserializeBool(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeBool(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .True => return try visitor.visitBool(Error, true),
@@ -75,7 +75,7 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeEnum(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeEnum(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .Number => |num| switch (num.is_integer) {
@@ -96,7 +96,7 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeFloat(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeFloat(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .Number => |num| return try visitor.visitFloat(
@@ -110,7 +110,7 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeInt(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeInt(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .Number => |num| switch (num.is_integer) {
@@ -130,7 +130,7 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeMap(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeMap(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             if (token == .ObjectBegin) {
                 var access = MapAccess(@typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?, Error){
@@ -146,7 +146,7 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeOptional(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeOptional(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         const tokens = self.tokens;
 
         if (self.tokens.next() catch return Error.Input) |token| {
@@ -167,7 +167,7 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeSequence(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeSequence(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             if (token == .ArrayBegin) {
                 var access = SequenceAccess(@typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?, Error){
@@ -182,7 +182,7 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeSlice(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeSlice(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .ArrayBegin => {
@@ -211,11 +211,11 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeStruct(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeStruct(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         return try deserializeMap(self, visitor);
     }
 
-    fn deserializeVoid(self: *Self, visitor: anytype) !@TypeOf(visitor).Value {
+    fn deserializeVoid(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             if (token == .Null) {
                 return try visitor.visitVoid(Error);
@@ -238,7 +238,7 @@ fn SequenceAccess(comptime D: type, comptime Error: type) type {
             nextElementSeed,
         );
 
-        fn nextElementSeed(self: *@This(), seed: anytype) !?@TypeOf(seed).Value {
+        fn nextElementSeed(self: *@This(), seed: anytype) Error!?@TypeOf(seed).Value {
             const tokens = self.d.context.tokens;
 
             if (self.d.context.tokens.next() catch return Error.Input) |token| {
@@ -268,7 +268,7 @@ fn MapAccess(comptime D: type, comptime Error: type) type {
             nextValueSeed,
         );
 
-        fn nextKeySeed(self: *@This(), seed: anytype) !?@TypeOf(seed).Value {
+        fn nextKeySeed(self: *@This(), seed: anytype) Error!?@TypeOf(seed).Value {
             if (self.d.context.tokens.next() catch return Error.Input) |token| {
                 return switch (token) {
                     .ObjectEnd => null,
@@ -280,7 +280,7 @@ fn MapAccess(comptime D: type, comptime Error: type) type {
             return Error.Input;
         }
 
-        fn nextValueSeed(self: *@This(), seed: anytype) !@TypeOf(seed).Value {
+        fn nextValueSeed(self: *@This(), seed: anytype) Error!@TypeOf(seed).Value {
             return try seed.deserialize(if (self.arena) |*arena| &arena.allocator else null, self.d);
         }
     };
