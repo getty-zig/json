@@ -106,6 +106,98 @@ test "int" {
     }
 }
 
+test "optional" {
+    try expectEqual(@as(?i32, null), try fromSlice(?i32, "null"));
+    try expectEqual(@as(?i32, 42), try fromSlice(?i32, "42"));
+}
+
+test "pointer" {
+    // one level of indirection
+    {
+        const value = try fromSliceAlloc(std.testing.allocator, *bool, "true");
+        defer free(std.testing.allocator, value);
+
+        try expectEqual(true, value.*);
+    }
+
+    // two levels of indirection
+    {
+        const value = try fromSliceAlloc(std.testing.allocator, **i32, "1234");
+        defer free(std.testing.allocator, value);
+
+        try expectEqual(@as(i32, 1234), value.*.*);
+    }
+
+    // enum
+    {
+        const T = enum { foo, bar };
+
+        // Tag value
+        {
+            const value = try fromSliceAlloc(std.testing.allocator, *T, "0");
+            defer free(std.testing.allocator, value);
+
+            try expectEqual(T.foo, value.*);
+        }
+
+        // Tag name
+        {
+            const value = try fromSliceAlloc(std.testing.allocator, *T, "\"bar\"");
+            defer free(std.testing.allocator, value);
+
+            try expectEqual(T.bar, value.*);
+        }
+    }
+
+    // optional
+    {
+        // some
+        {
+            const value = try fromSliceAlloc(std.testing.allocator, *?bool, "true");
+            defer free(std.testing.allocator, value);
+
+            try expectEqual(true, value.*.?);
+        }
+
+        // none
+        {
+            const value = try fromSliceAlloc(std.testing.allocator, *?bool, "null");
+            defer free(std.testing.allocator, value);
+
+            try expectEqual(false, value.* orelse false);
+        }
+    }
+
+    // sequence
+    {
+        const value = try fromSliceAlloc(std.testing.allocator, *[3]i8, "[1,2,3]");
+        defer free(std.testing.allocator, value);
+
+        try expectEqual([_]i8{ 1, 2, 3 }, value.*);
+    }
+
+    // struct
+    {
+        const T = struct { x: i32, y: **[]const u8, z: []const u8 };
+        const value = try fromSliceAlloc(std.testing.allocator, *T,
+            \\{"x":1,"y":"hello","z":"world"}
+        );
+        defer free(std.testing.allocator, value);
+
+        try expectEqual(@as(i32, 1), value.*.x);
+        try testing.expectEqualSlices(u8, "hello", value.*.y.*.*);
+        try testing.expectEqualSlices(u8, "world", value.*.z);
+    }
+
+    // void
+    {
+        const value = try fromSliceAlloc(std.testing.allocator, *void, "null");
+        defer free(std.testing.allocator, value);
+
+        try expectEqual({}, value.*);
+    }
+}
+
 test "slice (string)" {
     const string = try fromSliceAlloc(testing.allocator, []const u8, "\"Hello, World!\"");
     defer testing.allocator.free(string);
@@ -202,11 +294,6 @@ test "struct" {
 
         try expect(eql(u8, "Hello", got.x));
     }
-}
-
-test "optional" {
-    try expectEqual(@as(?i32, null), try fromSlice(?i32, "null"));
-    try expectEqual(@as(?i32, 42), try fromSlice(?i32, "42"));
 }
 
 test "void" {
