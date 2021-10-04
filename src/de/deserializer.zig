@@ -78,12 +78,15 @@ pub const Deserializer = struct {
     fn deserializeEnum(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
-                .Number => |num| switch (num.is_integer) {
-                    true => return try visitor.visitInt(
-                        Error,
-                        std.fmt.parseInt(std.meta.Tag(@TypeOf(visitor).Value), num.slice(self.tokens.slice, self.tokens.i - 1), 10) catch return Error.Input,
-                    ),
-                    false => {},
+                .Number => |num| {
+                    const slice = num.slice(self.tokens.slice, self.tokens.i - 1);
+
+                    if (num.is_integer) {
+                        return try switch (slice[0]) {
+                            '-' => visitor.visitInt(Error, parseSigned(slice) catch return Error.Input),
+                            else => visitor.visitInt(Error, parseUnsigned(slice) catch return Error.Input),
+                        };
+                    }
                 },
                 .String => |str| return try visitor.visitSlice(
                     Error,
@@ -101,7 +104,7 @@ pub const Deserializer = struct {
             switch (token) {
                 .Number => |num| return try visitor.visitFloat(
                     Error,
-                    std.fmt.parseFloat(@TypeOf(visitor).Value, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
+                    std.fmt.parseFloat(f128, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
                 ),
                 else => {},
             }
@@ -113,15 +116,19 @@ pub const Deserializer = struct {
     fn deserializeInt(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
-                .Number => |num| switch (num.is_integer) {
-                    true => return try visitor.visitInt(
-                        Error,
-                        std.fmt.parseInt(@TypeOf(visitor).Value, num.slice(self.tokens.slice, self.tokens.i - 1), 10) catch return Error.Input,
-                    ),
-                    false => return try visitor.visitFloat(
-                        Error,
-                        std.fmt.parseFloat(f128, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
-                    ),
+                .Number => |num| {
+                    const slice = num.slice(self.tokens.slice, self.tokens.i - 1);
+
+                    switch (num.is_integer) {
+                        true => return try switch (slice[0]) {
+                            '-' => visitor.visitInt(Error, parseSigned(slice) catch return Error.Input),
+                            else => visitor.visitInt(Error, parseUnsigned(slice) catch return Error.Input),
+                        },
+                        false => return try visitor.visitFloat(
+                            Error,
+                            std.fmt.parseFloat(f128, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
+                        ),
+                    }
                 },
                 else => {},
             }
@@ -185,10 +192,7 @@ pub const Deserializer = struct {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .ArrayBegin => {
-                    var access = SequenceAccess(
-                        @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?,
-                        Error,
-                    ){
+                    var access = SequenceAccess(@typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?, Error){
                         .allocator = self.allocator,
                         .d = self.deserializer(),
                     };
@@ -283,4 +287,58 @@ fn MapAccess(comptime D: type, comptime Error: type) type {
             return try seed.deserialize(self.allocator, self.d);
         }
     };
+}
+
+fn parseInt(comptime T: type, buf: []const u8) std.fmt.ParseIntError!T {
+    comptime std.debug.assert(T == u64 or T == i64);
+
+    if (buf.len == 0) return error.InvalidCharacter;
+
+    var start = buf;
+    var sign: enum { pos, neg } = .pos;
+
+    switch (buf[0]) {
+        '0'...'9' => {},
+        '+' => start = buf[1..],
+        '-' => {
+            sign = .neg;
+            start = buf[1..];
+        },
+        else => return error.InvalidCharacter,
+    }
+
+    if (start[0] == '_' or start[start.len - 1] == '_') {
+        return error.InvalidCharacter;
+    }
+
+    const radix: T = 10;
+    var int: T = 0;
+
+    for (start) |c| {
+        if (c == '_') {
+            continue;
+        }
+
+        const digit = try std.fmt.charToDigit(c, radix);
+
+        if (int != 0) {
+            // TODO: Does math.cast not accept comptime_int?
+            int = try std.math.mul(T, int, try std.math.cast(T, radix));
+        }
+
+        int = switch (sign) {
+            .pos => try std.math.add(T, int, try std.math.cast(T, digit)),
+            .neg => try std.math.sub(T, int, try std.math.cast(T, digit)),
+        };
+    }
+
+    return int;
+}
+
+fn parseSigned(buf: []const u8) std.fmt.ParseIntError!i64 {
+    return try parseInt(i64, buf);
+}
+
+fn parseUnsigned(buf: []const u8) std.fmt.ParseIntError!u64 {
+    return try parseInt(u64, buf);
 }
