@@ -56,7 +56,7 @@ pub const Deserializer = struct {
         deserializeMap,
         deserializeOptional,
         deserializeSequence,
-        deserializeSlice,
+        deserializeString,
         deserializeStruct,
         deserializeVoid,
     );
@@ -88,7 +88,7 @@ pub const Deserializer = struct {
                         };
                     }
                 },
-                .String => |str| return try visitor.visitSlice(
+                .String => |str| return try visitor.visitString(
                     Error,
                     str.slice(self.tokens.slice, self.tokens.i - 1),
                 ),
@@ -188,7 +188,7 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
-    fn deserializeSlice(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+    fn deserializeString(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .ArrayBegin => {
@@ -199,14 +199,10 @@ pub const Deserializer = struct {
 
                     return try visitor.visitSequence(access.sequenceAccess());
                 },
-                .String => |str| {
-                    if (std.meta.Child(@TypeOf(visitor).Value) == u8) {
-                        return visitor.visitSlice(
-                            Error,
-                            str.slice(self.tokens.slice, self.tokens.i - 1),
-                        ) catch Error.Input;
-                    }
-                },
+                .String => |str| return try visitor.visitString(
+                    Error,
+                    str.slice(self.tokens.slice, self.tokens.i - 1),
+                ),
                 else => {},
             }
         }

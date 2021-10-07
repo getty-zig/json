@@ -203,6 +203,7 @@ test "slice (string)" {
     defer testing.allocator.free(string);
 
     try expect(eql(u8, "Hello, World!", string));
+    try testing.expectError(error.Input, fromSliceAlloc(testing.allocator, []i8, "\"AB\""));
 }
 
 test "slice (non-string)" {
