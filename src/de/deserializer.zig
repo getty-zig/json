@@ -33,7 +33,7 @@ pub const Deserializer = struct {
 
     pub fn deinit(self: *Self) void {
         if (self.scratch) |scratch| {
-            self.allocator.free(scratch);
+            self.allocator.?.free(scratch);
         }
     }
 
