@@ -9,12 +9,10 @@ const testing = std.testing;
 const expect = testing.expect;
 const expectEqual = testing.expectEqual;
 
-pub const de = struct {
-    pub usingnamespace @import("de/deserializer.zig");
-};
+pub const Deserializer = @import("de/deserializer.zig").Deserializer;
 
 pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anytype) !T {
-    var deserializer = de.Deserializer.fromReader(allocator, reader);
+    var deserializer = Deserializer.fromReader(allocator, reader);
     defer deserializer.deinit();
     const value = try getty.deserialize(allocator, T, deserializer.deserializer());
     errdefer free(allocator, value);
@@ -24,11 +22,19 @@ pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anyty
 }
 
 pub fn fromSlice(allocator: ?*std.mem.Allocator, comptime T: type, slice: []const u8) !T {
-    var deserializer = if (allocator) |alloc| de.Deserializer.withAllocator(alloc, slice) else de.Deserializer.init(slice);
+    var deserializer = if (allocator) |alloc| Deserializer.withAllocator(alloc, slice) else Deserializer.init(slice);
     const value = try getty.deserialize(allocator, T, deserializer.deserializer());
     errdefer if (allocator) |alloc| free(alloc, value);
 
     try deserializer.end();
+    return value;
+}
+
+pub fn fromDeserializer(comptime T: type, d: *Deserializer) !T {
+    const value = try getty.deserialize(d.allocator, T, d.deserializer());
+    errdefer if (d.allocator) |alloc| free(alloc, value);
+
+    try d.end();
     return value;
 }
 
