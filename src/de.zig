@@ -11,31 +11,48 @@ const expectEqual = testing.expectEqual;
 
 pub const Deserializer = @import("de/deserializer.zig").Deserializer;
 
-pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anytype) !T {
-    var deserializer = Deserializer.fromReader(allocator, reader);
-    defer deserializer.deinit();
-    const value = try getty.deserialize(allocator, T, deserializer.deserializer());
-    errdefer free(allocator, value);
-
-    try deserializer.end();
-    return value;
-}
-
-pub fn fromSlice(allocator: ?*std.mem.Allocator, comptime T: type, slice: []const u8) !T {
-    var deserializer = if (allocator) |alloc| Deserializer.withAllocator(alloc, slice) else Deserializer.init(slice);
-    const value = try getty.deserialize(allocator, T, deserializer.deserializer());
-    errdefer if (allocator) |alloc| free(alloc, value);
-
-    try deserializer.end();
-    return value;
-}
-
 pub fn fromDeserializer(comptime T: type, d: *Deserializer) !T {
     const value = try getty.deserialize(d.allocator, T, d.deserializer());
     errdefer if (d.allocator) |alloc| free(alloc, value);
-
     try d.end();
+
     return value;
+}
+
+pub fn fromDeserializerWith(comptime T: type, d: *Deserializer, de: anytype) !T {
+    const value = try getty.deserializeWith(d.allocator, T, d.deserializer(), de.de());
+    errdefer if (d.allocator) |alloc| free(alloc, value);
+    try d.end();
+
+    return value;
+}
+
+pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anytype) !T {
+    var d = Deserializer.fromReader(allocator, reader);
+    defer d.deinit();
+
+    return fromDeserializer(T, &d);
+}
+
+pub fn fromReaderWith(allocator: *std.mem.Allocator, comptime T: type, reader: anytype, de: anytype) !T {
+    var d = Deserializer.fromReader(allocator, reader);
+    defer d.deinit();
+
+    return fromDeserializerWith(T, &d, de);
+}
+
+pub fn fromSlice(allocator: ?*std.mem.Allocator, comptime T: type, slice: []const u8) !T {
+    var d = if (allocator) |alloc| Deserializer.withAllocator(alloc, slice) else Deserializer.init(slice);
+    defer d.deinit();
+
+    return fromDeserializer(T, &d);
+}
+
+pub fn fromSliceWith(allocator: ?*std.mem.Allocator, comptime T: type, slice: []const u8, de: anytype) !T {
+    var d = if (allocator) |alloc| Deserializer.withAllocator(alloc, slice) else Deserializer.init(slice);
+    defer d.deinit();
+
+    return fromDeserializerWith(T, &d, de);
 }
 
 test "array" {
