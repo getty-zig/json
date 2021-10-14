@@ -21,7 +21,7 @@ pub fn fromDeserializer(comptime T: type, d: *Deserializer) !T {
 }
 
 pub fn fromDeserializerWith(comptime T: type, d: *Deserializer, de: anytype) !T {
-    const value = try getty.deserializeWith(d.allocator, T, d.deserializer(), de.de());
+    const value = try getty.deserializeWith(d.allocator, T, d.deserializer(), de);
     errdefer if (d.allocator) |alloc| free(alloc, value);
     try d.end();
 
