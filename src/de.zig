@@ -8,6 +8,7 @@ const testing = std.testing;
 
 const expect = testing.expect;
 const expectEqual = testing.expectEqual;
+const expectError = testing.expectError;
 
 pub const Deserializer = @import("de/deserializer.zig").Deserializer;
 
@@ -56,13 +57,10 @@ pub fn fromSliceWith(allocator: ?*std.mem.Allocator, comptime T: type, slice: []
 }
 
 test "array" {
-    try expectEqual([2]bool{ false, false }, try fromSlice(null, [2]bool, "[false,false]"));
-    try expectEqual([2]bool{ true, true }, try fromSlice(null, [2]bool, "[true,true]"));
+    try expectEqual([0]bool{}, try fromSlice(null, [0]bool, "[]"));
+    try expectEqual([1]bool{true}, try fromSlice(null, [1]bool, "[true]"));
     try expectEqual([2]bool{ true, false }, try fromSlice(null, [2]bool, "[true,false]"));
-    try expectEqual([2]bool{ false, true }, try fromSlice(null, [2]bool, "[false,true]"));
-
     try expectEqual([5]i32{ 1, 2, 3, 4, 5 }, try fromSlice(null, [5]i32, "[1,2,3,4,5]"));
-
     try expectEqual([2][1]i32{ .{1}, .{2} }, try fromSlice(null, [2][1]i32, "[[1],[2]]"));
     try expectEqual([2][1][3]i32{ .{.{ 1, 2, 3 }}, .{.{ 4, 5, 6 }} }, try fromSlice(null, [2][1][3]i32, "[[[1,2,3]],[[4,5,6]]]"));
 }
@@ -73,67 +71,57 @@ test "bool" {
 }
 
 test "enum" {
-    const T = enum { foo, bar };
+    const Enum = enum { foo, bar };
 
-    {
-        // integers
-        try expectEqual(T.foo, try fromSlice(null, T, "0"));
-        try expectEqual(T.bar, try fromSlice(null, T, "1"));
-    }
-
-    {
-        // strings
-        try expectEqual(T.foo, try fromSlice(null, T, "\"foo\""));
-        try expectEqual(T.bar, try fromSlice(null, T, "\"bar\""));
-    }
+    try expectEqual(Enum.foo, try fromSlice(null, Enum, "0"));
+    try expectEqual(Enum.bar, try fromSlice(null, Enum, "1"));
+    try expectEqual(Enum.foo, try fromSlice(null, Enum, "\"foo\""));
+    try expectEqual(Enum.bar, try fromSlice(null, Enum, "\"bar\""));
 }
 
 test "float" {
-    {
-        // floats
-        try expectEqual(@as(f32, 3.14), try fromSlice(null, f32, "3.14"));
-        try expectEqual(@as(f64, 3.14), try fromSlice(null, f64, "3.14"));
-    }
-
-    {
-        // integers
-        try expectEqual(@as(f32, 3.0), try fromSlice(null, f32, "3"));
-        try expectEqual(@as(f64, 3.0), try fromSlice(null, f64, "3"));
-    }
+    try expectEqual(@as(f32, std.math.f32_min), try fromSlice(null, f32, "1.17549435082228750797e-38"));
+    try expectEqual(@as(f32, std.math.f32_max), try fromSlice(null, f32, "3.40282346638528859812e+38"));
+    try expectEqual(@as(f64, std.math.f64_min), try fromSlice(null, f64, "2.2250738585072014e-308"));
+    try expectEqual(@as(f64, std.math.f64_max), try fromSlice(null, f64, "1.79769313486231570815e+308"));
+    try expectEqual(@as(f32, 1.0), try fromSlice(null, f32, "1"));
+    try expectEqual(@as(f64, 2.0), try fromSlice(null, f64, "2"));
 }
 
 test "int" {
-    {
-        // integers
-        try expectEqual(@as(u32, 1), try fromSlice(null, u32, "1"));
-        try expectEqual(@as(i32, -1), try fromSlice(null, i32, "-1"));
-    }
+    try expectEqual(@as(u8, std.math.maxInt(u8)), try fromSlice(null, u8, "255"));
+    try expectEqual(@as(u32, std.math.maxInt(u32)), try fromSlice(null, u32, "4294967295"));
+    try expectEqual(@as(u64, std.math.maxInt(u64)), try fromSlice(null, u64, "18446744073709551615"));
+    try expectEqual(@as(i8, std.math.maxInt(i8)), try fromSlice(null, i8, "127"));
+    try expectEqual(@as(i32, std.math.maxInt(i32)), try fromSlice(null, i32, "2147483647"));
+    try expectEqual(@as(i64, std.math.maxInt(i64)), try fromSlice(null, i64, "9223372036854775807"));
+    try expectEqual(@as(i8, std.math.minInt(i8)), try fromSlice(null, i8, "-128"));
+    try expectEqual(@as(i32, std.math.minInt(i32)), try fromSlice(null, i32, "-2147483648"));
+    try expectEqual(@as(i64, std.math.minInt(i64)), try fromSlice(null, i64, "-9223372036854775808"));
+    try expectEqual(@as(u8, std.math.maxInt(u8)), try fromSlice(null, u8, "255.0"));
+    try expectEqual(@as(i8, std.math.minInt(i8)), try fromSlice(null, i8, "-128.0"));
 
-    {
-        // floats
-        try expectEqual(@as(u32, 1), try fromSlice(null, u32, "1.0"));
-        try expectEqual(@as(i32, -1), try fromSlice(null, i32, "-1.0"));
-    }
+    // TODO: higher-bit conversions from float don't seem to work.
 }
 
 test "optional" {
-    try expectEqual(@as(?i32, null), try fromSlice(null, ?i32, "null"));
-    try expectEqual(@as(?i32, 42), try fromSlice(null, ?i32, "42"));
+    try expectEqual(@as(?bool, null), try fromSlice(null, ?bool, "null"));
+    try expectEqual(@as(?bool, true), try fromSlice(null, ?bool, "true"));
 }
 
 test "pointer" {
     // one level of indirection
     {
-        const value = try fromSlice(std.testing.allocator, *bool, "true");
-        defer free(std.testing.allocator, value);
+        const value = try fromSlice(testing.allocator, *bool, "true");
+        defer free(testing.allocator, value);
 
         try expectEqual(true, value.*);
     }
 
     // two levels of indirection
     {
-        const value = try fromSlice(std.testing.allocator, **i32, "1234");
-        defer free(std.testing.allocator, value);
+        const value = try fromSlice(testing.allocator, **i32, "1234");
+        defer free(testing.allocator, value);
 
         try expectEqual(@as(i32, 1234), value.*.*);
     }
@@ -144,16 +132,16 @@ test "pointer" {
 
         // Tag value
         {
-            const value = try fromSlice(std.testing.allocator, *T, "0");
-            defer free(std.testing.allocator, value);
+            const value = try fromSlice(testing.allocator, *T, "0");
+            defer free(testing.allocator, value);
 
             try expectEqual(T.foo, value.*);
         }
 
         // Tag name
         {
-            const value = try fromSlice(std.testing.allocator, *T, "\"bar\"");
-            defer free(std.testing.allocator, value);
+            const value = try fromSlice(testing.allocator, *T, "\"bar\"");
+            defer free(testing.allocator, value);
 
             try expectEqual(T.bar, value.*);
         }
@@ -163,16 +151,16 @@ test "pointer" {
     {
         // some
         {
-            const value = try fromSlice(std.testing.allocator, *?bool, "true");
-            defer free(std.testing.allocator, value);
+            const value = try fromSlice(testing.allocator, *?bool, "true");
+            defer free(testing.allocator, value);
 
             try expectEqual(true, value.*.?);
         }
 
         // none
         {
-            const value = try fromSlice(std.testing.allocator, *?bool, "null");
-            defer free(std.testing.allocator, value);
+            const value = try fromSlice(testing.allocator, *?bool, "null");
+            defer free(testing.allocator, value);
 
             try expectEqual(false, value.* orelse false);
         }
@@ -180,8 +168,8 @@ test "pointer" {
 
     // sequence
     {
-        const value = try fromSlice(std.testing.allocator, *[3]i8, "[1,2,3]");
-        defer free(std.testing.allocator, value);
+        const value = try fromSlice(testing.allocator, *[3]i8, "[1,2,3]");
+        defer free(testing.allocator, value);
 
         try expectEqual([_]i8{ 1, 2, 3 }, value.*);
     }
@@ -189,10 +177,10 @@ test "pointer" {
     // struct
     {
         const T = struct { x: i32, y: **[]const u8, z: []const u8 };
-        const value = try fromSlice(std.testing.allocator, *T,
+        const value = try fromSlice(testing.allocator, *T,
             \\{"x":1,"y":"hello","z":"world"}
         );
-        defer free(std.testing.allocator, value);
+        defer free(testing.allocator, value);
 
         try expectEqual(@as(i32, 1), value.*.x);
         try testing.expectEqualSlices(u8, "hello", value.*.y.*.*);
@@ -201,30 +189,31 @@ test "pointer" {
 
     // void
     {
-        const value = try fromSlice(std.testing.allocator, *void, "null");
-        defer free(std.testing.allocator, value);
+        const value = try fromSlice(testing.allocator, *void, "null");
+        defer free(testing.allocator, value);
 
         try expectEqual({}, value.*);
     }
 }
 
 test "slice (string)" {
-    const string = try fromSlice(testing.allocator, []const u8, "\"Hello, World!\"");
-    defer testing.allocator.free(string);
+    // Zig string
+    const got = try fromSlice(testing.allocator, []const u8, "\"Hello, World!\"");
+    defer free(testing.allocator, got);
+    try expect(eql(u8, "Hello, World!", got));
 
-    try expect(eql(u8, "Hello, World!", string));
-    try testing.expectError(error.Input, fromSlice(testing.allocator, []i8, "\"AB\""));
+    // Non-zig string
+    try expectError(error.Input, fromSlice(testing.allocator, []i8, "\"Hello, World!\""));
 }
 
 test "slice (non-string)" {
     // scalar child
     {
-        const want = [_]i32{ 1, 2, 3, 4, 5 };
         const got = try fromSlice(testing.allocator, []i32, "[1,2,3,4,5]");
-        defer testing.allocator.free(got);
+        defer free(testing.allocator, got);
 
         try expectEqual([]i32, @TypeOf(got));
-        try expect(eql(i32, &want, got));
+        try expect(eql(i32, &[_]i32{ 1, 2, 3, 4, 5 }, got));
     }
 
     // array child
@@ -237,7 +226,7 @@ test "slice (non-string)" {
         const got = try fromSlice(testing.allocator, [][3]u32,
             \\[[1,2,3],[4,5,6],[7,8,9]]
         );
-        defer testing.allocator.free(got);
+        defer free(testing.allocator, got);
 
         try expectEqual([][3]u32, @TypeOf(got));
         inline for (wants) |want, i| try expect(eql(u32, &want, &got[i]));
@@ -254,10 +243,7 @@ test "slice (non-string)" {
         const got = try fromSlice(testing.allocator, [][]u8,
             \\[[1,2,3],[4,5],[6],[7,8,9,10]]
         );
-        defer {
-            for (got) |elem| testing.allocator.free(elem);
-            testing.allocator.free(got);
-        }
+        defer free(testing.allocator, got);
 
         try expectEqual([][]u8, @TypeOf(got));
         inline for (wants) |want, i| try expect(eql(u8, &want, got[i]));
@@ -273,10 +259,7 @@ test "slice (non-string)" {
         const got = try fromSlice(testing.allocator, [][]const u8,
             \\["Foo","Bar","Foobar"]
         );
-        defer {
-            for (got) |elem| testing.allocator.free(elem);
-            testing.allocator.free(got);
-        }
+        defer free(testing.allocator, got);
 
         try expectEqual([][]const u8, @TypeOf(got));
         inline for (wants) |want, i| {
@@ -301,7 +284,7 @@ test "struct" {
         const got = try fromSlice(testing.allocator, struct { x: []const u8 },
             \\{"x":"Hello"}
         );
-        defer testing.allocator.free(got.x);
+        defer free(testing.allocator, got);
 
         try expect(eql(u8, "Hello", got.x));
     }
