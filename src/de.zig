@@ -65,6 +65,29 @@ test "array" {
     try expectEqual([2][1][3]i32{ .{.{ 1, 2, 3 }}, .{.{ 4, 5, 6 }} }, try fromSlice(null, [2][1][3]i32, "[[[1,2,3]],[[4,5,6]]]"));
 }
 
+test "array list" {
+    // scalar child
+    {
+        const got = try fromSlice(testing.allocator, std.ArrayList(u8), "[1,2,3,4,5]");
+        defer got.deinit();
+
+        try expectEqual(std.ArrayList(u8), @TypeOf(got));
+        try expect(eql(u8, &[_]u8{ 1, 2, 3, 4, 5 }, got.items));
+    }
+
+    // array list child
+    {
+        const got = try fromSlice(testing.allocator, std.ArrayList(std.ArrayList(u8)), "[[1, 2],[3,4]]");
+        defer free(testing.allocator, got);
+
+        try expectEqual(std.ArrayList(std.ArrayList(u8)), @TypeOf(got));
+        try expectEqual(std.ArrayList(u8), @TypeOf(got.items[0]));
+        try expectEqual(std.ArrayList(u8), @TypeOf(got.items[1]));
+        try expect(eql(u8, &[_]u8{ 1, 2 }, got.items[0].items));
+        try expect(eql(u8, &[_]u8{ 3, 4 }, got.items[1].items));
+    }
+}
+
 test "bool" {
     try expectEqual(true, try fromSlice(null, bool, "true"));
     try expectEqual(false, try fromSlice(null, bool, "false"));
