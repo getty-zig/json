@@ -8,6 +8,7 @@ const testing = std.testing;
 
 const expect = testing.expect;
 const expectEqual = testing.expectEqual;
+const expectEqualSlices = testing.expectEqualSlices;
 const expectError = testing.expectError;
 
 pub const Deserializer = @import("de/deserializer.zig").Deserializer;
@@ -143,10 +144,10 @@ test "pointer" {
 
     // two levels of indirection
     {
-        const value = try fromSlice(testing.allocator, **i32, "1234");
+        const value = try fromSlice(testing.allocator, **[]const u8, "\"Hello, World!\"");
         defer free(testing.allocator, value);
 
-        try expectEqual(@as(i32, 1234), value.*.*);
+        try expectEqualSlices(u8, "Hello, World!", value.*.*);
     }
 
     // enum
@@ -199,15 +200,15 @@ test "pointer" {
 
     // struct
     {
-        const T = struct { x: i32, y: **[]const u8, z: []const u8 };
+        const T = struct { x: i32, y: []const u8, z: *[]const u8 };
         const value = try fromSlice(testing.allocator, *T,
             \\{"x":1,"y":"hello","z":"world"}
         );
         defer free(testing.allocator, value);
 
         try expectEqual(@as(i32, 1), value.*.x);
-        try testing.expectEqualSlices(u8, "hello", value.*.y.*.*);
-        try testing.expectEqualSlices(u8, "world", value.*.z);
+        try expectEqualSlices(u8, "hello", value.*.y);
+        try expectEqualSlices(u8, "world", value.*.z.*);
     }
 
     // void
