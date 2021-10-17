@@ -62,7 +62,9 @@ pub const Deserializer = struct {
     );
 
     const Error = getty.de.Error || error{Input};
+    const Interface = @typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?;
 
+    /// Hint that the type being deserialized into is expecting a `bool` value.
     fn deserializeBool(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
@@ -75,6 +77,8 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
+    /// Hint that the type being deserialized into is expecting an `enum`
+    /// value.
     fn deserializeEnum(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
@@ -99,6 +103,8 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
+    /// Hint that the type being deserialized into is expecting a
+    /// floating-point value.
     fn deserializeFloat(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
@@ -113,6 +119,8 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
+    /// Hint that the type being deserialized into is expecting an
+    /// integer value.
     fn deserializeInt(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
@@ -137,10 +145,12 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
+    /// Hint that the type being deserialized into is expecting a map of
+    /// key-value pairs.
     fn deserializeMap(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             if (token == .ObjectBegin) {
-                var access = MapAccess(@typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?, Error){
+                var access = MapAccess(Interface, Error){
                     .allocator = self.allocator,
                     .d = self.deserializer(),
                 };
@@ -152,6 +162,8 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
+    /// Hint that the type being deserialized into is expecting an optional
+    /// value.
     fn deserializeOptional(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         const tokens = self.tokens;
 
@@ -173,10 +185,12 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
+    /// Hint that the type being deserialized into is expecting a sequence of
+    /// values.
     fn deserializeSequence(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             if (token == .ArrayBegin) {
-                var access = SequenceAccess(@typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?, Error){
+                var access = SequenceAccess(Interface, Error){
                     .allocator = self.allocator,
                     .d = self.deserializer(),
                 };
@@ -188,11 +202,12 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
+    /// Hint that the type being deserialized into is expecting a string value.
     fn deserializeString(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
                 .ArrayBegin => {
-                    var access = SequenceAccess(@typeInfo(@TypeOf(Self.deserializer)).Fn.return_type.?, Error){
+                    var access = SequenceAccess(Interface, Error){
                         .allocator = self.allocator,
                         .d = self.deserializer(),
                     };
@@ -210,10 +225,12 @@ pub const Deserializer = struct {
         return Error.Input;
     }
 
+    /// Hint that the type being deserialized into is expecting a struct value.
     fn deserializeStruct(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         return try deserializeMap(self, visitor);
     }
 
+    /// Hint that the type being deserialized into is expecting a `void` value.
     fn deserializeVoid(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             if (token == .Null) {
