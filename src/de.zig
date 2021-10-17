@@ -257,18 +257,18 @@ test "slice (non-string)" {
     // slice child
     {
         const wants = .{
-            [_]u8{ 1, 2, 3 },
-            [_]u8{ 4, 5 },
-            [_]u8{6},
-            [_]u8{ 7, 8, 9, 10 },
+            [_]i8{ 1, 2, 3 },
+            [_]i8{ 4, 5 },
+            [_]i8{6},
+            [_]i8{ 7, 8, 9, 10 },
         };
-        const got = try fromSlice(testing.allocator, [][]u8,
+        const got = try fromSlice(testing.allocator, [][]i8,
             \\[[1,2,3],[4,5],[6],[7,8,9,10]]
         );
         defer free(testing.allocator, got);
 
-        try expectEqual([][]u8, @TypeOf(got));
-        inline for (wants) |want, i| try expect(eql(u8, &want, got[i]));
+        try expectEqual([][]i8, @TypeOf(got));
+        inline for (wants) |want, i| try expect(eql(i8, &want, got[i]));
     }
 
     // string child

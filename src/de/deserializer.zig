@@ -207,14 +207,6 @@ pub const Deserializer = struct {
     fn deserializeString(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
-                .ArrayBegin => {
-                    var access = SequenceAccess(Interface, Error){
-                        .allocator = self.allocator,
-                        .d = self.deserializer(),
-                    };
-
-                    return try visitor.visitSequence(access.sequenceAccess());
-                },
                 .String => |str| return try visitor.visitString(
                     Error,
                     str.slice(self.tokens.slice, self.tokens.i - 1),
