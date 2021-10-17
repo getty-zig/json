@@ -108,10 +108,14 @@ pub const Deserializer = struct {
     fn deserializeFloat(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
         if (self.tokens.next() catch return Error.Input) |token| {
             switch (token) {
-                .Number => |num| return try visitor.visitFloat(
-                    Error,
-                    std.fmt.parseFloat(f128, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
-                ),
+                .Number => |num| {
+                    const slice = num.slice(self.tokens.slice, self.tokens.i - 1);
+
+                    return try visitor.visitFloat(
+                        Error,
+                        std.fmt.parseFloat(f128, slice) catch return Error.Input,
+                    );
+                },
                 else => {},
             }
         }
