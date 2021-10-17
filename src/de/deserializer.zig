@@ -136,10 +136,7 @@ pub const Deserializer = struct {
                             '-' => visitor.visitInt(Error, parseSigned(slice) catch return Error.Input),
                             else => visitor.visitInt(Error, parseUnsigned(slice) catch return Error.Input),
                         },
-                        false => return try visitor.visitFloat(
-                            Error,
-                            std.fmt.parseFloat(f128, num.slice(self.tokens.slice, self.tokens.i - 1)) catch return Error.Input,
-                        ),
+                        false => {},
                     }
                 },
                 else => {},

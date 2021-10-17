@@ -122,8 +122,6 @@ test "int" {
     try expectEqual(@as(i8, std.math.minInt(i8)), try fromSlice(null, i8, "-128"));
     try expectEqual(@as(i32, std.math.minInt(i32)), try fromSlice(null, i32, "-2147483648"));
     try expectEqual(@as(i64, std.math.minInt(i64)), try fromSlice(null, i64, "-9223372036854775808"));
-    try expectEqual(@as(u8, std.math.maxInt(u8)), try fromSlice(null, u8, "255.0"));
-    try expectEqual(@as(i8, std.math.minInt(i8)), try fromSlice(null, i8, "-128.0"));
 
     // TODO: higher-bit conversions from float don't seem to work.
 }
