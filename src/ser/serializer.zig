@@ -33,6 +33,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
             serializeMap,
             serializeNull,
             serializeSequence,
+            serializeSome,
             serializeString,
             serializeStruct,
             serializeTuple,
@@ -113,6 +114,10 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
             }
 
             return SequenceSerialize{ .ser = self, .state = .first };
+        }
+
+        fn serializeSome(self: *Self, value: anytype) Error!Ok {
+            try getty.serialize(value, self.serializer());
         }
 
         fn serializeString(self: *Self, value: anytype) Error!Ok {
