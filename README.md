@@ -16,20 +16,25 @@
 const std = @import("std");
 const json = @import("json");
 
-const allocator = std.heap.page_allocator;
+const allocator = std.testing.allocator;
 const print = std.debug.print;
 
 pub fn main() anyerror!void {
-    // Convert to JSON string
-    const slice = try json.toSlice(allocator, .{ .x = 1, .y = 2 });
-    defer allocator.free(slice);
+    // serialization
+    const slice = try json.toSlice(allocator, [_]i32{ 1, 2, 3 });
+    defer json.free(allocator, slice);
 
-    // Convert from JSON string
-    const point = try json.fromSlice(null, struct { x: i32, y: i32 }, slice);
+    // run-time deserialization
+    var list = try json.fromSlice(allocator, std.ArrayList(i32), slice);
+    defer json.free(allocator, list);
 
-    // Print results
-    print("{s}\n", .{slice}); // {"x":1,"y":2}
-    print("{s}\n", .{point}); // struct:13:44{ .x = 1, .y = 2 }
+    // compile-time deserialization
+    const array = comptime try json.fromSlice(null, [3]i32, "[1,2,3]");
+
+    // results
+    print("{s}\n", .{slice});        // [1,2,3]
+    print("{any}\n", .{list.items}); // { 1, 2, 3 }
+    print("{any}\n", .{array});      // { 1, 2, 3 }
 }
 ```
 
