@@ -163,7 +163,6 @@ fn Serialize(comptime S: type) type {
             Error,
             _M.serializeKey,
             _M.serializeValue,
-            _M.serializeEntry,
             _M.end,
         );
 
@@ -181,11 +180,6 @@ fn Serialize(comptime S: type) type {
                 self.ser.formatter.beginObjectValue(self.ser.writer) catch return Error.Io;
                 try getty.serialize(value, self.ser.serializer());
                 self.ser.formatter.endObjectValue(self.ser.writer) catch return Error.Io;
-            }
-
-            fn serializeEntry(self: *Self, key: anytype, value: anytype) Error!void {
-                try serializeKey(self, key);
-                try serializeValue(self, value);
             }
 
             fn end(self: *Self) Error!Ok {
