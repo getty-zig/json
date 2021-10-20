@@ -26,7 +26,7 @@ pub fn main() anyerror!void {
 
     // run-time deserialization
     var list = try json.fromSlice(allocator, std.ArrayList(i32), slice);
-    defer json.free(allocator, list);
+    defer list.deinit();
 
     // compile-time deserialization
     const array = comptime try json.fromSlice(null, [3]i32, "[1,2,3]");
