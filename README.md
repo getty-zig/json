@@ -22,7 +22,7 @@ const print = std.debug.print;
 pub fn main() anyerror!void {
     // serialization
     const slice = try json.toSlice(allocator, [_]i32{ 1, 2, 3 });
-    defer json.free(allocator, slice);
+    defer allocator.free(slice);
 
     // run-time deserialization
     var list = try json.fromSlice(allocator, std.ArrayList(i32), slice);
