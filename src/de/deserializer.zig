@@ -251,17 +251,15 @@ const Access = struct {
     const Self = @This();
     const impl = @"impl Access";
 
-    const Error = @"impl Deserializer".deserializer.Error;
-
     pub usingnamespace getty.de.SequenceAccess(
         *Self,
-        Error,
+        impl.sequenceAccess.Error,
         impl.sequenceAccess.nextElementSeed,
     );
 
     pub usingnamespace getty.de.MapAccess(
         *Self,
-        Error,
+        impl.mapAccess.Error,
         impl.mapAccess.nextKeySeed,
         impl.mapAccess.nextValueSeed,
     );
@@ -269,7 +267,9 @@ const Access = struct {
 
 const @"impl Access" = struct {
     const sequenceAccess = struct {
-        fn nextElementSeed(self: *Access, seed: anytype) Access.Error!?@TypeOf(seed).Value {
+        const Error = @"impl Deserializer".deserializer.Error;
+
+        fn nextElementSeed(self: *Access, seed: anytype) Error!?@TypeOf(seed).Value {
             const tokens = self.deserializer.tokens;
 
             if (self.deserializer.tokens.next() catch return error.Input) |token| {
@@ -286,7 +286,9 @@ const @"impl Access" = struct {
     };
 
     const mapAccess = struct {
-        fn nextKeySeed(self: *Access, seed: anytype) Access.Error!?@TypeOf(seed).Value {
+        const Error = @"impl Deserializer".deserializer.Error;
+
+        fn nextKeySeed(self: *Access, seed: anytype) Error!?@TypeOf(seed).Value {
             if (self.deserializer.tokens.next() catch return error.Input) |token| {
                 return switch (token) {
                     .ObjectEnd => null,
@@ -298,7 +300,7 @@ const @"impl Access" = struct {
             return error.Input;
         }
 
-        fn nextValueSeed(self: *Access, seed: anytype) Access.Error!@TypeOf(seed).Value {
+        fn nextValueSeed(self: *Access, seed: anytype) Error!@TypeOf(seed).Value {
             return try seed.deserialize(self.allocator, self.deserializer.deserializer());
         }
     };

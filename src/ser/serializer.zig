@@ -160,15 +160,12 @@ fn Serialize(comptime Ser: type) type {
         },
 
         const Self = @This();
-        const impl = @"impl Serialize"(Self);
-
-        const Ok = @"impl Serializer"(Ser).serializer.Ok;
-        const Error = @"impl Serializer"(Ser).serializer.Error;
+        const impl = @"impl Serialize"(Ser);
 
         pub usingnamespace getty.ser.MapSerialize(
             *Self,
-            Ok,
-            Error,
+            impl.mapSerialize.Ok,
+            impl.mapSerialize.Error,
             impl.mapSerialize.serializeKey,
             impl.mapSerialize.serializeValue,
             impl.mapSerialize.end,
@@ -176,36 +173,38 @@ fn Serialize(comptime Ser: type) type {
 
         pub usingnamespace getty.ser.SequenceSerialize(
             *Self,
-            Ok,
-            Error,
+            impl.sequenceSerialize.Ok,
+            impl.sequenceSerialize.Error,
             impl.sequenceSerialize.serializeElement,
             impl.sequenceSerialize.end,
         );
 
         pub usingnamespace getty.ser.StructSerialize(
             *Self,
-            Ok,
-            Error,
+            impl.structSerialize.Ok,
+            impl.structSerialize.Error,
             impl.structSerialize.serializeField,
             impl.structSerialize.end,
         );
 
         pub usingnamespace getty.ser.TupleSerialize(
             *Self,
-            Ok,
-            Error,
+            impl.sequenceSerialize.Ok,
+            impl.sequenceSerialize.Error,
             impl.sequenceSerialize.serializeElement,
             impl.sequenceSerialize.end,
         );
     };
 }
 
-fn @"impl Serialize"(comptime Self: type) type {
-    const Ok = Self.Ok;
-    const Error = Self.Error;
+fn @"impl Serialize"(comptime Ser: type) type {
+    const Self = Serialize(Ser);
 
     return struct {
         const mapSerialize = struct {
+            const Ok = @"impl Serializer"(Ser).serializer.Ok;
+            const Error = @"impl Serializer"(Ser).serializer.Error;
+
             fn serializeKey(self: *Self, key: anytype) Error!void {
                 self.ser.formatter.beginObjectKey(self.ser.writer, self.state == .first) catch return Error.Io;
                 self.state = .rest;
@@ -230,6 +229,9 @@ fn @"impl Serialize"(comptime Self: type) type {
         };
 
         const sequenceSerialize = struct {
+            const Ok = @"impl Serializer"(Ser).serializer.Ok;
+            const Error = @"impl Serializer"(Ser).serializer.Error;
+
             fn serializeElement(self: *Self, value: anytype) Error!Ok {
                 self.ser.formatter.beginArrayValue(self.ser.writer, self.state == .first) catch return Error.Io;
                 self.state = .rest;
@@ -246,6 +248,9 @@ fn @"impl Serialize"(comptime Self: type) type {
         };
 
         const structSerialize = struct {
+            const Ok = @"impl Serializer"(Ser).serializer.Ok;
+            const Error = @"impl Serializer"(Ser).serializer.Error;
+
             fn serializeField(self: *Self, comptime key: []const u8, value: anytype) Error!void {
                 const m = self.mapSerialize();
                 try m.serializeEntry(key, value);
