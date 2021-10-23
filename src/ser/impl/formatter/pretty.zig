@@ -68,21 +68,21 @@ fn @"impl PrettyFormatter"(comptime Writer: type) type {
     const Self = PrettyFormatter(Writer);
 
     return struct {
-        const formatter = struct {
-            fn writeNull(_: *Self, writer: Writer) Writer.Error!void {
+        pub const formatter = struct {
+            pub fn writeNull(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("null");
             }
 
-            fn writeBool(_: *Self, writer: Writer, value: bool) Writer.Error!void {
+            pub fn writeBool(_: *Self, writer: Writer, value: bool) Writer.Error!void {
                 try writer.writeAll(if (value) "true" else "false");
             }
 
-            fn writeInt(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
+            pub fn writeInt(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
                 var buf: [100]u8 = undefined;
                 try writer.writeAll(std.fmt.bufPrintIntToSlice(&buf, value, 10, .lower, .{}));
             }
 
-            fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
+            pub fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
                 var buf: [512]u8 = undefined;
                 var stream = std.io.fixedBufferStream(&buf);
 
@@ -95,33 +95,33 @@ fn @"impl PrettyFormatter"(comptime Writer: type) type {
                 try writer.writeAll(buf[0 .. stream.getPos() catch unreachable]);
             }
 
-            fn writeNumberString(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
+            pub fn writeNumberString(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
                 try writer.writeAll(value);
             }
 
-            fn beginString(_: *Self, writer: Writer) Writer.Error!void {
+            pub fn beginString(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("\"");
             }
 
-            fn endString(_: *Self, writer: Writer) Writer.Error!void {
+            pub fn endString(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("\"");
             }
 
-            fn writeStringFragment(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
+            pub fn writeStringFragment(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
                 try writer.writeAll(value);
             }
 
-            fn writeCharEscape(_: *Self, writer: Writer, value: u21) Writer.Error!void {
+            pub fn writeCharEscape(_: *Self, writer: Writer, value: u21) Writer.Error!void {
                 try ser.escapeChar(value, writer);
             }
 
-            fn beginArray(self: *Self, writer: Writer) Writer.Error!void {
+            pub fn beginArray(self: *Self, writer: Writer) Writer.Error!void {
                 self.current += 1;
                 self.has_value = false;
                 try writer.writeAll("[");
             }
 
-            fn endArray(self: *Self, writer: Writer) Writer.Error!void {
+            pub fn endArray(self: *Self, writer: Writer) Writer.Error!void {
                 self.current -= 1;
 
                 if (self.has_value) {
@@ -132,7 +132,7 @@ fn @"impl PrettyFormatter"(comptime Writer: type) type {
                 try writer.writeAll("]");
             }
 
-            fn beginArrayValue(self: *Self, writer: Writer, first: bool) Writer.Error!void {
+            pub fn beginArrayValue(self: *Self, writer: Writer, first: bool) Writer.Error!void {
                 if (first) {
                     try writer.writeAll("\n");
                 } else {
@@ -142,19 +142,19 @@ fn @"impl PrettyFormatter"(comptime Writer: type) type {
                 try self.doIndent(writer);
             }
 
-            fn endArrayValue(self: *Self, writer: Writer) Writer.Error!void {
+            pub fn endArrayValue(self: *Self, writer: Writer) Writer.Error!void {
                 _ = writer;
 
                 self.has_value = true;
             }
 
-            fn beginObject(self: *Self, writer: Writer) Writer.Error!void {
+            pub fn beginObject(self: *Self, writer: Writer) Writer.Error!void {
                 self.current += 1;
                 self.has_value = false;
                 try writer.writeAll("{");
             }
 
-            fn endObject(self: *Self, writer: Writer) Writer.Error!void {
+            pub fn endObject(self: *Self, writer: Writer) Writer.Error!void {
                 self.current -= 1;
 
                 if (self.has_value) {
@@ -165,7 +165,7 @@ fn @"impl PrettyFormatter"(comptime Writer: type) type {
                 try writer.writeAll("}");
             }
 
-            fn beginObjectKey(self: *Self, writer: Writer, first: bool) Writer.Error!void {
+            pub fn beginObjectKey(self: *Self, writer: Writer, first: bool) Writer.Error!void {
                 if (first) {
                     try writer.writeAll("\n");
                 } else {
@@ -175,24 +175,24 @@ fn @"impl PrettyFormatter"(comptime Writer: type) type {
                 try self.doIndent(writer);
             }
 
-            fn endObjectKey(self: *Self, writer: Writer) Writer.Error!void {
+            pub fn endObjectKey(self: *Self, writer: Writer) Writer.Error!void {
                 _ = self;
                 _ = writer;
             }
 
-            fn beginObjectValue(self: *Self, writer: Writer) Writer.Error!void {
+            pub fn beginObjectValue(self: *Self, writer: Writer) Writer.Error!void {
                 _ = self;
 
                 try writer.writeAll(": ");
             }
 
-            fn endObjectValue(self: *Self, writer: Writer) Writer.Error!void {
+            pub fn endObjectValue(self: *Self, writer: Writer) Writer.Error!void {
                 _ = writer;
 
                 self.has_value = true;
             }
 
-            fn writeRawFragment(self: *Self, writer: Writer, value: []const u8) Writer.Error!void {
+            pub fn writeRawFragment(self: *Self, writer: Writer, value: []const u8) Writer.Error!void {
                 _ = self;
 
                 try writer.writeAll(value);
