@@ -35,28 +35,28 @@ pub fn fromDeserializerWith(comptime T: type, d: *Deserializer, _de: anytype) !T
 
 pub fn fromReader(allocator: *std.mem.Allocator, comptime T: type, reader: anytype) !T {
     var d = Deserializer.fromReader(allocator, reader);
-    defer d.deinit();
+    defer d.destroy();
 
     return fromDeserializer(T, &d);
 }
 
 pub fn fromReaderWith(allocator: *std.mem.Allocator, comptime T: type, reader: anytype, _de: anytype) !T {
     var d = Deserializer.fromReader(allocator, reader);
-    defer d.deinit();
+    defer d.destroy();
 
     return fromDeserializerWith(T, &d, _de);
 }
 
 pub fn fromSlice(allocator: ?*std.mem.Allocator, comptime T: type, slice: []const u8) !T {
     var d = if (allocator) |alloc| Deserializer.withAllocator(alloc, slice) else Deserializer.init(slice);
-    defer d.deinit();
+    defer d.destroy();
 
     return fromDeserializer(T, &d);
 }
 
 pub fn fromSliceWith(allocator: ?*std.mem.Allocator, comptime T: type, slice: []const u8, _de: anytype) !T {
     var d = if (allocator) |alloc| Deserializer.withAllocator(alloc, slice) else Deserializer.init(slice);
-    defer d.deinit();
+    defer d.destroy();
 
     return fromDeserializerWith(T, &d, _de);
 }

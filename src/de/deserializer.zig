@@ -32,10 +32,15 @@ pub const Deserializer = struct {
         return d;
     }
 
-    pub fn deinit(self: *Self) void {
+    pub fn deinit(self: Self) void {
         if (self.scratch) |scratch| {
             self.allocator.?.free(scratch);
         }
+    }
+
+    pub fn destroy(self: *Self) void {
+        self.deinit();
+        self.* = undefined;
     }
 
     /// Validates that the input data has been fully deserialized.
