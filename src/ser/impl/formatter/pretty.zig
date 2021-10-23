@@ -11,6 +11,7 @@ pub fn PrettyFormatter(comptime Writer: type) type {
         indent: []const u8,
 
         const Self = @This();
+        const impl = @"impl PrettyFormatter"(Writer);
 
         /// Construct a pretty printer formatter that defaults to using two
         /// spaces for indentation.
@@ -36,33 +37,38 @@ pub fn PrettyFormatter(comptime Writer: type) type {
             }
         }
 
-        /// Implements `json.ser.Formatter`.
         pub usingnamespace Formatter(
             *Self,
             Writer,
-            _F.writeNull,
-            _F.writeBool,
-            _F.writeInt,
-            _F.writeFloat,
-            _F.writeNumberString,
-            _F.beginString,
-            _F.endString,
-            _F.writeStringFragment,
-            _F.writeCharEscape,
-            _F.beginArray,
-            _F.endArray,
-            _F.beginArrayValue,
-            _F.endArrayValue,
-            _F.beginObject,
-            _F.endObject,
-            _F.beginObjectKey,
-            _F.endObjectKey,
-            _F.beginObjectValue,
-            _F.endObjectValue,
-            _F.writeRawFragment,
+            impl.formatter.writeNull,
+            impl.formatter.writeBool,
+            impl.formatter.writeInt,
+            impl.formatter.writeFloat,
+            impl.formatter.writeNumberString,
+            impl.formatter.beginString,
+            impl.formatter.endString,
+            impl.formatter.writeStringFragment,
+            impl.formatter.writeCharEscape,
+            impl.formatter.beginArray,
+            impl.formatter.endArray,
+            impl.formatter.beginArrayValue,
+            impl.formatter.endArrayValue,
+            impl.formatter.beginObject,
+            impl.formatter.endObject,
+            impl.formatter.beginObjectKey,
+            impl.formatter.endObjectKey,
+            impl.formatter.beginObjectValue,
+            impl.formatter.endObjectValue,
+            impl.formatter.writeRawFragment,
         );
+    };
+}
 
-        const _F = struct {
+fn @"impl PrettyFormatter"(comptime Writer: type) type {
+    const Self = PrettyFormatter(Writer);
+
+    return struct {
+        const formatter = struct {
             fn writeNull(_: *Self, writer: Writer) Writer.Error!void {
                 try writer.writeAll("null");
             }
