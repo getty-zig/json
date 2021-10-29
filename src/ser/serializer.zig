@@ -225,9 +225,8 @@ fn @"impl Serialize"(comptime Ser: type) type {
             }
 
             pub fn end(self: *Self) Error!Ok {
-                switch (self.state) {
-                    .empty => {},
-                    else => self.ser.formatter.endObject(self.ser.writer) catch return Error.Io,
+                if (self.state != .empty) {
+                    self.ser.formatter.endObject(self.ser.writer) catch return Error.Io;
                 }
             }
         };
@@ -245,9 +244,8 @@ fn @"impl Serialize"(comptime Ser: type) type {
             }
 
             pub fn end(self: *Self) Error!Ok {
-                switch (self.state) {
-                    .empty => {},
-                    else => self.ser.formatter.endArray(self.ser.writer) catch return Error.Io,
+                if (self.state != .empty) {
+                    self.ser.formatter.endArray(self.ser.writer) catch return Error.Io;
                 }
             }
         };
