@@ -140,7 +140,14 @@ fn @"impl Serializer"(comptime Self: type) type {
             pub fn serializeStruct(self: *Self, name: []const u8, length: usize) Error!StructSerialize {
                 _ = name;
 
-                return serializeMap(self, length);
+                self.formatter.beginObject(self.writer) catch return Error.Io;
+
+                if (length == 0) {
+                    self.formatter.endObject(self.writer) catch return Error.Io;
+                    return StructSerialize{ .ser = self, .state = .empty };
+                }
+
+                return StructSerialize{ .ser = self, .state = .first };
             }
 
             pub fn serializeTuple(self: *Self, length: ?usize) Error!TupleSerialize {
@@ -153,11 +160,7 @@ fn @"impl Serializer"(comptime Self: type) type {
 fn Serialize(comptime Ser: type) type {
     return struct {
         ser: *Ser,
-        state: enum {
-            empty,
-            first,
-            rest,
-        },
+        state: enum { empty, first, rest },
 
         const Self = @This();
         const impl = @"impl Serialize"(Ser);
@@ -184,7 +187,7 @@ fn Serialize(comptime Ser: type) type {
             impl.structSerialize.Ok,
             impl.structSerialize.Error,
             impl.structSerialize.serializeField,
-            impl.structSerialize.end,
+            impl.mapSerialize.end,
         );
 
         pub usingnamespace getty.ser.TupleSerialize(
@@ -205,13 +208,14 @@ fn @"impl Serialize"(comptime Ser: type) type {
             pub const Ok = @"impl Serializer"(Ser).serializer.Ok;
             pub const Error = @"impl Serializer"(Ser).serializer.Error;
 
+            // TODO: serde-json passes in MapKeySerializer instead of self to
+            // `getty.serialize`. This works though, so should we change it?
             pub fn serializeKey(self: *Self, key: anytype) Error!void {
                 self.ser.formatter.beginObjectKey(self.ser.writer, self.state == .first) catch return Error.Io;
-                self.state = .rest;
-                // TODO: serde-json passes in a MapKeySerializer here instead
-                // of self. This works though, so should we change it?
                 try getty.serialize(key, self.ser.serializer());
                 self.ser.formatter.endObjectKey(self.ser.writer) catch return Error.Io;
+
+                self.state = .rest;
             }
 
             pub fn serializeValue(self: *Self, value: anytype) Error!void {
@@ -234,9 +238,10 @@ fn @"impl Serialize"(comptime Ser: type) type {
 
             pub fn serializeElement(self: *Self, value: anytype) Error!Ok {
                 self.ser.formatter.beginArrayValue(self.ser.writer, self.state == .first) catch return Error.Io;
-                self.state = .rest;
                 try getty.serialize(value, self.ser.serializer());
                 self.ser.formatter.endArrayValue(self.ser.writer) catch return Error.Io;
+
+                self.state = .rest;
             }
 
             pub fn end(self: *Self) Error!Ok {
@@ -252,13 +257,25 @@ fn @"impl Serialize"(comptime Ser: type) type {
             pub const Error = @"impl Serializer"(Ser).serializer.Error;
 
             pub fn serializeField(self: *Self, comptime key: []const u8, value: anytype) Error!void {
-                const m = self.mapSerialize();
-                try m.serializeEntry(key, value);
-            }
+                var k = blk: {
+                    var k: [key.len + 2]u8 = undefined;
+                    k[0] = '"';
+                    k[k.len - 1] = '"';
 
-            pub fn end(self: *Self) Error!Ok {
-                const m = self.mapSerialize();
-                try m.end();
+                    var fbs = std.io.fixedBufferStream(&k);
+                    fbs.seekTo(1) catch unreachable; // UNREACHABLE: The length of `k` is guaranteed to be > 1.
+                    fbs.writer().writeAll(key) catch return error.Io;
+
+                    break :blk k;
+                };
+
+                self.ser.formatter.beginObjectKey(self.ser.writer, self.state == .first) catch return error.Io;
+                self.ser.formatter.writeRawFragment(self.ser.writer, &k) catch return error.Io;
+                self.ser.formatter.endObjectKey(self.ser.writer) catch return error.Io;
+
+                try self.mapSerialize().serializeValue(value);
+
+                self.state = .rest;
             }
         };
     };
