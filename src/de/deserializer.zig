@@ -3,7 +3,6 @@ const std = @import("std");
 
 pub const Deserializer = struct {
     allocator: ?*std.mem.Allocator = null,
-    scratch: ?[]u8 = null,
     tokens: std.json.TokenStream,
 
     const Self = @This();
@@ -18,29 +17,6 @@ pub const Deserializer = struct {
             .allocator = allocator,
             .tokens = std.json.TokenStream.init(slice),
         };
-    }
-
-    pub fn fromReader(allocator: *std.mem.Allocator, reader: anytype) !Self {
-        var d = Self{
-            .allocator = allocator,
-            .scratch = reader.readAllAlloc(allocator, 10 * 1024 * 1024),
-            .tokens = undefined,
-        };
-
-        d.tokens = std.json.TokenStream.init(d.scratch.?);
-
-        return d;
-    }
-
-    pub fn deinit(self: Self) void {
-        if (self.scratch) |scratch| {
-            self.allocator.?.free(scratch);
-        }
-    }
-
-    pub fn destroy(self: *Self) void {
-        self.deinit();
-        self.* = undefined;
     }
 
     /// Validates that the input data has been fully deserialized.
