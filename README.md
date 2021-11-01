@@ -16,7 +16,7 @@
 const std = @import("std");
 const json = @import("json");
 
-const allocator = std.testing.allocator;
+const allocator = std.heap.page_allocator;
 const print = std.debug.print;
 
 pub fn main() anyerror!void {
