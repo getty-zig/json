@@ -136,11 +136,7 @@ const @"impl Deserializer" = struct {
         pub fn deserializeMap(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
-                    var access = Access{
-                        .allocator = self.allocator,
-                        .deserializer = self,
-                    };
-
+                    var access = Access{ .allocator = self.allocator, .deserializer = self };
                     return try visitor.visitMap(access.mapAccess());
                 }
             }
@@ -175,11 +171,7 @@ const @"impl Deserializer" = struct {
         pub fn deserializeSequence(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ArrayBegin) {
-                    var access = Access{
-                        .allocator = self.allocator,
-                        .deserializer = self,
-                    };
-
+                    var access = Access{ .allocator = self.allocator, .deserializer = self };
                     return try visitor.visitSequence(access.sequenceAccess());
                 }
             }
