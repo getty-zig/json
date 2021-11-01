@@ -48,8 +48,9 @@ pub const Deserializer = struct {
     /// This method should always be called after a value has been fully
     /// deserialized.
     pub fn end(self: *Self) !void {
-        if (self.tokens.next() catch return impl.deserializer.Error.Input) |_| {
-            return impl.deserializer.Error.Input;
+        switch (self.tokens.i >= self.tokens.slice.len and self.tokens.parser.complete) {
+            true => {},
+            false => return impl.deserializer.Error.Input,
         }
     }
 
@@ -324,18 +325,20 @@ const @"impl Access" = struct {
         pub const Error = @"impl Deserializer".deserializer.Error;
 
         pub fn nextElementSeed(self: *Access, seed: anytype) Error!?@TypeOf(seed).Value {
-            const tokens = self.deserializer.tokens;
-
-            if (self.deserializer.tokens.next() catch return error.Input) |token| {
-                if (token == .ArrayEnd) {
-                    return null;
+            const element = seed.deserialize(self.allocator, self.deserializer.deserializer()) catch |err| {
+                // Slice for the current token instead of looking at the
+                // `token` field since the token isn't set for some reason.
+                if (self.deserializer.tokens.i - 1 >= self.deserializer.tokens.slice.len) {
+                    return err;
                 }
-            } else {
-                return error.Input;
-            }
 
-            self.deserializer.tokens = tokens;
-            return try seed.deserialize(self.allocator, self.deserializer.deserializer());
+                return switch (self.deserializer.tokens.slice[self.deserializer.tokens.i - 1]) {
+                    ']' => null,
+                    else => err,
+                };
+            };
+
+            return element;
         }
     };
 
