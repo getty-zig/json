@@ -23,10 +23,10 @@ pub const Deserializer = struct {
     ///
     /// This method should always be called after a value has been fully
     /// deserialized.
-    pub fn end(self: *Self) !void {
+    pub fn end(self: *Self) impl.deserializer.Error!void {
         switch (self.tokens.i >= self.tokens.slice.len and self.tokens.parser.complete) {
             true => {},
-            false => return impl.deserializer.Error.Input,
+            false => return error.InvalidTopLevelTrailing,
         }
     }
 
@@ -48,11 +48,14 @@ pub const Deserializer = struct {
 
 const @"impl Deserializer" = struct {
     pub const deserializer = struct {
-        pub const Error = getty.de.Error || error{Input};
+        pub const Error = getty.de.Error ||
+            std.json.TokenStream.Error ||
+            std.fmt.ParseIntError ||
+            std.fmt.ParseFloatError;
 
         /// Hint that the type being deserialized into is expecting a `bool` value.
         pub fn deserializeBool(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
-            if (self.tokens.next() catch return Error.Input) |token| {
+            if (try self.tokens.next()) |token| {
                 switch (token) {
                     .True => return try visitor.visitBool(Error, true),
                     .False => return try visitor.visitBool(Error, false),
@@ -60,21 +63,21 @@ const @"impl Deserializer" = struct {
                 }
             }
 
-            return Error.Input;
+            return error.InvalidType;
         }
 
         /// Hint that the type being deserialized into is expecting an `enum`
         /// value.
         pub fn deserializeEnum(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
-            if (self.tokens.next() catch return Error.Input) |token| {
+            if (try self.tokens.next()) |token| {
                 switch (token) {
                     .Number => |num| {
                         const slice = num.slice(self.tokens.slice, self.tokens.i - 1);
 
                         if (num.is_integer) {
                             return try switch (slice[0]) {
-                                '-' => visitor.visitInt(Error, parseSigned(slice) catch return Error.Input),
-                                else => visitor.visitInt(Error, parseUnsigned(slice) catch return Error.Input),
+                                '-' => visitor.visitInt(Error, try parseSigned(slice)),
+                                else => visitor.visitInt(Error, try parseUnsigned(slice)),
                             };
                         }
                     },
@@ -86,41 +89,37 @@ const @"impl Deserializer" = struct {
                 }
             }
 
-            return Error.Input;
+            return error.InvalidType;
         }
 
         /// Hint that the type being deserialized into is expecting a
         /// floating-point value.
         pub fn deserializeFloat(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
-            if (self.tokens.next() catch return Error.Input) |token| {
+            if (try self.tokens.next()) |token| {
                 switch (token) {
                     .Number => |num| {
                         const slice = num.slice(self.tokens.slice, self.tokens.i - 1);
-
-                        return try visitor.visitFloat(
-                            Error,
-                            std.fmt.parseFloat(f128, slice) catch return Error.Input,
-                        );
+                        return try visitor.visitFloat(Error, try std.fmt.parseFloat(f128, slice));
                     },
                     else => {},
                 }
             }
 
-            return Error.Input;
+            return error.InvalidType;
         }
 
         /// Hint that the type being deserialized into is expecting an
         /// integer value.
         pub fn deserializeInt(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
-            if (self.tokens.next() catch return Error.Input) |token| {
+            if (try self.tokens.next()) |token| {
                 switch (token) {
                     .Number => |num| {
                         const slice = num.slice(self.tokens.slice, self.tokens.i - 1);
 
                         switch (num.is_integer) {
                             true => return try switch (slice[0]) {
-                                '-' => visitor.visitInt(Error, parseSigned(slice) catch return Error.Input),
-                                else => visitor.visitInt(Error, parseUnsigned(slice) catch return Error.Input),
+                                '-' => visitor.visitInt(Error, try parseSigned(slice)),
+                                else => visitor.visitInt(Error, try parseUnsigned(slice)),
                             },
                             false => {},
                         }
@@ -129,13 +128,13 @@ const @"impl Deserializer" = struct {
                 }
             }
 
-            return Error.Input;
+            return error.InvalidType;
         }
 
         /// Hint that the type being deserialized into is expecting a map of
         /// key-value pairs.
         pub fn deserializeMap(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
-            if (self.tokens.next() catch return Error.Input) |token| {
+            if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
                     var access = Access{
                         .allocator = self.allocator,
@@ -146,7 +145,7 @@ const @"impl Deserializer" = struct {
                 }
             }
 
-            return Error.Input;
+            return error.InvalidType;
         }
 
         /// Hint that the type being deserialized into is expecting an optional
@@ -154,7 +153,7 @@ const @"impl Deserializer" = struct {
         pub fn deserializeOptional(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
             const tokens = self.tokens;
 
-            if (self.tokens.next() catch return Error.Input) |token| {
+            if (try self.tokens.next()) |token| {
                 return try switch (token) {
                     .Null => visitor.visitNull(Error),
                     else => blk: {
@@ -168,13 +167,13 @@ const @"impl Deserializer" = struct {
                 };
             }
 
-            return Error.Input;
+            return error.InvalidType;
         }
 
         /// Hint that the type being deserialized into is expecting a sequence of
         /// values.
         pub fn deserializeSequence(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
-            if (self.tokens.next() catch return Error.Input) |token| {
+            if (try self.tokens.next()) |token| {
                 if (token == .ArrayBegin) {
                     var access = Access{
                         .allocator = self.allocator,
@@ -185,12 +184,12 @@ const @"impl Deserializer" = struct {
                 }
             }
 
-            return Error.Input;
+            return error.InvalidType;
         }
 
         /// Hint that the type being deserialized into is expecting a string value.
         pub fn deserializeString(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
-            if (self.tokens.next() catch return Error.Input) |token| {
+            if (try self.tokens.next()) |token| {
                 switch (token) {
                     .String => |str| return try visitor.visitString(
                         Error,
@@ -200,7 +199,7 @@ const @"impl Deserializer" = struct {
                 }
             }
 
-            return Error.Input;
+            return error.InvalidType;
         }
 
         /// Hint that the type being deserialized into is expecting a struct value.
@@ -210,13 +209,13 @@ const @"impl Deserializer" = struct {
 
         /// Hint that the type being deserialized into is expecting a `void` value.
         pub fn deserializeVoid(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
-            if (self.tokens.next() catch return Error.Input) |token| {
+            if (try self.tokens.next()) |token| {
                 if (token == .Null) {
                     return try visitor.visitVoid(Error);
                 }
             }
 
-            return Error.Input;
+            return error.InvalidType;
         }
 
         fn parseInt(comptime T: type, buf: []const u8) std.fmt.ParseIntError!T {
@@ -265,11 +264,11 @@ const @"impl Deserializer" = struct {
             return int;
         }
 
-        fn parseSigned(buf: []const u8) std.fmt.ParseIntError!i64 {
+        fn parseSigned(buf: []const u8) Error!i64 {
             return try parseInt(i64, buf);
         }
 
-        fn parseUnsigned(buf: []const u8) std.fmt.ParseIntError!u64 {
+        fn parseUnsigned(buf: []const u8) Error!u64 {
             return try parseInt(u64, buf);
         }
     };
@@ -322,15 +321,15 @@ const @"impl Access" = struct {
         pub const Error = @"impl Deserializer".deserializer.Error;
 
         pub fn nextKeySeed(self: *Access, seed: anytype) Error!?@TypeOf(seed).Value {
-            if (self.deserializer.tokens.next() catch return error.Input) |token| {
-                return switch (token) {
-                    .ObjectEnd => null,
-                    .String => |str| str.slice(self.deserializer.tokens.slice, self.deserializer.tokens.i - 1),
-                    else => error.Input,
-                };
+            if (try self.deserializer.tokens.next()) |token| {
+                switch (token) {
+                    .ObjectEnd => return null,
+                    .String => |str| return str.slice(self.deserializer.tokens.slice, self.deserializer.tokens.i - 1),
+                    else => {},
+                }
             }
 
-            return error.Input;
+            return error.InvalidType;
         }
 
         pub fn nextValueSeed(self: *Access, seed: anytype) Error!@TypeOf(seed).Value {

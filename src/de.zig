@@ -213,7 +213,7 @@ test "slice (string)" {
     try expect(eql(u8, "Hello, World!", got));
 
     // Non-zig string
-    try expectError(error.Input, fromSlice(testing.allocator, []i8, "\"Hello, World!\""));
+    try expectError(error.InvalidType, fromSlice(testing.allocator, []i8, "\"Hello, World!\""));
 }
 
 test "slice (non-string)" {
@@ -302,8 +302,8 @@ test "struct" {
 
 test "void" {
     try expectEqual({}, try fromSlice(null, void, "null"));
-    try testing.expectError(error.Input, fromSlice(null, void, "true"));
-    try testing.expectError(error.Input, fromSlice(null, void, "1"));
+    try testing.expectError(error.InvalidType, fromSlice(null, void, "true"));
+    try testing.expectError(error.InvalidType, fromSlice(null, void, "1"));
 }
 
 test {
