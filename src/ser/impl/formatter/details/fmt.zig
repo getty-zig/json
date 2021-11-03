@@ -5,7 +5,7 @@ const math = std.math;
 const maxInt = math.maxInt;
 const minInt = math.minInt;
 
-pub fn formatInt(value: anytype, writer: anytype) !void {
+pub fn formatInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
     const T = @TypeOf(value);
     const info = @typeInfo(T);
 
@@ -18,7 +18,7 @@ pub fn formatInt(value: anytype, writer: anytype) !void {
 
     var start = switch (info.Int.signedness) {
         .signed => blk: {
-            var start = try formatDecimal(abs(value), &buf);
+            var start = formatDecimal(abs(value), &buf);
 
             if (value < 0) {
                 start -= 1;
@@ -27,7 +27,7 @@ pub fn formatInt(value: anytype, writer: anytype) !void {
 
             break :blk start;
         },
-        .unsigned => try formatDecimal(value, &buf),
+        .unsigned => formatDecimal(value, &buf),
     };
 
     try writer.writeAll(buf[start..]);
@@ -82,7 +82,7 @@ fn U32OrU64OrU128(comptime T: type) type {
     unreachable;
 }
 
-fn formatDecimal(value: anytype, buf: []u8) !usize {
+fn formatDecimal(value: anytype, buf: []u8) usize {
     const info = @typeInfo(@TypeOf(value));
 
     comptime std.debug.assert(info == .Int);
