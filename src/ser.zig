@@ -138,11 +138,26 @@ test "toWriter - HashMap" {
 }
 
 test "toWriter - Integer" {
-    try t(.compact, 'A', "65");
+    try t(.compact, 1, "1");
+    try t(.compact, -1, "-1");
+
+    try t(.compact, std.math.maxInt(u8), "255");
     try t(.compact, std.math.maxInt(u32), "4294967295");
     try t(.compact, std.math.maxInt(u64), "18446744073709551615");
-    try t(.compact, std.math.minInt(i32), "-2147483648");
+    try t(.compact, std.math.maxInt(u128), "340282366920938463463374607431768211455");
+
+    try t(.compact, std.math.maxInt(i8), "127");
+    try t(.compact, std.math.maxInt(i32), "2147483647");
     try t(.compact, std.math.maxInt(i64), "9223372036854775807");
+    try t(.compact, std.math.maxInt(i128), "170141183460469231731687303715884105727");
+    try t(.compact, std.math.minInt(i8) + 1, "-127");
+    try t(.compact, std.math.minInt(i32) + 1, "-2147483647");
+    try t(.compact, std.math.minInt(i64) + 1, "-9223372036854775807");
+    try t(.compact, std.math.minInt(i128) + 1, "-170141183460469231731687303715884105727");
+    try t(.compact, std.math.minInt(i8), "-128");
+    try t(.compact, std.math.minInt(i32), "-2147483648");
+    try t(.compact, std.math.minInt(i64), "-9223372036854775808");
+    try t(.compact, std.math.minInt(i128), "-170141183460469231731687303715884105728");
 }
 
 test "toWriter - Float" {
