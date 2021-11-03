@@ -48,10 +48,10 @@ pub fn formatInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
 /// of @TypeOf(x), then the negation of `x` is casted to the return type and is
 /// returned. Otherwise, the wrapped difference between `x` and 1 is casted to
 /// the return type and the sum between the difference and 1 is returned.
-fn abs(x: anytype) U32OrU64OrU128(@TypeOf(x)) {
+fn abs(x: anytype) U32Or64Or128(@TypeOf(x)) {
     comptime std.debug.assert(@typeInfo(@TypeOf(x)) == .Int);
 
-    const Return = U32OrU64OrU128(@TypeOf(x));
+    const Return = U32Or64Or128(@TypeOf(x));
 
     if (x > 0) return @intCast(Return, x);
 
@@ -62,9 +62,9 @@ fn abs(x: anytype) U32OrU64OrU128(@TypeOf(x)) {
     }
 }
 
-/// Returns the smallest type between u8, u32, u64, and u128 that can hold all
+/// Returns the smallest type between u32, u64, and u128 that can hold all
 /// positive values of T.
-fn U32OrU64OrU128(comptime T: type) type {
+fn U32Or64Or128(comptime T: type) type {
     comptime std.debug.assert(@typeInfo(T) == .Int);
     comptime std.debug.assert(@typeInfo(T).Int.bits <= 128);
 
