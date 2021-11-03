@@ -211,7 +211,7 @@ const @"impl Deserializer" = struct {
         }
 
         fn parseInt(comptime T: type, buf: []const u8) std.fmt.ParseIntError!T {
-            comptime std.debug.assert(T == u64 or T == i64);
+            comptime std.debug.assert(T == u128 or T == i128);
 
             if (buf.len == 0) return error.InvalidCharacter;
 
@@ -256,12 +256,12 @@ const @"impl Deserializer" = struct {
             return int;
         }
 
-        fn parseSigned(buf: []const u8) Error!i64 {
-            return try parseInt(i64, buf);
+        fn parseSigned(buf: []const u8) Error!i128 {
+            return try parseInt(i128, buf);
         }
 
-        fn parseUnsigned(buf: []const u8) Error!u64 {
-            return try parseInt(u64, buf);
+        fn parseUnsigned(buf: []const u8) Error!u128 {
+            return try parseInt(u128, buf);
         }
     };
 };
