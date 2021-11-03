@@ -49,13 +49,15 @@ pub fn formatInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
 /// returned. Otherwise, the wrapped difference between `x` and 1 is casted to
 /// the return type and the sum between the difference and 1 is returned.
 fn abs(x: anytype) U32Or64Or128(@TypeOf(x)) {
-    comptime std.debug.assert(@typeInfo(@TypeOf(x)) == .Int);
+    const T = @TypeOf(x);
 
-    const Return = U32Or64Or128(@TypeOf(x));
+    comptime std.debug.assert(@typeInfo(T) == .Int);
+
+    const Return = U32Or64Or128(T);
 
     if (x > 0) return @intCast(Return, x);
 
-    if (x > minInt(@TypeOf(x))) {
+    if (x > minInt(T)) {
         return @intCast(Return, -x);
     } else {
         return @intCast(Return, x -% 1) + 1;
@@ -65,8 +67,10 @@ fn abs(x: anytype) U32Or64Or128(@TypeOf(x)) {
 /// Returns the smallest type between u32, u64, and u128 that can hold all
 /// positive values of T.
 fn U32Or64Or128(comptime T: type) type {
-    comptime std.debug.assert(@typeInfo(T) == .Int);
-    comptime std.debug.assert(@typeInfo(T).Int.bits <= 128);
+    const info = @typeInfo(T);
+
+    comptime std.debug.assert(info == .Int);
+    comptime std.debug.assert(info.Int.bits <= 128);
 
     const max = maxInt(T);
     const max_u32 = maxInt(u32);
@@ -108,22 +112,16 @@ fn formatDecimal(value: anytype, buf: []u8) usize {
 
 /// Converts values in the range [0, 100) to a string.
 fn digits2(value: usize) []const u8 {
-    const digits =
-        "0001020304050607080910111213141516171819" ++
+    return ("0001020304050607080910111213141516171819" ++
         "2021222324252627282930313233343536373839" ++
         "4041424344454647484950515253545556575859" ++
         "6061626364656667686970717273747576777879" ++
-        "8081828384858687888990919293949596979899";
-
-    return digits[value * 2 ..];
+        "8081828384858687888990919293949596979899")[value * 2 ..];
 }
 
 /// Returns the number of digits in `value`.
 fn countDigits(value: anytype) usize {
-    const T = @TypeOf(value);
-    const info = @typeInfo(T);
-
-    comptime std.debug.assert(info == .Int);
+    comptime std.debug.assert(@typeInfo(@TypeOf(value)) == .Int);
 
     const bits = comptime std.math.log2(10);
     var n: usize = 1;
