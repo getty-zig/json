@@ -55,13 +55,15 @@ fn @"impl CompactFormatter"(comptime Writer: type) type {
                 const Int = switch (@typeInfo(T)) {
                     .Int => T,
                     .ComptimeInt => blk: {
-                        // The `Fitted` type is converted into a u7 so that
+                        // The `Fitted` type is converted into a i8 so that
                         // @rem(value, 100) can be computed in `formatDecimal`.
                         //
-                        // Integer types with less than 7 bits cause a compile
-                        // error since 100 cannot be coerced into such types.
+                        // Unsigned comptime_ints with less than 7 bits and
+                        // signed comptime_ints with less than 8 bits cause a
+                        // compile error since 100 cannot be coerced into such
+                        // types.
                         const Fitted = std.math.IntFittingRange(value, value);
-                        break :blk if (std.meta.bitCount(Fitted) < 7) u7 else Fitted;
+                        break :blk if (std.meta.bitCount(Fitted) < 8) i8 else Fitted;
                     },
                     else => unreachable,
                 };
