@@ -2,11 +2,12 @@ const getty = @import("getty");
 const std = @import("std");
 
 pub const ser = struct {
-    pub usingnamespace @import("ser/interface.zig");
-    pub usingnamespace @import("ser/impl.zig");
-
-    pub usingnamespace @import("ser/escape.zig");
     pub usingnamespace @import("ser/serializer.zig");
+
+    pub usingnamespace @import("ser/interface/formatter.zig");
+
+    pub usingnamespace @import("ser/impl/formatter/compact.zig");
+    pub usingnamespace @import("ser/impl/formatter/pretty.zig");
 };
 
 /// Serialize the given value as JSON into the given I/O stream.

@@ -1,7 +1,7 @@
 const getty = @import("getty");
 const std = @import("std");
 
-const ser = @import("../lib.zig").ser;
+const escape = @import("impl/formatter/details/escape.zig").escape;
 
 pub fn Serializer(comptime Writer: type, comptime Formatter: type) type {
     return struct {
@@ -133,7 +133,7 @@ fn @"impl Serializer"(comptime Self: type) type {
                 }
 
                 self.formatter.beginString(self.writer) catch return Error.Io;
-                ser.escape(value, self.writer, self.formatter) catch return Error.Syntax;
+                escape(value, self.writer, self.formatter) catch return Error.Syntax;
                 self.formatter.endString(self.writer) catch return Error.Io;
             }
 

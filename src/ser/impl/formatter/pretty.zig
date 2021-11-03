@@ -1,8 +1,8 @@
+const escape = @import("details/escape.zig");
+const fmt = @import("details/fmt.zig");
 const std = @import("std");
 
-const ser = @import("../../../lib.zig").ser;
-
-const Formatter = ser.Formatter;
+const Formatter = @import("../../../lib.zig").ser.Formatter;
 
 pub fn PrettyFormatter(comptime Writer: type) type {
     return struct {
@@ -112,7 +112,7 @@ fn @"impl PrettyFormatter"(comptime Writer: type) type {
             }
 
             pub fn writeCharEscape(_: *Self, writer: Writer, value: u21) Writer.Error!void {
-                try ser.escapeChar(value, writer);
+                try escape.escapeChar(value, writer);
             }
 
             pub fn beginArray(self: *Self, writer: Writer) Writer.Error!void {
