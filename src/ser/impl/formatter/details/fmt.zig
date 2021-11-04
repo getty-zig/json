@@ -1,24 +1,37 @@
 const std = @import("std");
 
 const math = std.math;
-
-const maxInt = math.maxInt;
-const minInt = math.minInt;
+const meta = std.meta;
 
 pub fn formatInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
-    const T = @TypeOf(value);
-    const info = @typeInfo(T);
+    comptime std.debug.assert(meta.trait.isIntegral(@TypeOf(value)));
 
-    comptime std.debug.assert(info == .Int);
+    const Int = switch (@typeInfo(@TypeOf(value))) {
+        .Int => @TypeOf(value),
+        .ComptimeInt => blk: {
+            // Coerce comptime_int into an appropriate integer type.
+            //
+            // The `Fitted` type is converted into a i8 so that @rem(value,
+            // 100) can be computed in `formatDecimal`.
+            //
+            // Unsigned comptime_ints with less than 7 bits and signed
+            // comptime_ints with less than 8 bits cause a compile error since
+            // 100 cannot be coerced into such types.
+            const Fitted = math.IntFittingRange(value, value);
+            break :blk if (meta.bitCount(Fitted) < 8) i8 else Fitted;
+        },
+        else => unreachable,
+    };
+    const int = @as(Int, value);
 
     // This buffer should be large enough to hold all digits of T and a sign.
     //
     // TODO: Change to digits10 + 1 for better space efficiency.
-    var buf: [math.max(std.meta.bitCount(T), 1) + 1]u8 = undefined;
+    var buf: [math.max(meta.bitCount(Int), 1) + 1]u8 = undefined;
 
-    var start = switch (info.Int.signedness) {
+    var start = switch (@typeInfo(Int).Int.signedness) {
         .signed => blk: {
-            var start = formatDecimal(abs(value), &buf);
+            var start = formatDecimal(abs(int), &buf);
 
             if (value < 0) {
                 start -= 1;
@@ -27,7 +40,7 @@ pub fn formatInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
 
             break :blk start;
         },
-        .unsigned => formatDecimal(value, &buf),
+        .unsigned => formatDecimal(int, &buf),
     };
 
     try writer.writeAll(buf[start..]);
@@ -50,46 +63,40 @@ pub fn formatInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
 /// the return type and the sum between the difference and 1 is returned.
 fn abs(x: anytype) U32Or64Or128(@TypeOf(x)) {
     const T = @TypeOf(x);
-
     comptime std.debug.assert(@typeInfo(T) == .Int);
+    const Unsigned = U32Or64Or128(T);
 
-    const Return = U32Or64Or128(T);
+    if (x > 0) return @intCast(Unsigned, x);
 
-    if (x > 0) return @intCast(Return, x);
-
-    if (x > minInt(T)) {
-        return @intCast(Return, -x);
+    if (x > math.minInt(T)) {
+        return @intCast(Unsigned, -x);
     } else {
-        return @intCast(Return, x -% 1) + 1;
+        return @intCast(Unsigned, x -% 1) + 1;
     }
 }
 
 /// Returns the smallest type between u32, u64, and u128 that can hold all
 /// positive values of T.
 fn U32Or64Or128(comptime T: type) type {
-    const info = @typeInfo(T);
+    comptime std.debug.assert(@typeInfo(T) == .Int);
+    comptime std.debug.assert(@typeInfo(T).Int.bits <= 128);
 
-    comptime std.debug.assert(info == .Int);
-    comptime std.debug.assert(info.Int.bits <= 128);
-
-    const max = maxInt(T);
-    const max_u32 = maxInt(u32);
-    const max_u64 = maxInt(u64);
-    const max_u128 = maxInt(u128);
+    const max = math.maxInt(T);
+    const max_u32 = math.maxInt(u32);
+    const max_u64 = math.maxInt(u64);
+    const max_u128 = math.maxInt(u128);
 
     if (max <= max_u32) return u32;
     if (max <= max_u64) return u64;
     if (max <= max_u128) return u128;
 
-    // UNREACHABLE: It is asserted earlier in the function that the number of
-    // bits in T is less than or equal to 128.
+    // UNREACHABLE: It is asserted above that the number of bits in T is less
+    // than or equal to 128.
     unreachable;
 }
 
 fn formatDecimal(value: anytype, buf: []u8) usize {
-    const info = @typeInfo(@TypeOf(value));
-
-    comptime std.debug.assert(info == .Int);
+    comptime std.debug.assert(@typeInfo(@TypeOf(value)) == .Int);
 
     var v = value;
     var index: usize = buf.len;
@@ -123,7 +130,7 @@ fn digits2(value: usize) []const u8 {
 fn countDigits(value: anytype) usize {
     comptime std.debug.assert(@typeInfo(@TypeOf(value)) == .Int);
 
-    const bits = comptime std.math.log2(10);
+    const bits = comptime math.log2(10);
     var n: usize = 1;
 
     {

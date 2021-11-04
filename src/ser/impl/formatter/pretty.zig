@@ -78,8 +78,7 @@ fn @"impl PrettyFormatter"(comptime Writer: type) type {
             }
 
             pub fn writeInt(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
-                var buf: [100]u8 = undefined;
-                try writer.writeAll(std.fmt.bufPrintIntToSlice(&buf, value, 10, .lower, .{}));
+                try fmt.formatInt(value, writer);
             }
 
             pub fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {

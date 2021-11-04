@@ -50,25 +50,7 @@ fn @"impl CompactFormatter"(comptime Writer: type) type {
             }
 
             pub fn writeInt(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
-                const T = @TypeOf(value);
-
-                const Int = switch (@typeInfo(T)) {
-                    .Int => T,
-                    .ComptimeInt => blk: {
-                        // The `Fitted` type is converted into a i8 so that
-                        // @rem(value, 100) can be computed in `formatDecimal`.
-                        //
-                        // Unsigned comptime_ints with less than 7 bits and
-                        // signed comptime_ints with less than 8 bits cause a
-                        // compile error since 100 cannot be coerced into such
-                        // types.
-                        const Fitted = std.math.IntFittingRange(value, value);
-                        break :blk if (std.meta.bitCount(Fitted) < 8) i8 else Fitted;
-                    },
-                    else => unreachable,
-                };
-
-                try fmt.formatInt(@as(Int, value), writer);
+                try fmt.formatInt(value, writer);
             }
 
             pub fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
