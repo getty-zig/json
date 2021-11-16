@@ -137,7 +137,7 @@ fn @"impl Serializer"(comptime Self: type) type {
                 self.formatter.endString(self.writer) catch return Error.Io;
             }
 
-            pub fn serializeStruct(self: *Self, name: []const u8, length: usize) Error!StructSerialize {
+            pub fn serializeStruct(self: *Self, comptime name: []const u8, length: usize) Error!StructSerialize {
                 _ = name;
 
                 self.formatter.beginObject(self.writer) catch return Error.Io;
