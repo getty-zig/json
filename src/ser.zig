@@ -69,6 +69,7 @@ pub fn toPrettyWriter(value: anytype, writer: anytype) !void {
 /// `getty.Ser` interface value.
 pub fn toWriterWith(value: anytype, writer: anytype, _ser: anytype) !void {
     comptime concepts.@"std.io.Writer"(@TypeOf(writer));
+    comptime getty.ser.concepts.@"getty.Ser"(@TypeOf(_ser));
 
     var f = ser.CompactFormatter(@TypeOf(writer)){};
     var s = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
@@ -80,6 +81,7 @@ pub fn toWriterWith(value: anytype, writer: anytype, _ser: anytype) !void {
 /// with the given `getty.Ser` interface value.
 pub fn toPrettyWriterWith(value: anytype, writer: anytype, _ser: anytype) !void {
     comptime concepts.@"std.io.Writer"(@TypeOf(writer));
+    comptime getty.ser.concepts.@"getty.Ser"(@TypeOf(_ser));
 
     var f = ser.PrettyFormatter(@TypeOf(writer)).init();
     var s = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
@@ -117,6 +119,8 @@ pub fn toPrettySlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8 
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
 pub fn toSliceWith(allocator: *std.mem.Allocator, value: anytype, _ser: anytype) ![]const u8 {
+    comptime getty.ser.concepts.@"getty.Ser"(@TypeOf(_ser));
+
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
@@ -130,6 +134,8 @@ pub fn toSliceWith(allocator: *std.mem.Allocator, value: anytype, _ser: anytype)
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
 pub fn toPrettySliceWith(allocator: *std.mem.Allocator, value: anytype, _ser: anytype) ![]const u8 {
+    comptime getty.ser.concepts.@"getty.Ser"(@TypeOf(_ser));
+
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
