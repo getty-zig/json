@@ -10,8 +10,45 @@ pub const ser = struct {
     pub usingnamespace @import("ser/impl/formatter/pretty.zig");
 };
 
+const concepts = struct {
+    fn @"std.io.Writer"(comptime T: type) void {
+        const err = "expected `std.io.Writer` interface value, found `" ++ @typeName(T) ++ "`";
+
+        comptime {
+            // Invariants
+            if (!std.meta.trait.isContainer(T)) {
+                @compileError(err);
+            }
+
+            // Constraints
+            const has_name = std.mem.startsWith(u8, @typeName(T), "std.io.writer.Writer");
+            const has_field = std.meta.trait.hasField("context")(T);
+            const has_decl = @hasDecl(T, "Error");
+            const has_funcs = std.meta.trait.hasFunctions(T, .{
+                "write",
+                "writeAll",
+                "print",
+                "writeByte",
+                "writeByteNTimes",
+                "writeIntNative",
+                "writeIntForeign",
+                "writeIntLittle",
+                "writeIntBig",
+                "writeInt",
+                "writeStruct",
+            });
+
+            if (!(has_name and has_field and has_decl and has_funcs)) {
+                @compileError(err);
+            }
+        }
+    }
+};
+
 /// Serialize the given value as JSON into the given I/O stream.
 pub fn toWriter(value: anytype, writer: anytype) !void {
+    comptime concepts.@"std.io.Writer"(@TypeOf(writer));
+
     var f = ser.CompactFormatter(@TypeOf(writer)){};
     var s = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
@@ -20,6 +57,8 @@ pub fn toWriter(value: anytype, writer: anytype) !void {
 
 /// Serialize the given value as pretty-printed JSON into the given I/O stream.
 pub fn toPrettyWriter(value: anytype, writer: anytype) !void {
+    comptime concepts.@"std.io.Writer"(@TypeOf(writer));
+
     var f = ser.PrettyFormatter(@TypeOf(writer)).init();
     var s = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
@@ -29,6 +68,8 @@ pub fn toPrettyWriter(value: anytype, writer: anytype) !void {
 /// Serialize the given value as JSON into the given I/O stream with the given
 /// visitor.
 pub fn toWriterWith(value: anytype, writer: anytype, visitor: anytype) !void {
+    comptime concepts.@"std.io.Writer"(@TypeOf(writer));
+
     var f = ser.CompactFormatter(@TypeOf(writer)){};
     var s = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
@@ -38,6 +79,8 @@ pub fn toWriterWith(value: anytype, writer: anytype, visitor: anytype) !void {
 /// Serialize the given value as pretty-printed JSON into the given I/O stream
 /// with the given visitor.
 pub fn toPrettyWriterWith(value: anytype, writer: anytype, visitor: anytype) !void {
+    comptime concepts.@"std.io.Writer"(@TypeOf(writer));
+
     var f = ser.PrettyFormatter(@TypeOf(writer)).init();
     var s = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter())).init(writer, f.formatter());
 
