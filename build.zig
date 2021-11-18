@@ -1,12 +1,24 @@
 const std = @import("std");
-const pkgs = @import("deps.zig").pkgs;
-
-const Builder = std.build.Builder;
 
 const package_name = "json";
 const package_path = "src/lib.zig";
 
-pub fn build(b: *Builder) void {
+const packages = struct {
+    const json = std.build.Pkg{
+        .name = package_name,
+        .path = .{ .path = package_path },
+        .dependencies = &[_]std.build.Pkg{
+            getty,
+        },
+    };
+
+    const getty = std.build.Pkg{
+        .name = "getty",
+        .path = .{ .path = "deps/getty/src/lib.zig" },
+    };
+};
+
+pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{});
 
@@ -16,14 +28,13 @@ pub fn build(b: *Builder) void {
 
     t.setBuildMode(mode);
     t.setTarget(target);
-    t.addPackagePath(package_name, package_path);
-    pkgs.addAllTo(t);
+    t.addPackage(packages.json);
+    t.addPackage(packages.getty);
     step.dependOn(&t.step);
 
     // Library
     const lib = b.addStaticLibrary(package_name, package_path);
     lib.setBuildMode(mode);
     lib.setTarget(target);
-    pkgs.addAllTo(lib);
     lib.install();
 }

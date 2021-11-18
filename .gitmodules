@@ -1,0 +1,3 @@
+[submodule "deps/getty"]
+	path = deps/getty
+	url = https://github.com/getty-zig/getty
