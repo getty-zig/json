@@ -38,13 +38,145 @@ pub fn main() anyerror!void {
 }
 ```
 
-## Overview
+## API Reference
 
-The Getty JSON library provides serialization and deserialization capabilities for the ubiquitous JSON data format.
+### Serialization
 
-Whether you are working with JSON data as text, an untyped/loosely-typed representation, or a strongly-typed representation, Getty JSON provides a safe, efficient, and flexible way for converting data between them.
+<details>
+<summary><code>toWriter</code> - Serializes a value as JSON into an I/O stream.</summary>
+<br>
+    
+```zig
+const std = @import("std");
+const json = @import("json");
 
-Note that Getty JSON does not _parse_ JSON data, it only serializes and deserializes it. For parsing JSON data, Getty JSON makes use of the JSON module provided in Zig's standard library.
+pub fn main() anyerror!void {
+    var list = std.ArrayList(u8).init(std.heap.page_allocator);
+    defer list.deinit();
+
+    try json.toWriter([_]i32{1, 2, 3}, list.writer());
+
+    // [1,2,3]
+    std.debug.print("{s}\n", .{list.items});
+}
+```
+</details>
+
+<details>
+<summary><code>toWriterWith</code> - Serializes a value as JSON into an I/O stream using a <code>getty.Ser</code> interface value.</summary>
+<br>
+    
+```zig
+const std = @import("std");
+const getty = @import("getty");
+const json = @import("json");
+
+const Foo = struct {
+    x: i32,
+    y: i32,
+    z: i32,
+};
+
+const FooSer = struct {
+    pub usingnamespace getty.Ser(@This(), serialize);
+
+    fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+        comptime std.debug.assert(@TypeOf(value) == Foo);
+
+        const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
+        try seq.serializeElement(value.x);
+        try seq.serializeElement(value.y);
+        try seq.serializeElement(value.z);
+        return try seq.end();
+    }
+};
+
+pub fn main() anyerror!void {
+    var list = std.ArrayList(u8).init(std.heap.page_allocator);
+    defer list.deinit();
+
+    const s = FooSer{};
+    const ser = s.ser();
+
+    try json.toWriterWith(Foo{ .x = 1, .y = 2, .z = 3 }, list.writer(), ser);
+
+    // [1,2,3]
+    std.debug.print("{s}\n", .{list.items});
+}
+```
+</details>
+
+<details>
+<summary><code>toPrettyWriter</code> - Serializes a value as pretty-printed JSON into an I/O stream.</summary>
+<br>
+    
+```zig
+const std = @import("std");
+const json = @import("json");
+
+pub fn main() anyerror!void {
+    var list = std.ArrayList(u8).init(std.heap.page_allocator);
+    defer list.deinit();
+
+    try json.toPrettyWriter([_]i32{ 1, 2, 3 }, list.writer());
+
+    // [
+    //   1,
+    //   2,
+    //   3
+    // ]
+    std.debug.print("{s}\n", .{list.items});
+}
+```
+</details>
+
+<details>
+<summary><code>toPrettyWriterWith</code> - Serializes a value as pretty-printed JSON into an I/O stream using a <code>getty.Ser</code> interface value.</summary>
+<br>
+    
+```zig
+const std = @import("std");
+const getty = @import("getty");
+const json = @import("json");
+
+const Foo = struct {
+    x: i32,
+    y: i32,
+    z: i32,
+};
+
+const FooSer = struct {
+    pub usingnamespace getty.Ser(@This(), serialize);
+
+    fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+        comptime std.debug.assert(@TypeOf(value) == Foo);
+
+        const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
+        try seq.serializeElement(value.x);
+        try seq.serializeElement(value.y);
+        try seq.serializeElement(value.z);
+        return try seq.end();
+    }
+};
+
+pub fn main() anyerror!void {
+    var list = std.ArrayList(u8).init(std.heap.page_allocator);
+    defer list.deinit();
+
+    const s = FooSer{};
+    const ser = s.ser();
+
+    try json.toPrettyWriterWith(Foo{ .x = 1, .y = 2, .z = 3 }, list.writer(), ser);
+
+    // [
+    //   1,
+    //   2,
+    //   3
+    // ]
+    std.debug.print("{s}\n", .{list.items});
+}
+```
+</details>
 
 ## Contributing
 
