@@ -1,0 +1,15 @@
+pkgs:
+  json:
+    version: 0.0.0
+    root: src/lib.zig
+    description: A serialization library for JSON
+    license: MIT
+    source_url: "https://github.com/getty-zig/json"
+deps:
+  getty:
+    src:
+      github:
+        user: getty-zig
+        repo: getty
+        ref: main
+    root: src/lib.zig
