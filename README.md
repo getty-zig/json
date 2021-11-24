@@ -29,13 +29,10 @@ const Coordinate = struct {
 };
 
 pub fn main() anyerror!void {
-    var list = std.ArrayList(u8).init(std.heap.page_allocator);
-    defer list.deinit();
-
-    try json.toWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, list.writer());
+    const stdout = std.io.getStdOut().writer();
 
     // {"x":1,"y":2,"z":3}
-    std.debug.print("{s}\n", .{list.items});
+    try json.toWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout);
 }
 ```
 </details>
@@ -55,17 +52,14 @@ const Coordinate = struct {
 };
 
 pub fn main() anyerror!void {
-    var list = std.ArrayList(u8).init(std.heap.page_allocator);
-    defer list.deinit();
-
-    try json.toPrettyWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, list.writer());
+    const stdout = std.io.getStdOut().writer();
 
     // {
     //   "x": 1,
     //   "y": 2,
     //   "z": 3
     // }
-    std.debug.print("{s}\n", .{list.items});
+    try json.toPrettyWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout);
 }
 ```
 </details>
@@ -100,16 +94,13 @@ const Ser = struct {
 };
 
 pub fn main() anyerror!void {
-    var list = std.ArrayList(u8).init(std.heap.page_allocator);
-    defer list.deinit();
+    const stdout = std.io.getStdOut().writer();
 
     const s = Ser{};
     const ser = s.ser();
 
-    try json.toWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, list.writer(), ser);
-
     // [1,2,3]
-    std.debug.print("{s}\n", .{list.items});
+    try json.toWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout, ser);
 }
 ```
 </details>
@@ -144,20 +135,17 @@ const Ser = struct {
 };
 
 pub fn main() anyerror!void {
-    var list = std.ArrayList(u8).init(std.heap.page_allocator);
-    defer list.deinit();
+    const stdout = std.io.getStdOut().writer();
 
     const s = Ser{};
     const ser = s.ser();
-
-    try json.toPrettyWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, list.writer(), ser);
 
     // [
     //   1,
     //   2,
     //   3
     // ]
-    std.debug.print("{s}\n", .{list.items});
+    try json.toPrettyWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout, ser);
 }
 ```
 </details>
