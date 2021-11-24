@@ -16,287 +16,343 @@
 
 <details>
 <summary><code>toSlice</code> - Serializes a value as a JSON string.</summary>
-<br>
 
-```zig
-const std = @import("std");
-const json = @import("json");
+- **Synopsis**
 
-const allocator = std.heap.page_allocator;
+    ```zig
+    fn toSlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8
+    ```
+  
+- **Example**
+  
+    ```zig
+    const std = @import("std");
+    const json = @import("json");
 
-const Coordinate = struct {
-    x: i32,
-    y: i32,
-    z: i32,
-};
+    const allocator = std.heap.page_allocator;
 
-pub fn main() anyerror!void {
-    const string = try json.toSlice(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 });
-    defer allocator.free(string);
+    const Coordinate = struct {
+        x: i32,
+        y: i32,
+        z: i32,
+    };
 
-    // {"x":1,"y":2,"z":3}
-    std.debug.print("{s}\n", .{string});
-}
-```
-</details>
+    pub fn main() anyerror!void {
+        const string = try json.toSlice(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 });
+        defer allocator.free(string);
+
+        // {"x":1,"y":2,"z":3}
+        std.debug.print("{s}\n", .{string});
+    }
+    ```
+    </details>
 
 <details>
 <summary><code>toPrettySlice</code> - Serializes a value as a pretty-printed JSON string.</summary>
-<br>
 
-```zig
-const std = @import("std");
-const json = @import("json");
+- **Synopsis**
 
-const allocator = std.heap.page_allocator;
+    ```zig
+    fn toPrettySlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8
+    ```
+  
+- **Example**
 
-const Coordinate = struct {
-    x: i32,
-    y: i32,
-    z: i32,
-};
+    ```zig
+    const std = @import("std");
+    const json = @import("json");
 
-pub fn main() anyerror!void {
-    const string = try json.toPrettySlice(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 });
-    defer allocator.free(string);
+    const allocator = std.heap.page_allocator;
 
-    // {
-    //   "x": 1,
-    //   "y": 2,
-    //   "z": 3
-    // }
-    std.debug.print("{s}\n", .{string});
-}
-```
+    const Coordinate = struct {
+        x: i32,
+        y: i32,
+        z: i32,
+    };
+
+    pub fn main() anyerror!void {
+        const string = try json.toPrettySlice(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 });
+        defer allocator.free(string);
+
+        // {
+        //   "x": 1,
+        //   "y": 2,
+        //   "z": 3
+        // }
+        std.debug.print("{s}\n", .{string});
+    }
+    ```
 </details>
 
 <details>
 <summary><code>toSliceWith</code> - Serializes a value as a JSON string using a <code>getty.Ser</code> value.</summary>
-<br>
 
-```zig
-const std = @import("std");
-const getty = @import("getty");
-const json = @import("json");
+- **Synopsis**
 
-const allocator = std.heap.page_allocator;
+    ```zig
+    fn toSliceWith(allocator: *std.mem.Allocator, value: anytype, ser: anytype) ![]const u8
+    ```
+  
+- **Example**
 
-const Coordinate = struct {
-    x: i32,
-    y: i32,
-    z: i32,
-};
+    ```zig
+    const std = @import("std");
+    const getty = @import("getty");
+    const json = @import("json");
 
-const Ser = struct {
-    pub usingnamespace getty.Ser(@This(), serialize);
+    const allocator = std.heap.page_allocator;
 
-    fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-        comptime std.debug.assert(@TypeOf(value) == Coordinate);
+    const Coordinate = struct {
+        x: i32,
+        y: i32,
+        z: i32,
+    };
 
-        const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
-        try seq.serializeElement(value.x);
-        try seq.serializeElement(value.y);
-        try seq.serializeElement(value.z);
-        return try seq.end();
+    const Ser = struct {
+        pub usingnamespace getty.Ser(@This(), serialize);
+
+        fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+            comptime std.debug.assert(@TypeOf(value) == Coordinate);
+
+            const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
+            try seq.serializeElement(value.x);
+            try seq.serializeElement(value.y);
+            try seq.serializeElement(value.z);
+            return try seq.end();
+        }
+    };
+
+    pub fn main() anyerror!void {
+        const s = Ser{};
+        const ser = s.ser();
+
+        const string = try json.toSliceWith(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 }, ser);
+        defer allocator.free(string);
+
+
+        // [1,2,3]
+        std.debug.print("{s}\n", .{string});
     }
-};
-
-pub fn main() anyerror!void {
-    const s = Ser{};
-    const ser = s.ser();
-
-    const string = try json.toSliceWith(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 }, ser);
-    defer allocator.free(string);
-
-
-    // [1,2,3]
-    std.debug.print("{s}\n", .{string});
-}
-```
+    ```
 </details>
 
 <details>
 <summary><code>toPrettySliceWith</code> - Serializes a value as a JSON string using a <code>getty.Ser</code> value.</summary>
-<br>
 
-```zig
-const std = @import("std");
-const getty = @import("getty");
-const json = @import("json");
+- **Synopsis**
 
-const allocator = std.heap.page_allocator;
+    ```zig
+    fn toPrettySliceWith(allocator: *std.mem.Allocator, value: anytype, ser: anytype) ![]const u8
+    ```
+  
+- **Example**
 
-const Coordinate = struct {
-    x: i32,
-    y: i32,
-    z: i32,
-};
+    ```zig
+    const std = @import("std");
+    const getty = @import("getty");
+    const json = @import("json");
 
-const Ser = struct {
-    pub usingnamespace getty.Ser(@This(), serialize);
+    const allocator = std.heap.page_allocator;
 
-    fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-        comptime std.debug.assert(@TypeOf(value) == Coordinate);
+    const Coordinate = struct {
+        x: i32,
+        y: i32,
+        z: i32,
+    };
 
-        const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
-        try seq.serializeElement(value.x);
-        try seq.serializeElement(value.y);
-        try seq.serializeElement(value.z);
-        return try seq.end();
+    const Ser = struct {
+        pub usingnamespace getty.Ser(@This(), serialize);
+
+        fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+            comptime std.debug.assert(@TypeOf(value) == Coordinate);
+
+            const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
+            try seq.serializeElement(value.x);
+            try seq.serializeElement(value.y);
+            try seq.serializeElement(value.z);
+            return try seq.end();
+        }
+    };
+
+    pub fn main() anyerror!void {
+        const s = Ser{};
+        const ser = s.ser();
+
+        const string = try json.toPrettySliceWith(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 }, ser);
+        defer allocator.free(string);
+
+        // [
+        //   1,
+        //   2,
+        //   3
+        // ]
+        std.debug.print("{s}\n", .{string});
     }
-};
-
-pub fn main() anyerror!void {
-    const s = Ser{};
-    const ser = s.ser();
-
-    const string = try json.toPrettySliceWith(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 }, ser);
-    defer allocator.free(string);
-
-    // [
-    //   1,
-    //   2,
-    //   3
-    // ]
-    std.debug.print("{s}\n", .{string});
-}
-```
+    ```
 </details>
 
 <details>
 <summary><code>toWriter</code> - Serializes a value as JSON into an I/O stream.</summary>
-<br>
 
-```zig
-const std = @import("std");
-const json = @import("json");
+- **Synopsis**
 
-const Coordinate = struct {
-    x: i32,
-    y: i32,
-    z: i32,
-};
+    ```zig
+    fn toWriter(value: anytype, writer: anytype) !void
+    ```
+  
+- **Example**
 
-pub fn main() anyerror!void {
-    const stdout = std.io.getStdOut().writer();
+    ```zig
+    const std = @import("std");
+    const json = @import("json");
 
-    // {"x":1,"y":2,"z":3}
-    try json.toWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout);
-}
-```
+    const Coordinate = struct {
+        x: i32,
+        y: i32,
+        z: i32,
+    };
+
+    pub fn main() anyerror!void {
+        const stdout = std.io.getStdOut().writer();
+
+        // {"x":1,"y":2,"z":3}
+        try json.toWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout);
+    }
+    ```
 </details>
 
 <details>
 <summary><code>toPrettyWriter</code> - Serializes a value as pretty-printed JSON into an I/O stream.</summary>
-<br>
 
-```zig
-const std = @import("std");
-const json = @import("json");
+- **Synopsis**
 
-const Coordinate = struct {
-    x: i32,
-    y: i32,
-    z: i32,
-};
+    ```zig
+    fn toPrettyWriter(value: anytype, writer: anytype) !void
+    ```
+  
+- **Example**
 
-pub fn main() anyerror!void {
-    const stdout = std.io.getStdOut().writer();
+    ```zig
+    const std = @import("std");
+    const json = @import("json");
 
-    // {
-    //   "x": 1,
-    //   "y": 2,
-    //   "z": 3
-    // }
-    try json.toPrettyWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout);
-}
-```
+    const Coordinate = struct {
+        x: i32,
+        y: i32,
+        z: i32,
+    };
+
+    pub fn main() anyerror!void {
+        const stdout = std.io.getStdOut().writer();
+
+        // {
+        //   "x": 1,
+        //   "y": 2,
+        //   "z": 3
+        // }
+        try json.toPrettyWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout);
+    }
+    ```
 </details>
 
 <details>
 <summary><code>toWriterWith</code> - Serializes a value as JSON into an I/O stream using a <code>getty.Ser</code> value.</summary>
-<br>
 
-```zig
-const std = @import("std");
-const getty = @import("getty");
-const json = @import("json");
+- **Synopsis**
 
-const Coordinate = struct {
-    x: i32,
-    y: i32,
-    z: i32,
-};
+    ```zig
+    fn toWriterWith(value: anytype, writer: anytype, ser: anytype) !void
+    ```
+  
+- **Example**
 
-const Ser = struct {
-    pub usingnamespace getty.Ser(@This(), serialize);
+    ```zig
+    const std = @import("std");
+    const getty = @import("getty");
+    const json = @import("json");
 
-    fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-        comptime std.debug.assert(@TypeOf(value) == Coordinate);
+    const Coordinate = struct {
+        x: i32,
+        y: i32,
+        z: i32,
+    };
 
-        const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
-        try seq.serializeElement(value.x);
-        try seq.serializeElement(value.y);
-        try seq.serializeElement(value.z);
-        return try seq.end();
+    const Ser = struct {
+        pub usingnamespace getty.Ser(@This(), serialize);
+
+        fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+            comptime std.debug.assert(@TypeOf(value) == Coordinate);
+
+            const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
+            try seq.serializeElement(value.x);
+            try seq.serializeElement(value.y);
+            try seq.serializeElement(value.z);
+            return try seq.end();
+        }
+    };
+
+    pub fn main() anyerror!void {
+        const stdout = std.io.getStdOut().writer();
+
+        const s = Ser{};
+        const ser = s.ser();
+
+        // [1,2,3]
+        try json.toWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout, ser);
     }
-};
-
-pub fn main() anyerror!void {
-    const stdout = std.io.getStdOut().writer();
-
-    const s = Ser{};
-    const ser = s.ser();
-
-    // [1,2,3]
-    try json.toWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout, ser);
-}
-```
+    ```
 </details>
 
 <details>
 <summary><code>toPrettyWriterWith</code> - Serializes a value as pretty-printed JSON into an I/O stream using a <code>getty.Ser</code> value.</summary>
-<br>
 
-```zig
-const std = @import("std");
-const getty = @import("getty");
-const json = @import("json");
+- **Synopsis**
 
-const Coordinate = struct {
-    x: i32,
-    y: i32,
-    z: i32,
-};
+    ```zig
+    fn toPrettyWriterWith(value: anytype, writer: anytype, ser: anytype) !void
+    ```
+  
+- **Example**
 
-const Ser = struct {
-    pub usingnamespace getty.Ser(@This(), serialize);
+    ```zig
+    const std = @import("std");
+    const getty = @import("getty");
+    const json = @import("json");
 
-    fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-        comptime std.debug.assert(@TypeOf(value) == Coordinate);
+    const Coordinate = struct {
+        x: i32,
+        y: i32,
+        z: i32,
+    };
 
-        const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
-        try seq.serializeElement(value.x);
-        try seq.serializeElement(value.y);
-        try seq.serializeElement(value.z);
-        return try seq.end();
+    const Ser = struct {
+        pub usingnamespace getty.Ser(@This(), serialize);
+
+        fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+            comptime std.debug.assert(@TypeOf(value) == Coordinate);
+
+            const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
+            try seq.serializeElement(value.x);
+            try seq.serializeElement(value.y);
+            try seq.serializeElement(value.z);
+            return try seq.end();
+        }
+    };
+
+    pub fn main() anyerror!void {
+        const stdout = std.io.getStdOut().writer();
+
+        const s = Ser{};
+        const ser = s.ser();
+
+        // [
+        //   1,
+        //   2,
+        //   3
+        // ]
+        try json.toPrettyWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout, ser);
     }
-};
-
-pub fn main() anyerror!void {
-    const stdout = std.io.getStdOut().writer();
-
-    const s = Ser{};
-    const ser = s.ser();
-
-    // [
-    //   1,
-    //   2,
-    //   3
-    // ]
-    try json.toPrettyWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout, ser);
-}
-```
+    ```
 </details>
 
 ## Contributing
