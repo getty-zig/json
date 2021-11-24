@@ -17,18 +17,24 @@
 <details>
 <summary><code>toWriter</code> - Serializes a value as JSON into an I/O stream.</summary>
 <br>
-    
+
 ```zig
 const std = @import("std");
 const json = @import("json");
+
+const Coordinate = struct {
+    x: i32,
+    y: i32,
+    z: i32,
+};
 
 pub fn main() anyerror!void {
     var list = std.ArrayList(u8).init(std.heap.page_allocator);
     defer list.deinit();
 
-    try json.toWriter([_]i32{1, 2, 3}, list.writer());
+    try json.toWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, list.writer());
 
-    // [1,2,3]
+    // {"x":1,"y":2,"z":3}
     std.debug.print("{s}\n", .{list.items});
 }
 ```
@@ -37,25 +43,25 @@ pub fn main() anyerror!void {
 <details>
 <summary><code>toWriterWith</code> - Serializes a value as JSON into an I/O stream using a <code>getty.Ser</code> interface value.</summary>
 <br>
-    
+
 ```zig
 const std = @import("std");
 const getty = @import("getty");
 const json = @import("json");
 
-const Foo = struct {
+const Coordinate = struct {
     x: i32,
     y: i32,
     z: i32,
 };
 
-const FooSer = struct {
+const Ser = struct {
     pub usingnamespace getty.Ser(@This(), serialize);
 
     fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-        comptime std.debug.assert(@TypeOf(value) == Foo);
+        comptime std.debug.assert(@TypeOf(value) == Coordinate);
 
-        const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
+        const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
         try seq.serializeElement(value.x);
         try seq.serializeElement(value.y);
         try seq.serializeElement(value.z);
@@ -67,10 +73,10 @@ pub fn main() anyerror!void {
     var list = std.ArrayList(u8).init(std.heap.page_allocator);
     defer list.deinit();
 
-    const s = FooSer{};
+    const s = Ser{};
     const ser = s.ser();
 
-    try json.toWriterWith(Foo{ .x = 1, .y = 2, .z = 3 }, list.writer(), ser);
+    try json.toWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, list.writer(), ser);
 
     // [1,2,3]
     std.debug.print("{s}\n", .{list.items});
@@ -81,22 +87,28 @@ pub fn main() anyerror!void {
 <details>
 <summary><code>toPrettyWriter</code> - Serializes a value as pretty-printed JSON into an I/O stream.</summary>
 <br>
-    
+
 ```zig
 const std = @import("std");
 const json = @import("json");
+
+const Coordinate = struct {
+    x: i32,
+    y: i32,
+    z: i32,
+};
 
 pub fn main() anyerror!void {
     var list = std.ArrayList(u8).init(std.heap.page_allocator);
     defer list.deinit();
 
-    try json.toPrettyWriter([_]i32{ 1, 2, 3 }, list.writer());
+    try json.toPrettyWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, list.writer());
 
-    // [
-    //   1,
-    //   2,
-    //   3
-    // ]
+    // {
+    //   "x": 1,
+    //   "y": 2,
+    //   "z": 3
+    // }
     std.debug.print("{s}\n", .{list.items});
 }
 ```
@@ -105,25 +117,25 @@ pub fn main() anyerror!void {
 <details>
 <summary><code>toPrettyWriterWith</code> - Serializes a value as pretty-printed JSON into an I/O stream using a <code>getty.Ser</code> interface value.</summary>
 <br>
-    
+
 ```zig
 const std = @import("std");
 const getty = @import("getty");
 const json = @import("json");
 
-const Foo = struct {
+const Coordinate = struct {
     x: i32,
     y: i32,
     z: i32,
 };
 
-const FooSer = struct {
+const Ser = struct {
     pub usingnamespace getty.Ser(@This(), serialize);
 
     fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-        comptime std.debug.assert(@TypeOf(value) == Foo);
+        comptime std.debug.assert(@TypeOf(value) == Coordinate);
 
-        const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
+        const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
         try seq.serializeElement(value.x);
         try seq.serializeElement(value.y);
         try seq.serializeElement(value.z);
@@ -135,10 +147,10 @@ pub fn main() anyerror!void {
     var list = std.ArrayList(u8).init(std.heap.page_allocator);
     defer list.deinit();
 
-    const s = FooSer{};
+    const s = Ser{};
     const ser = s.ser();
 
-    try json.toPrettyWriterWith(Foo{ .x = 1, .y = 2, .z = 3 }, list.writer(), ser);
+    try json.toPrettyWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, list.writer(), ser);
 
     // [
     //   1,
