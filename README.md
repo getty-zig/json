@@ -10,34 +10,6 @@
 
 <p align="center">A serialization library for the JSON data format.</p>
 
-## Quick Start
-
-```zig
-const std = @import("std");
-const json = @import("json");
-
-const allocator = std.heap.page_allocator;
-const print = std.debug.print;
-
-pub fn main() anyerror!void {
-    // serialization
-    const slice = try json.toSlice(allocator, [_]i32{ 1, 2, 3 });
-    defer allocator.free(slice);
-
-    // run-time deserialization
-    var list = try json.fromSlice(allocator, std.ArrayList(i32), slice);
-    defer list.deinit();
-
-    // compile-time deserialization
-    const array = comptime try json.fromSlice(null, [3]i32, "[1,2,3]");
-
-    // results
-    print("{s}\n", .{slice});        // [1,2,3]
-    print("{any}\n", .{list.items}); // { 1, 2, 3 }
-    print("{any}\n", .{array});      // { 1, 2, 3 }
-}
-```
-
 ## API Reference
 
 ### Serialization
