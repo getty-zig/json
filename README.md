@@ -31,14 +31,11 @@
 
     const allocator = std.heap.page_allocator;
 
-    const Coordinate = struct {
-        x: i32,
-        y: i32,
-        z: i32,
-    };
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
 
     pub fn main() anyerror!void {
-        const string = try json.toSlice(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 });
+        const string = try json.toSlice(allocator, coordinate);
         defer allocator.free(string);
 
         // {"x":1,"y":2,"z":3}
@@ -64,14 +61,11 @@
 
     const allocator = std.heap.page_allocator;
 
-    const Coordinate = struct {
-        x: i32,
-        y: i32,
-        z: i32,
-    };
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
 
     pub fn main() anyerror!void {
-        const string = try json.toPrettySlice(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 });
+        const string = try json.toPrettySlice(allocator, coordinate);
         defer allocator.free(string);
 
         // {
@@ -102,11 +96,8 @@
 
     const allocator = std.heap.page_allocator;
 
-    const Coordinate = struct {
-        x: i32,
-        y: i32,
-        z: i32,
-    };
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
 
     const Ser = struct {
         pub usingnamespace getty.Ser(@This(), serialize);
@@ -126,7 +117,7 @@
         const s = Ser{};
         const ser = s.ser();
 
-        const string = try json.toSliceWith(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 }, ser);
+        const string = try json.toSliceWith(allocator, coordinate, ser);
         defer allocator.free(string);
 
 
@@ -154,11 +145,8 @@
 
     const allocator = std.heap.page_allocator;
 
-    const Coordinate = struct {
-        x: i32,
-        y: i32,
-        z: i32,
-    };
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
 
     const Ser = struct {
         pub usingnamespace getty.Ser(@This(), serialize);
@@ -178,7 +166,7 @@
         const s = Ser{};
         const ser = s.ser();
 
-        const string = try json.toPrettySliceWith(allocator, Coordinate{ .x = 1, .y = 2, .z = 3 }, ser);
+        const string = try json.toPrettySliceWith(allocator, coordinate, ser);
         defer allocator.free(string);
 
         // [
@@ -206,17 +194,14 @@
     const std = @import("std");
     const json = @import("json");
 
-    const Coordinate = struct {
-        x: i32,
-        y: i32,
-        z: i32,
-    };
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
 
     pub fn main() anyerror!void {
         const stdout = std.io.getStdOut().writer();
 
         // {"x":1,"y":2,"z":3}
-        try json.toWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout);
+        try json.toWriter(coordinate, stdout);
     }
     ```
 </details>
@@ -236,11 +221,8 @@
     const std = @import("std");
     const json = @import("json");
 
-    const Coordinate = struct {
-        x: i32,
-        y: i32,
-        z: i32,
-    };
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
 
     pub fn main() anyerror!void {
         const stdout = std.io.getStdOut().writer();
@@ -250,7 +232,7 @@
         //   "y": 2,
         //   "z": 3
         // }
-        try json.toPrettyWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout);
+        try json.toPrettyWriter(coordinate, stdout);
     }
     ```
 </details>
@@ -271,11 +253,8 @@
     const getty = @import("getty");
     const json = @import("json");
 
-    const Coordinate = struct {
-        x: i32,
-        y: i32,
-        z: i32,
-    };
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
 
     const Ser = struct {
         pub usingnamespace getty.Ser(@This(), serialize);
@@ -298,7 +277,7 @@
         const ser = s.ser();
 
         // [1,2,3]
-        try json.toWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout, ser);
+        try json.toWriterWith(coordinate, stdout, ser);
     }
     ```
 </details>
@@ -319,11 +298,8 @@
     const getty = @import("getty");
     const json = @import("json");
 
-    const Coordinate = struct {
-        x: i32,
-        y: i32,
-        z: i32,
-    };
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
 
     const Ser = struct {
         pub usingnamespace getty.Ser(@This(), serialize);
@@ -350,7 +326,7 @@
         //   2,
         //   3
         // ]
-        try json.toPrettyWriterWith(Coordinate{ .x = 1, .y = 2, .z = 3 }, stdout, ser);
+        try json.toPrettyWriterWith(coordinate, stdout, ser);
     }
     ```
 </details>
