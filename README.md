@@ -41,7 +41,37 @@ pub fn main() anyerror!void {
 </details>
 
 <details>
-<summary><code>toWriterWith</code> - Serializes a value as JSON into an I/O stream using a <code>getty.Ser</code> interface value.</summary>
+<summary><code>toPrettyWriter</code> - Serializes a value as pretty-printed JSON into an I/O stream.</summary>
+<br>
+
+```zig
+const std = @import("std");
+const json = @import("json");
+
+const Coordinate = struct {
+    x: i32,
+    y: i32,
+    z: i32,
+};
+
+pub fn main() anyerror!void {
+    var list = std.ArrayList(u8).init(std.heap.page_allocator);
+    defer list.deinit();
+
+    try json.toPrettyWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, list.writer());
+
+    // {
+    //   "x": 1,
+    //   "y": 2,
+    //   "z": 3
+    // }
+    std.debug.print("{s}\n", .{list.items});
+}
+```
+</details>
+
+<details>
+<summary><code>toWriterWith</code> - Serializes a value as JSON into an I/O stream using a <code>getty.Ser</code> value.</summary>
 <br>
 
 ```zig
@@ -85,37 +115,7 @@ pub fn main() anyerror!void {
 </details>
 
 <details>
-<summary><code>toPrettyWriter</code> - Serializes a value as pretty-printed JSON into an I/O stream.</summary>
-<br>
-
-```zig
-const std = @import("std");
-const json = @import("json");
-
-const Coordinate = struct {
-    x: i32,
-    y: i32,
-    z: i32,
-};
-
-pub fn main() anyerror!void {
-    var list = std.ArrayList(u8).init(std.heap.page_allocator);
-    defer list.deinit();
-
-    try json.toPrettyWriter(Coordinate{ .x = 1, .y = 2, .z = 3 }, list.writer());
-
-    // {
-    //   "x": 1,
-    //   "y": 2,
-    //   "z": 3
-    // }
-    std.debug.print("{s}\n", .{list.items});
-}
-```
-</details>
-
-<details>
-<summary><code>toPrettyWriterWith</code> - Serializes a value as pretty-printed JSON into an I/O stream using a <code>getty.Ser</code> interface value.</summary>
+<summary><code>toPrettyWriterWith</code> - Serializes a value as pretty-printed JSON into an I/O stream using a <code>getty.Ser</code> value.</summary>
 <br>
 
 ```zig
