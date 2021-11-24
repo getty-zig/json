@@ -22,9 +22,9 @@
     ```zig
     fn toSlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8
     ```
-  
+
 - **Example**
-  
+
     ```zig
     const std = @import("std");
     const json = @import("json");
@@ -42,7 +42,7 @@
         std.debug.print("{s}\n", .{string});
     }
     ```
-    </details>
+</details>
 
 <details>
 <summary><code>toPrettySlice</code> - Serializes a value as a pretty-printed JSON string.</summary>
@@ -52,7 +52,7 @@
     ```zig
     fn toPrettySlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8
     ```
-  
+
 - **Example**
 
     ```zig
@@ -86,7 +86,7 @@
     ```zig
     fn toSliceWith(allocator: *std.mem.Allocator, value: anytype, ser: anytype) ![]const u8
     ```
-  
+
 - **Example**
 
     ```zig
@@ -135,7 +135,7 @@
     ```zig
     fn toPrettySliceWith(allocator: *std.mem.Allocator, value: anytype, ser: anytype) ![]const u8
     ```
-  
+
 - **Example**
 
     ```zig
@@ -187,7 +187,7 @@
     ```zig
     fn toWriter(value: anytype, writer: anytype) !void
     ```
-  
+
 - **Example**
 
     ```zig
@@ -214,7 +214,7 @@
     ```zig
     fn toPrettyWriter(value: anytype, writer: anytype) !void
     ```
-  
+
 - **Example**
 
     ```zig
@@ -245,7 +245,7 @@
     ```zig
     fn toWriterWith(value: anytype, writer: anytype, ser: anytype) !void
     ```
-  
+
 - **Example**
 
     ```zig
@@ -290,7 +290,7 @@
     ```zig
     fn toPrettyWriterWith(value: anytype, writer: anytype, ser: anytype) !void
     ```
-  
+
 - **Example**
 
     ```zig
@@ -327,6 +327,119 @@
         //   3
         // ]
         try json.toPrettyWriterWith(coordinate, stdout, ser);
+    }
+    ```
+</details>
+
+### Deserialization
+
+<details>
+<summary><code>fromSlice</code> - Deserializes a value of type <code>T</code> from a string of JSON text.</summary>
+
+- **Synopsis**
+
+    ```zig
+    fn fromSlice(allocator: ?*std.mem.Allocator, comptime T: type, slice: []const u8) !T
+    ```
+
+- **Example**
+
+    ```zig
+    const std = @import("std");
+    const json = @import("json");
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const string =
+        \\{
+        \\  "x": 1,
+        \\  "y": 2,
+        \\  "z": 3
+        \\}
+    ;
+
+    pub fn main() anyerror!void {
+        const coordinate = try json.fromSlice(null, Coordinate, string);
+
+        // Coordinate{ .x = 1, .y = 2, .z = 3 }
+        std.debug.print("{any}\n", .{coordinate});
+    }
+    ```
+</details>
+
+<details>
+<summary><code>fromSliceWith</code> - Deserializes a value of type <code>T</code> from a string of JSON text using a <code>getty.De</code> value.</summary>
+
+- **Synopsis**
+
+    ```zig
+    fn fromSliceWith(
+        allocator: ?*std.mem.Allocator,
+        comptime T: type,
+        slice: []const u8,
+        de: anytype,
+    ) !T
+    ```
+
+- **Example**
+
+    ```zig
+    const std = @import("std");
+    const getty = @import("getty");
+    const json = @import("json");
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const string =
+        \\[
+        \\  1,
+        \\  2,
+        \\  3
+        \\]
+    ;
+
+    const Visitor = struct {
+        pub usingnamespace getty.de.Visitor(
+            @This(),
+            Coordinate,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            visitSequence,
+            undefined,
+            undefined,
+            undefined,
+        );
+
+        pub fn visitSequence(_: @This(), sequenceAccess: anytype) !Coordinate {
+            var coordinate: Coordinate = undefined;
+
+            inline for (std.meta.fields(Coordinate)) |field| {
+                if (try sequenceAccess.nextElement(i32)) |elem| {
+                    @field(coordinate, field.name) = elem;
+                }
+            }
+
+            if ((try sequenceAccess.nextElement(i32)) != null) {
+                return error.InvalidLength;
+            }
+
+            return coordinate;
+        }
+    };
+
+    pub fn main() anyerror!void {
+        var v = Visitor{};
+        const visitor = v.visitor();
+
+        var d = getty.de.SequenceDe(@TypeOf(visitor)){ .visitor = visitor };
+        const de = d.de();
+
+        const coordinate = try json.fromSliceWith(null, Coordinate, string, de);
+
+        // Coordinate{ .x = 1, .y = 2, .z = 3 }
+        std.debug.print("{any}\n", .{coordinate});
     }
     ```
 </details>
