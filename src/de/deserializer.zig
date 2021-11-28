@@ -9,7 +9,9 @@ pub const Deserializer = struct {
     const impl = @"impl Deserializer";
 
     pub fn init(slice: []const u8) Self {
-        return Self{ .tokens = std.json.TokenStream.init(slice) };
+        return Self{
+            .tokens = std.json.TokenStream.init(slice),
+        };
     }
 
     pub fn withAllocator(allocator: *std.mem.Allocator, slice: []const u8) Self {
@@ -24,9 +26,8 @@ pub const Deserializer = struct {
     /// This method should always be called after a value has been fully
     /// deserialized.
     pub fn end(self: *Self) impl.deserializer.Error!void {
-        switch (self.tokens.i >= self.tokens.slice.len and self.tokens.parser.complete) {
-            true => {},
-            false => return error.InvalidTopLevelTrailing,
+        if (self.tokens.i < self.tokens.slice.len or !self.tokens.parser.complete) {
+            return error.InvalidTopLevelTrailing;
         }
     }
 
