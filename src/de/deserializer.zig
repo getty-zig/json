@@ -197,14 +197,7 @@ const @"impl Deserializer" = struct {
 
         /// Hint that the type being deserialized into is expecting a struct value.
         pub fn deserializeStruct(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
-            if (try self.tokens.next()) |token| {
-                if (token == .ObjectBegin) {
-                    var access = StructAccess{ .allocator = self.allocator, .deserializer = self };
-                    return try visitor.visitMap(access.mapAccess());
-                }
-            }
-
-            return error.InvalidType;
+            return try deserializeMap(self, visitor);
         }
 
         /// Hint that the type being deserialized into is expecting a `void` value.
@@ -334,47 +327,6 @@ const @"impl MapAccess" = struct {
             if (try self.deserializer.tokens.next()) |token| {
                 switch (token) {
                     .ObjectEnd => return null,
-                    .String => |str| {
-                        // TODO: do if unwrap instead of ? to add an error msg?
-                        const slice = str.slice(self.deserializer.tokens.slice, self.deserializer.tokens.i - 1);
-                        return try self.allocator.?.dupe(u8, slice);
-                    },
-                    else => {},
-                }
-            }
-
-            return error.InvalidType;
-        }
-
-        pub fn nextValueSeed(self: *MapAccess, seed: anytype) Error!@TypeOf(seed).Value {
-            return try seed.deserialize(self.allocator, self.deserializer.deserializer());
-        }
-    };
-};
-
-const StructAccess = struct {
-    allocator: ?*std.mem.Allocator,
-    deserializer: *Deserializer,
-
-    const Self = @This();
-    const impl = @"impl StructAccess";
-
-    pub usingnamespace getty.de.MapAccess(
-        *Self,
-        impl.mapAccess.Error,
-        impl.mapAccess.nextKeySeed,
-        impl.mapAccess.nextValueSeed,
-    );
-};
-
-const @"impl StructAccess" = struct {
-    pub const mapAccess = struct {
-        pub const Error = @"impl Deserializer".deserializer.Error;
-
-        pub fn nextKeySeed(self: *StructAccess, seed: anytype) Error!?@TypeOf(seed).Value {
-            if (try self.deserializer.tokens.next()) |token| {
-                switch (token) {
-                    .ObjectEnd => return null,
                     .String => |str| return str.slice(self.deserializer.tokens.slice, self.deserializer.tokens.i - 1),
                     else => {},
                 }
@@ -383,7 +335,7 @@ const @"impl StructAccess" = struct {
             return error.InvalidType;
         }
 
-        pub fn nextValueSeed(self: *StructAccess, seed: anytype) Error!@TypeOf(seed).Value {
+        pub fn nextValueSeed(self: *MapAccess, seed: anytype) Error!@TypeOf(seed).Value {
             return try seed.deserialize(self.allocator, self.deserializer.deserializer());
         }
     };
