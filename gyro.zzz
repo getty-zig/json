@@ -13,3 +13,10 @@ deps:
         repo: getty
         ref: main
     root: src/lib.zig
+  concepts:
+    src:
+      github:
+        user: ibokuri
+        repo: concepts
+        ref: main
+    root: src/lib.zig

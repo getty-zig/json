@@ -8,8 +8,14 @@ const packages = struct {
         .name = package_name,
         .path = .{ .path = package_path },
         .dependencies = &[_]std.build.Pkg{
+            concepts,
             getty,
         },
+    };
+
+    const concepts = std.build.Pkg{
+        .name = "concepts",
+        .path = .{ .path = "deps/concepts/src/lib.zig" },
     };
 
     const getty = std.build.Pkg{
@@ -29,6 +35,7 @@ pub fn build(b: *std.build.Builder) void {
     t.setBuildMode(mode);
     t.setTarget(target);
     t.addPackage(packages.json);
+    t.addPackage(packages.concepts);
     t.addPackage(packages.getty);
     step.dependOn(&t.step);
 
