@@ -1,3 +1,4 @@
+const concepts = @import("concepts");
 const getty = @import("getty");
 const std = @import("std");
 
@@ -324,6 +325,10 @@ const @"impl MapAccess" = struct {
         pub const Error = @"impl Deserializer".deserializer.Error;
 
         pub fn nextKeySeed(self: *MapAccess, seed: anytype) Error!?@TypeOf(seed).Value {
+            comptime concepts.Concept("StringKey", "expected key type to be `[]const u8`")(.{
+                concepts.traits.isSame(@TypeOf(seed).Value, []const u8),
+            });
+
             if (try self.deserializer.tokens.next()) |token| {
                 switch (token) {
                     .ObjectEnd => return null,
