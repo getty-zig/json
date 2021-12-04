@@ -83,10 +83,10 @@ const @"impl Deserializer" = struct {
                             };
                         }
                     },
-                    .String => |str| return try visitor.visitString(
-                        Error,
-                        str.slice(self.tokens.slice, self.tokens.i - 1),
-                    ),
+                    .String => |str| {
+                        const slice = str.slice(self.tokens.slice, self.tokens.i - 1);
+                        return try visitor.visitString(Error, try self.allocator.?.dupe(u8, slice));
+                    },
                     else => {},
                 }
             }
@@ -185,10 +185,10 @@ const @"impl Deserializer" = struct {
         pub fn deserializeString(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 switch (token) {
-                    .String => |str| return try visitor.visitString(
-                        Error,
-                        str.slice(self.tokens.slice, self.tokens.i - 1),
-                    ),
+                    .String => |str| {
+                        const slice = str.slice(self.tokens.slice, self.tokens.i - 1);
+                        return visitor.visitString(Error, try self.allocator.?.dupe(u8, slice));
+                    },
                     else => {},
                 }
             }
@@ -332,7 +332,10 @@ const @"impl MapAccess" = struct {
             if (try self.deserializer.tokens.next()) |token| {
                 switch (token) {
                     .ObjectEnd => return null,
-                    .String => |str| return str.slice(self.deserializer.tokens.slice, self.deserializer.tokens.i - 1),
+                    .String => |str| {
+                        const slice = str.slice(self.deserializer.tokens.slice, self.deserializer.tokens.i - 1);
+                        return try self.allocator.?.dupe(u8, slice);
+                    },
                     else => {},
                 }
             }

@@ -87,8 +87,8 @@ test "enum" {
 
     try expectEqual(Enum.foo, try fromSlice(null, Enum, "0"));
     try expectEqual(Enum.bar, try fromSlice(null, Enum, "1"));
-    try expectEqual(Enum.foo, try fromSlice(null, Enum, "\"foo\""));
-    try expectEqual(Enum.bar, try fromSlice(null, Enum, "\"bar\""));
+    try expectEqual(Enum.foo, try fromSlice(testing.allocator, Enum, "\"foo\""));
+    try expectEqual(Enum.bar, try fromSlice(testing.allocator, Enum, "\"bar\""));
 }
 
 test "float" {
@@ -279,25 +279,13 @@ test "slice (non-string)" {
 }
 
 test "struct" {
-    // no allocation
-    {
-        const got = try fromSlice(null, struct { x: i32, y: i32 },
-            \\{"x":1,"y":2}
-        );
+    const got = try fromSlice(testing.allocator, struct { x: i32, y: []const u8 },
+        \\{"x":1,"y":"Hello"}
+    );
+    defer de.free(testing.allocator, got);
 
-        try expectEqual(@as(i32, 1), got.x);
-        try expectEqual(@as(i32, 2), got.y);
-    }
-
-    // allocation
-    {
-        const got = try fromSlice(testing.allocator, struct { x: []const u8 },
-            \\{"x":"Hello"}
-        );
-        defer de.free(testing.allocator, got);
-
-        try expect(eql(u8, "Hello", got.x));
-    }
+    try expectEqual(@as(i32, 1), got.x);
+    try expect(eql(u8, "Hello", got.y));
 }
 
 test "void" {
