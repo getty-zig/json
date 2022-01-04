@@ -346,7 +346,7 @@ fn t(format: Format, value: anytype, expected: []const u8) !void {
 
         fn write(self: *Self, bytes: []const u8) Error!usize {
             if (self.remaining.len < bytes.len) {
-                std.debug.warn("\n" ++
+                std.log.warn("\n" ++
                     \\======= expected: =======
                     \\{s}
                     \\======== found: =========
@@ -360,7 +360,7 @@ fn t(format: Format, value: anytype, expected: []const u8) !void {
             }
 
             if (!std.mem.eql(u8, self.remaining[0..bytes.len], bytes)) {
-                std.debug.warn("\n" ++
+                std.log.warn("\n" ++
                     \\======= expected: =======
                     \\{s}
                     \\======== found: =========
