@@ -58,7 +58,7 @@ pub fn toPrettyWriterWith(value: anytype, writer: anytype, _ser: anytype) !void 
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toSlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
+pub fn toSlice(allocator: std.mem.Allocator, value: anytype) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
@@ -70,7 +70,7 @@ pub fn toSlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toPrettySlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8 {
+pub fn toPrettySlice(allocator: std.mem.Allocator, value: anytype) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
@@ -83,7 +83,7 @@ pub fn toPrettySlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8 
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toSliceWith(allocator: *std.mem.Allocator, value: anytype, _ser: anytype) ![]const u8 {
+pub fn toSliceWith(allocator: std.mem.Allocator, value: anytype, _ser: anytype) ![]const u8 {
     comptime getty.concepts.@"getty.Ser"(@TypeOf(_ser));
 
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
@@ -98,7 +98,7 @@ pub fn toSliceWith(allocator: *std.mem.Allocator, value: anytype, _ser: anytype)
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toPrettySliceWith(allocator: *std.mem.Allocator, value: anytype, _ser: anytype) ![]const u8 {
+pub fn toPrettySliceWith(allocator: std.mem.Allocator, value: anytype, _ser: anytype) ![]const u8 {
     comptime getty.concepts.@"getty.Ser"(@TypeOf(_ser));
 
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);

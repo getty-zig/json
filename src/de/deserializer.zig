@@ -3,7 +3,7 @@ const getty = @import("getty");
 const std = @import("std");
 
 pub const Deserializer = struct {
-    allocator: ?*std.mem.Allocator = null,
+    allocator: ?std.mem.Allocator = null,
     tokens: std.json.TokenStream,
 
     const Self = @This();
@@ -15,7 +15,7 @@ pub const Deserializer = struct {
         };
     }
 
-    pub fn withAllocator(allocator: *std.mem.Allocator, slice: []const u8) Self {
+    pub fn withAllocator(allocator: std.mem.Allocator, slice: []const u8) Self {
         return Self{
             .allocator = allocator,
             .tokens = std.json.TokenStream.init(slice),
@@ -269,7 +269,7 @@ const @"impl Deserializer" = struct {
 };
 
 const SeqAccess = struct {
-    allocator: ?*std.mem.Allocator,
+    allocator: ?std.mem.Allocator,
     deserializer: *Deserializer,
 
     const Self = @This();
@@ -306,7 +306,7 @@ const @"impl SeqAccess" = struct {
 };
 
 const MapAccess = struct {
-    allocator: ?*std.mem.Allocator,
+    allocator: ?std.mem.Allocator,
     deserializer: *Deserializer,
 
     const Self = @This();
