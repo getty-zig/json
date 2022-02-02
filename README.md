@@ -90,7 +90,6 @@
 
     ```zig
     const std = @import("std");
-    const getty = @import("getty");
     const json = @import("json");
 
     const allocator = std.heap.page_allocator;
@@ -98,26 +97,22 @@
     const Point = struct { x: i32, y: i32 };
     const point = Point{ .x = 1, .y = 2 };
 
-    const Ser = struct {
-        pub usingnamespace getty.Ser(@This(), serialize);
-
-        fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-            comptime std.debug.assert(@TypeOf(value) == Point);
-
-            const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
-            try seq.serializeElement(value.x);
-            try seq.serializeElement(value.y);
-            return try seq.end();
-        }
-    };
-
     pub fn main() anyerror!void {
-        const s = Ser{};
-        const ser = s.ser();
+        const string = try json.toSliceWith(allocator, point, struct {
+            pub const Custom = struct {
+                pub fn is(comptime T: type) bool {
+                    return T == Point;
+                }
 
-        const string = try json.toSliceWith(allocator, point, ser);
+                pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+                    const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
+                    try seq.serializeElement(value.x);
+                    try seq.serializeElement(value.y);
+                    return try seq.end();
+                }
+            };
+        });
         defer allocator.free(string);
-
 
         // [1,2]
         std.debug.print("{s}\n", .{string});
@@ -138,7 +133,6 @@
 
     ```zig
     const std = @import("std");
-    const getty = @import("getty");
     const json = @import("json");
 
     const allocator = std.heap.page_allocator;
@@ -146,24 +140,21 @@
     const Point = struct { x: i32, y: i32 };
     const point = Point{ .x = 1, .y = 2 };
 
-    const Ser = struct {
-        pub usingnamespace getty.Ser(@This(), serialize);
-
-        fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-            comptime std.debug.assert(@TypeOf(value) == Point);
-
-            const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
-            try seq.serializeElement(value.x);
-            try seq.serializeElement(value.y);
-            return try seq.end();
-        }
-    };
-
     pub fn main() anyerror!void {
-        const s = Ser{};
-        const ser = s.ser();
+        const string = try json.toSliceWith(allocator, point, struct {
+            pub const Custom = struct {
+                pub fn is(comptime T: type) bool {
+                    return T == Point;
+                }
 
-        const string = try json.toPrettySliceWith(allocator, point, ser);
+                pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+                    const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
+                    try seq.serializeElement(value.x);
+                    try seq.serializeElement(value.y);
+                    return try seq.end();
+                }
+            };
+        });
         defer allocator.free(string);
 
         // [
@@ -245,33 +236,31 @@
 
     ```zig
     const std = @import("std");
-    const getty = @import("getty");
     const json = @import("json");
+
+    const allocator = std.heap.page_allocator;
 
     const Point = struct { x: i32, y: i32 };
     const point = Point{ .x = 1, .y = 2 };
 
-    const Ser = struct {
-        pub usingnamespace getty.Ser(@This(), serialize);
-
-        fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-            comptime std.debug.assert(@TypeOf(value) == Point);
-
-            const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
-            try seq.serializeElement(value.x);
-            try seq.serializeElement(value.y);
-            return try seq.end();
-        }
-    };
-
     pub fn main() anyerror!void {
         const stdout = std.io.getStdOut().writer();
 
-        const s = Ser{};
-        const ser = s.ser();
-
         // [1,2]
-        try json.toWriterWith(point, stdout, ser);
+        try json.toWriterWith(point, stdout, struct {
+            pub const Custom = struct {
+                pub fn is(comptime T: type) bool {
+                    return T == Point;
+                }
+
+                pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+                    const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
+                    try seq.serializeElement(value.x);
+                    try seq.serializeElement(value.y);
+                    return try seq.end();
+                }
+            };
+        });
     }
     ```
 </details>
@@ -289,36 +278,31 @@
 
     ```zig
     const std = @import("std");
-    const getty = @import("getty");
     const json = @import("json");
+
+    const allocator = std.heap.page_allocator;
 
     const Point = struct { x: i32, y: i32 };
     const point = Point{ .x = 1, .y = 2 };
 
-    const Ser = struct {
-        pub usingnamespace getty.Ser(@This(), serialize);
-
-        fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-            comptime std.debug.assert(@TypeOf(value) == Point);
-
-            const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
-            try seq.serializeElement(value.x);
-            try seq.serializeElement(value.y);
-            return try seq.end();
-        }
-    };
-
     pub fn main() anyerror!void {
         const stdout = std.io.getStdOut().writer();
 
-        const s = Ser{};
-        const ser = s.ser();
+        // [1,2]
+        try json.toPrettyWriterWith(point, stdout, struct {
+            pub const Custom = struct {
+                pub fn is(comptime T: type) bool {
+                    return T == Point;
+                }
 
-        // [
-        //   1,
-        //   2
-        // ]
-        try json.toPrettyWriterWith(point, stdout, ser);
+                pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+                    const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
+                    try seq.serializeElement(value.x);
+                    try seq.serializeElement(value.y);
+                    return try seq.end();
+                }
+            };
+        });
     }
     ```
 </details>
