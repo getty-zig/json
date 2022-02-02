@@ -2,61 +2,59 @@ const concepts = @import("concepts");
 const getty = @import("getty");
 const std = @import("std");
 
-pub const Deserializer = struct {
-    allocator: ?std.mem.Allocator = null,
-    tokens: std.json.TokenStream,
+pub fn Deserializer(comptime De: type) type {
+    return struct {
+        allocator: ?std.mem.Allocator = null,
+        tokens: std.json.TokenStream,
 
-    const Self = @This();
-    const impl = @"impl Deserializer";
+        const Self = @This();
 
-    pub fn init(slice: []const u8) Self {
-        return Self{
-            .tokens = std.json.TokenStream.init(slice),
-        };
-    }
-
-    pub fn withAllocator(allocator: std.mem.Allocator, slice: []const u8) Self {
-        return Self{
-            .allocator = allocator,
-            .tokens = std.json.TokenStream.init(slice),
-        };
-    }
-
-    /// Validates that the input data has been fully deserialized.
-    ///
-    /// This method should always be called after a value has been fully
-    /// deserialized.
-    pub fn end(self: *Self) impl.deserializer.Error!void {
-        if (self.tokens.i < self.tokens.slice.len or !self.tokens.parser.complete) {
-            return error.InvalidTopLevelTrailing;
+        pub fn init(slice: []const u8) Self {
+            return Self{
+                .tokens = std.json.TokenStream.init(slice),
+            };
         }
-    }
 
-    pub usingnamespace getty.Deserializer(
-        *Self,
-        impl.deserializer.Error,
-        impl.deserializer.deserializeBool,
-        impl.deserializer.deserializeEnum,
-        impl.deserializer.deserializeFloat,
-        impl.deserializer.deserializeInt,
-        impl.deserializer.deserializeMap,
-        impl.deserializer.deserializeOptional,
-        impl.deserializer.deserializeSequence,
-        impl.deserializer.deserializeString,
-        impl.deserializer.deserializeStruct,
-        impl.deserializer.deserializeVoid,
-    );
-};
+        pub fn withAllocator(allocator: std.mem.Allocator, slice: []const u8) Self {
+            return Self{
+                .allocator = allocator,
+                .tokens = std.json.TokenStream.init(slice),
+            };
+        }
 
-const @"impl Deserializer" = struct {
-    pub const deserializer = struct {
+        /// Validates that the input data has been fully deserialized.
+        ///
+        /// This method should always be called after a value has been fully
+        /// deserialized.
+        pub fn end(self: *Self) Error!void {
+            if (self.tokens.i < self.tokens.slice.len or !self.tokens.parser.complete) {
+                return error.InvalidTopLevelTrailing;
+            }
+        }
+
+        pub usingnamespace getty.Deserializer(
+            *Self,
+            Error,
+            De,
+            deserializeBool,
+            deserializeEnum,
+            deserializeFloat,
+            deserializeInt,
+            deserializeMap,
+            deserializeOptional,
+            deserializeSequence,
+            deserializeString,
+            deserializeStruct,
+            deserializeVoid,
+        );
+
         pub const Error = getty.de.Error ||
             std.json.TokenStream.Error ||
             std.fmt.ParseIntError ||
             std.fmt.ParseFloatError;
 
         /// Hint that the type being deserialized into is expecting a `bool` value.
-        pub fn deserializeBool(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
+        pub fn deserializeBool(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 switch (token) {
                     .True => return try visitor.visitBool(Error, true),
@@ -70,7 +68,7 @@ const @"impl Deserializer" = struct {
 
         /// Hint that the type being deserialized into is expecting an `enum`
         /// value.
-        pub fn deserializeEnum(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
+        pub fn deserializeEnum(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 switch (token) {
                     .Number => |num| {
@@ -96,7 +94,7 @@ const @"impl Deserializer" = struct {
 
         /// Hint that the type being deserialized into is expecting a
         /// floating-point value.
-        pub fn deserializeFloat(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
+        pub fn deserializeFloat(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 switch (token) {
                     .Number => |num| {
@@ -112,7 +110,7 @@ const @"impl Deserializer" = struct {
 
         /// Hint that the type being deserialized into is expecting an
         /// integer value.
-        pub fn deserializeInt(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
+        pub fn deserializeInt(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 switch (token) {
                     .Number => |num| {
@@ -135,10 +133,10 @@ const @"impl Deserializer" = struct {
 
         /// Hint that the type being deserialized into is expecting a map of
         /// key-value pairs.
-        pub fn deserializeMap(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
+        pub fn deserializeMap(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
-                    var access = MapAccess{ .allocator = self.allocator, .deserializer = self };
+                    var access = MapAccess(Self){ .allocator = self.allocator, .deserializer = self };
                     return try visitor.visitMap(access.mapAccess());
                 }
             }
@@ -148,7 +146,7 @@ const @"impl Deserializer" = struct {
 
         /// Hint that the type being deserialized into is expecting an optional
         /// value.
-        pub fn deserializeOptional(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
+        pub fn deserializeOptional(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             const tokens = self.tokens;
 
             if (try self.tokens.next()) |token| {
@@ -170,10 +168,10 @@ const @"impl Deserializer" = struct {
 
         /// Hint that the type being deserialized into is expecting a sequence of
         /// values.
-        pub fn deserializeSequence(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
+        pub fn deserializeSequence(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ArrayBegin) {
-                    var access = SeqAccess{ .allocator = self.allocator, .deserializer = self };
+                    var access = SeqAccess(Self){ .allocator = self.allocator, .deserializer = self };
                     return try visitor.visitSequence(access.sequenceAccess());
                 }
             }
@@ -182,7 +180,7 @@ const @"impl Deserializer" = struct {
         }
 
         /// Hint that the type being deserialized into is expecting a string value.
-        pub fn deserializeString(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
+        pub fn deserializeString(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 switch (token) {
                     .String => |str| {
@@ -197,12 +195,12 @@ const @"impl Deserializer" = struct {
         }
 
         /// Hint that the type being deserialized into is expecting a struct value.
-        pub fn deserializeStruct(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
+        pub fn deserializeStruct(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             return try deserializeMap(self, visitor);
         }
 
         /// Hint that the type being deserialized into is expecting a `void` value.
-        pub fn deserializeVoid(self: *Deserializer, visitor: anytype) Error!@TypeOf(visitor).Value {
+        pub fn deserializeVoid(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .Null) {
                     return try visitor.visitVoid(Error);
@@ -266,27 +264,24 @@ const @"impl Deserializer" = struct {
             return try parseInt(u128, buf);
         }
     };
-};
+}
 
-const SeqAccess = struct {
-    allocator: ?std.mem.Allocator,
-    deserializer: *Deserializer,
+fn SeqAccess(comptime D: type) type {
+    return struct {
+        allocator: ?std.mem.Allocator,
+        deserializer: *D,
 
-    const Self = @This();
-    const impl = @"impl SeqAccess";
+        const Self = @This();
 
-    pub usingnamespace getty.de.SequenceAccess(
-        *Self,
-        impl.sequenceAccess.Error,
-        impl.sequenceAccess.nextElementSeed,
-    );
-};
+        pub usingnamespace getty.de.SequenceAccess(
+            *Self,
+            Error,
+            nextElementSeed,
+        );
 
-const @"impl SeqAccess" = struct {
-    pub const sequenceAccess = struct {
-        pub const Error = @"impl Deserializer".deserializer.Error;
+        const Error = D.Error;
 
-        pub fn nextElementSeed(self: *SeqAccess, seed: anytype) Error!?@TypeOf(seed).Value {
+        pub fn nextElementSeed(self: *Self, seed: anytype) Error!?@TypeOf(seed).Value {
             const element = seed.deserialize(self.allocator, self.deserializer.deserializer()) catch |err| {
                 // Slice for the current token instead of looking at the
                 // `token` field since the token isn't set for some reason.
@@ -303,28 +298,25 @@ const @"impl SeqAccess" = struct {
             return element;
         }
     };
-};
+}
 
-const MapAccess = struct {
-    allocator: ?std.mem.Allocator,
-    deserializer: *Deserializer,
+fn MapAccess(comptime D: type) type {
+    return struct {
+        allocator: ?std.mem.Allocator,
+        deserializer: *D,
 
-    const Self = @This();
-    const impl = @"impl MapAccess";
+        const Self = @This();
 
-    pub usingnamespace getty.de.MapAccess(
-        *Self,
-        impl.mapAccess.Error,
-        impl.mapAccess.nextKeySeed,
-        impl.mapAccess.nextValueSeed,
-    );
-};
+        pub usingnamespace getty.de.MapAccess(
+            *Self,
+            Error,
+            nextKeySeed,
+            nextValueSeed,
+        );
 
-const @"impl MapAccess" = struct {
-    pub const mapAccess = struct {
-        pub const Error = @"impl Deserializer".deserializer.Error;
+        pub const Error = D.Error;
 
-        pub fn nextKeySeed(self: *MapAccess, seed: anytype) Error!?@TypeOf(seed).Value {
+        pub fn nextKeySeed(self: *Self, seed: anytype) Error!?@TypeOf(seed).Value {
             comptime concepts.Concept("StringKey", "expected key type to be `[]const u8`")(.{
                 concepts.traits.isSame(@TypeOf(seed).Value, []const u8),
             });
@@ -343,8 +335,8 @@ const @"impl MapAccess" = struct {
             return error.InvalidType;
         }
 
-        pub fn nextValueSeed(self: *MapAccess, seed: anytype) Error!@TypeOf(seed).Value {
+        pub fn nextValueSeed(self: *Self, seed: anytype) Error!@TypeOf(seed).Value {
             return try seed.deserialize(self.allocator, self.deserializer.deserializer());
         }
     };
-};
+}
