@@ -141,7 +141,7 @@
     const point = Point{ .x = 1, .y = 2 };
 
     pub fn main() anyerror!void {
-        const string = try json.toSliceWith(allocator, point, struct {
+        const string = try json.toPrettySliceWith(allocator, point, struct {
             pub const points = struct {
                 pub fn is(comptime T: type) bool {
                     return T == Point;
