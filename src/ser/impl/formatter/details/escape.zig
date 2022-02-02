@@ -98,11 +98,17 @@ pub fn escape(bytes: []const u8, writer: anytype, formatter: anytype) !void {
     var start: usize = 0;
 
     while (i < bytes.len) : (i += 1) {
-        const byte = bytes[i];
-        const length = std.unicode.utf8ByteSequenceLength(byte) catch unreachable;
+        const length = std.unicode.utf8ByteSequenceLength(bytes[i]) catch unreachable;
+
+        // Skip ASCII characters that don't require escaping.
+        switch (bytes[i]) {
+            0x00...0x1F, DOUBLE_QUOTE, BACKSLASH, 0x7F => {},
+            else => if (length == 1) continue,
+        }
+
         const codepoint = std.unicode.utf8Decode(bytes[i .. i + length]) catch unreachable;
 
-        // Skip code points that do not require escaping.
+        // Skip all other code points that don't require escaping.
         switch (codepoint) {
             0x00...0x1F, DOUBLE_QUOTE, BACKSLASH, 0x7F, 0x2028, 0x2029 => {},
             else => if (codepoint <= 0xFFFF) {
