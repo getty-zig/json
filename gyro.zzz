@@ -7,16 +7,14 @@ pkgs:
     source_url: "https://github.com/getty-zig/json"
 deps:
   getty:
-    src:
-      github:
-        user: getty-zig
-        repo: getty
-        ref: main
     root: src/lib.zig
+    src:
+      git:
+        url: "https://github.com/getty-zig/getty.git"
+        ref: main
   concepts:
-    src:
-      github:
-        user: ibokuri
-        repo: concepts
-        ref: main
     root: src/lib.zig
+    src:
+      git:
+        url: "https://github.com/ibokuri/concepts.git"
+        ref: main
