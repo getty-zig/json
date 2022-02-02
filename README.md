@@ -99,7 +99,7 @@
 
     pub fn main() anyerror!void {
         const string = try json.toSliceWith(allocator, point, struct {
-            pub const custom = struct {
+            pub const points = struct {
                 pub fn is(comptime T: type) bool {
                     return T == Point;
                 }
@@ -142,7 +142,7 @@
 
     pub fn main() anyerror!void {
         const string = try json.toSliceWith(allocator, point, struct {
-            pub const custom = struct {
+            pub const points = struct {
                 pub fn is(comptime T: type) bool {
                     return T == Point;
                 }
@@ -248,7 +248,7 @@
 
         // [1,2]
         try json.toWriterWith(point, stdout, struct {
-            pub const custom = struct {
+            pub const points = struct {
                 pub fn is(comptime T: type) bool {
                     return T == Point;
                 }
@@ -290,7 +290,7 @@
 
         // [1,2]
         try json.toPrettyWriterWith(point, stdout, struct {
-            pub const custom = struct {
+            pub const points = struct {
                 pub fn is(comptime T: type) bool {
                     return T == Point;
                 }
