@@ -31,14 +31,14 @@
 
     const allocator = std.heap.page_allocator;
 
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
+    const Point = struct { x: i32, y: i32 };
+    const point = Point{ .x = 1, .y = 2 };
 
     pub fn main() anyerror!void {
-        const string = try json.toSlice(allocator, coordinate);
+        const string = try json.toSlice(allocator, point);
         defer allocator.free(string);
 
-        // {"x":1,"y":2,"z":3}
+        // {"x":1,"y":2}
         std.debug.print("{s}\n", .{string});
     }
     ```
@@ -61,17 +61,16 @@
 
     const allocator = std.heap.page_allocator;
 
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
+    const Point = struct { x: i32, y: i32 };
+    const point = Point{ .x = 1, .y = 2 };
 
     pub fn main() anyerror!void {
-        const string = try json.toPrettySlice(allocator, coordinate);
+        const string = try json.toPrettySlice(allocator, point);
         defer allocator.free(string);
 
         // {
         //   "x": 1,
-        //   "y": 2,
-        //   "z": 3
+        //   "y": 2
         // }
         std.debug.print("{s}\n", .{string});
     }
@@ -96,19 +95,18 @@
 
     const allocator = std.heap.page_allocator;
 
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
+    const Point = struct { x: i32, y: i32 };
+    const point = Point{ .x = 1, .y = 2 };
 
     const Ser = struct {
         pub usingnamespace getty.Ser(@This(), serialize);
 
         fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-            comptime std.debug.assert(@TypeOf(value) == Coordinate);
+            comptime std.debug.assert(@TypeOf(value) == Point);
 
-            const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
+            const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
             try seq.serializeElement(value.x);
             try seq.serializeElement(value.y);
-            try seq.serializeElement(value.z);
             return try seq.end();
         }
     };
@@ -117,11 +115,11 @@
         const s = Ser{};
         const ser = s.ser();
 
-        const string = try json.toSliceWith(allocator, coordinate, ser);
+        const string = try json.toSliceWith(allocator, point, ser);
         defer allocator.free(string);
 
 
-        // [1,2,3]
+        // [1,2]
         std.debug.print("{s}\n", .{string});
     }
     ```
@@ -145,19 +143,18 @@
 
     const allocator = std.heap.page_allocator;
 
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
+    const Point = struct { x: i32, y: i32 };
+    const point = Point{ .x = 1, .y = 2 };
 
     const Ser = struct {
         pub usingnamespace getty.Ser(@This(), serialize);
 
         fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-            comptime std.debug.assert(@TypeOf(value) == Coordinate);
+            comptime std.debug.assert(@TypeOf(value) == Point);
 
-            const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
+            const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
             try seq.serializeElement(value.x);
             try seq.serializeElement(value.y);
-            try seq.serializeElement(value.z);
             return try seq.end();
         }
     };
@@ -166,13 +163,12 @@
         const s = Ser{};
         const ser = s.ser();
 
-        const string = try json.toPrettySliceWith(allocator, coordinate, ser);
+        const string = try json.toPrettySliceWith(allocator, point, ser);
         defer allocator.free(string);
 
         // [
         //   1,
-        //   2,
-        //   3
+        //   2
         // ]
         std.debug.print("{s}\n", .{string});
     }
@@ -194,14 +190,14 @@
     const std = @import("std");
     const json = @import("json");
 
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
+    const Point = struct { x: i32, y: i32 };
+    const point = Point{ .x = 1, .y = 2 };
 
     pub fn main() anyerror!void {
         const stdout = std.io.getStdOut().writer();
 
-        // {"x":1,"y":2,"z":3}
-        try json.toWriter(coordinate, stdout);
+        // {"x":1,"y":2}
+        try json.toWriter(point, stdout);
     }
     ```
 </details>
@@ -221,18 +217,17 @@
     const std = @import("std");
     const json = @import("json");
 
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
+    const Point = struct { x: i32, y: i32 };
+    const point = Point{ .x = 1, .y = 2 };
 
     pub fn main() anyerror!void {
         const stdout = std.io.getStdOut().writer();
 
         // {
         //   "x": 1,
-        //   "y": 2,
-        //   "z": 3
+        //   "y": 2
         // }
-        try json.toPrettyWriter(coordinate, stdout);
+        try json.toPrettyWriter(point, stdout);
     }
     ```
 </details>
@@ -253,19 +248,18 @@
     const getty = @import("getty");
     const json = @import("json");
 
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
+    const Point = struct { x: i32, y: i32 };
+    const point = Point{ .x = 1, .y = 2 };
 
     const Ser = struct {
         pub usingnamespace getty.Ser(@This(), serialize);
 
         fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-            comptime std.debug.assert(@TypeOf(value) == Coordinate);
+            comptime std.debug.assert(@TypeOf(value) == Point);
 
-            const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
+            const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
             try seq.serializeElement(value.x);
             try seq.serializeElement(value.y);
-            try seq.serializeElement(value.z);
             return try seq.end();
         }
     };
@@ -276,8 +270,8 @@
         const s = Ser{};
         const ser = s.ser();
 
-        // [1,2,3]
-        try json.toWriterWith(coordinate, stdout, ser);
+        // [1,2]
+        try json.toWriterWith(point, stdout, ser);
     }
     ```
 </details>
@@ -298,19 +292,18 @@
     const getty = @import("getty");
     const json = @import("json");
 
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    const coordinate = Coordinate{ .x = 1, .y = 2, .z = 3 };
+    const Point = struct { x: i32, y: i32 };
+    const point = Point{ .x = 1, .y = 2 };
 
     const Ser = struct {
         pub usingnamespace getty.Ser(@This(), serialize);
 
         fn serialize(_: @This(), value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-            comptime std.debug.assert(@TypeOf(value) == Coordinate);
+            comptime std.debug.assert(@TypeOf(value) == Point);
 
-            const seq = (try serializer.serializeSequence(3)).sequenceSerialize();
+            const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
             try seq.serializeElement(value.x);
             try seq.serializeElement(value.y);
-            try seq.serializeElement(value.z);
             return try seq.end();
         }
     };
@@ -323,10 +316,9 @@
 
         // [
         //   1,
-        //   2,
-        //   3
+        //   2
         // ]
-        try json.toPrettyWriterWith(coordinate, stdout, ser);
+        try json.toPrettyWriterWith(point, stdout, ser);
     }
     ```
 </details>
@@ -348,20 +340,19 @@
     const std = @import("std");
     const json = @import("json");
 
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const Point = struct { x: i32, y: i32 };
     const string =
         \\{
         \\  "x": 1,
-        \\  "y": 2,
-        \\  "z": 3
+        \\  "y": 2
         \\}
     ;
 
     pub fn main() anyerror!void {
-        const coordinate = try json.fromSlice(null, Coordinate, string);
+        const point = try json.fromSlice(null, Point, string);
 
-        // Coordinate{ .x = 1, .y = 2, .z = 3 }
-        std.debug.print("{any}\n", .{coordinate});
+        // Point{ .x = 1, .y = 2 }
+        std.debug.print("{any}\n", .{point});
     }
     ```
 </details>
@@ -387,19 +378,18 @@
     const getty = @import("getty");
     const json = @import("json");
 
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    const Point = struct { x: i32, y: i32 };
     const string =
         \\[
         \\  1,
-        \\  2,
-        \\  3
+        \\  2
         \\]
     ;
 
     const Visitor = struct {
         pub usingnamespace getty.de.Visitor(
             @This(),
-            Coordinate,
+            Point,
             undefined,
             undefined,
             undefined,
@@ -412,12 +402,12 @@
             undefined,
         );
 
-        pub fn visitSequence(_: @This(), sequenceAccess: anytype) !Coordinate {
-            var coordinate: Coordinate = undefined;
+        pub fn visitSequence(_: @This(), sequenceAccess: anytype) !Point {
+            var point: Point = undefined;
 
-            inline for (std.meta.fields(Coordinate)) |field| {
+            inline for (std.meta.fields(Point)) |field| {
                 if (try sequenceAccess.nextElement(i32)) |elem| {
-                    @field(coordinate, field.name) = elem;
+                    @field(point, field.name) = elem;
                 }
             }
 
@@ -425,7 +415,7 @@
                 return error.InvalidLength;
             }
 
-            return coordinate;
+            return point;
         }
     };
 
@@ -436,10 +426,10 @@
         var d = getty.de.SequenceDe(@TypeOf(visitor)){ .visitor = visitor };
         const de = d.de();
 
-        const coordinate = try json.fromSliceWith(null, Coordinate, string, de);
+        const point = try json.fromSliceWith(null, Point, string, de);
 
-        // Coordinate{ .x = 1, .y = 2, .z = 3 }
-        std.debug.print("{any}\n", .{coordinate});
+        // Point{ .x = 1, .y = 2 }
+        std.debug.print("{any}\n", .{point});
     }
     ```
 </details>
