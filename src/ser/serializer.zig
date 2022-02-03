@@ -51,7 +51,7 @@ fn @"impl Serializer"(comptime Self: type) type {
     return struct {
         pub const serializer = struct {
             pub const Ok = void;
-            pub const Error = getty.ser.Error || error{
+            pub const Error = std.mem.Allocator.Error || error{
                 /// Failure to read or write bytes on an IO stream.
                 Io,
 
