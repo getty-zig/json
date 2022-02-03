@@ -4,7 +4,7 @@ const std = @import("std");
 const escape = @import("impl/formatter/details/escape.zig").escape;
 
 pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime Ser: type) type {
-    comptime getty.concepts.@"getty.Ser"(Ser);
+    comptime getty.concepts.@"getty.ser"(Ser);
 
     return struct {
         writer: Writer,
