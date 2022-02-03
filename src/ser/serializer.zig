@@ -22,25 +22,25 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime Ser:
 
         pub usingnamespace getty.Serializer(
             *Self,
-            impl.serializer.Ok,
-            impl.serializer.Error,
+            impl.@"getty.Serializer".Ok,
+            impl.@"getty.Serializer".Error,
             Ser,
-            impl.serializer.SerializeMap,
-            impl.serializer.SerializeSeq,
-            impl.serializer.Struct,
-            impl.serializer.TupleSerialize,
-            impl.serializer.serializeBool,
-            impl.serializer.serializeEnum,
-            impl.serializer.serializeFloat,
-            impl.serializer.serializeInt,
-            impl.serializer.serializeMap,
-            impl.serializer.serializeNull,
-            impl.serializer.serializeSequence,
-            impl.serializer.serializeSome,
-            impl.serializer.serializeString,
-            impl.serializer.serializeStruct,
-            impl.serializer.serializeTuple,
-            impl.serializer.serializeNull,
+            impl.@"getty.Serializer".Map,
+            impl.@"getty.Serializer".Seq,
+            impl.@"getty.Serializer".Structure,
+            impl.@"getty.Serializer".Tuple,
+            impl.@"getty.Serializer".serializeBool,
+            impl.@"getty.Serializer".serializeEnum,
+            impl.@"getty.Serializer".serializeFloat,
+            impl.@"getty.Serializer".serializeInt,
+            impl.@"getty.Serializer".serializeMap,
+            impl.@"getty.Serializer".serializeNull,
+            impl.@"getty.Serializer".serializeSequence,
+            impl.@"getty.Serializer".serializeSome,
+            impl.@"getty.Serializer".serializeString,
+            impl.@"getty.Serializer".serializeStruct,
+            impl.@"getty.Serializer".serializeTuple,
+            impl.@"getty.Serializer".serializeNull,
         );
     };
 }
@@ -49,7 +49,7 @@ fn @"impl Serializer"(comptime Self: type) type {
     const S = Serialize(Self);
 
     return struct {
-        pub const serializer = struct {
+        pub const @"getty.Serializer" = struct {
             pub const Ok = void;
             pub const Error = std.mem.Allocator.Error || error{
                 /// Failure to read or write bytes on an IO stream.
@@ -71,10 +71,10 @@ fn @"impl Serializer"(comptime Self: type) type {
                 Eof,
             };
 
-            pub const SerializeMap = S;
-            pub const SerializeSeq = S;
-            pub const Struct = S;
-            pub const TupleSerialize = S;
+            pub const Map = S;
+            pub const Seq = S;
+            pub const Structure = S;
+            pub const Tuple = S;
 
             pub fn serializeBool(self: *Self, value: bool) Error!Ok {
                 self.formatter.writeBool(self.writer, value) catch return Error.Io;
@@ -96,34 +96,34 @@ fn @"impl Serializer"(comptime Self: type) type {
                 self.formatter.writeInt(self.writer, value) catch return Error.Io;
             }
 
-            pub fn serializeMap(self: *Self, length: ?usize) Error!SerializeMap {
+            pub fn serializeMap(self: *Self, length: ?usize) Error!Map {
                 self.formatter.beginObject(self.writer) catch return Error.Io;
 
                 if (length) |l| {
                     if (l == 0) {
                         self.formatter.endObject(self.writer) catch return Error.Io;
-                        return SerializeMap{ .ser = self, .state = .empty };
+                        return Map{ .ser = self, .state = .empty };
                     }
                 }
 
-                return SerializeMap{ .ser = self, .state = .first };
+                return Map{ .ser = self, .state = .first };
             }
 
             pub fn serializeNull(self: *Self) Error!Ok {
                 self.formatter.writeNull(self.writer) catch return Error.Io;
             }
 
-            pub fn serializeSequence(self: *Self, length: ?usize) Error!SerializeSeq {
+            pub fn serializeSequence(self: *Self, length: ?usize) Error!Seq {
                 self.formatter.beginArray(self.writer) catch return Error.Io;
 
                 if (length) |l| {
                     if (l == 0) {
                         self.formatter.endArray(self.writer) catch return Error.Io;
-                        return SerializeSeq{ .ser = self, .state = .empty };
+                        return Seq{ .ser = self, .state = .empty };
                     }
                 }
 
-                return SerializeSeq{ .ser = self, .state = .first };
+                return Seq{ .ser = self, .state = .first };
             }
 
             pub fn serializeSome(self: *Self, value: anytype) Error!Ok {
@@ -140,20 +140,20 @@ fn @"impl Serializer"(comptime Self: type) type {
                 self.formatter.endString(self.writer) catch return Error.Io;
             }
 
-            pub fn serializeStruct(self: *Self, comptime name: []const u8, length: usize) Error!Struct {
+            pub fn serializeStruct(self: *Self, comptime name: []const u8, length: usize) Error!Structure {
                 _ = name;
 
                 self.formatter.beginObject(self.writer) catch return Error.Io;
 
                 if (length == 0) {
                     self.formatter.endObject(self.writer) catch return Error.Io;
-                    return Struct{ .ser = self, .state = .empty };
+                    return Structure{ .ser = self, .state = .empty };
                 }
 
-                return Struct{ .ser = self, .state = .first };
+                return Structure{ .ser = self, .state = .first };
             }
 
-            pub fn serializeTuple(self: *Self, length: ?usize) Error!TupleSerialize {
+            pub fn serializeTuple(self: *Self, length: ?usize) Error!Tuple {
                 return serializeSequence(self, length);
             }
         };
@@ -168,37 +168,37 @@ fn Serialize(comptime Ser: type) type {
         const Self = @This();
         const impl = @"impl Serialize"(Ser);
 
-        pub usingnamespace getty.ser.SerializeMap(
+        pub usingnamespace getty.ser.Map(
             *Self,
-            impl.mapSerialize.Ok,
-            impl.mapSerialize.Error,
-            impl.mapSerialize.serializeKey,
-            impl.mapSerialize.serializeValue,
-            impl.mapSerialize.end,
+            impl.@"getty.ser.Map".Ok,
+            impl.@"getty.ser.Map".Error,
+            impl.@"getty.ser.Map".serializeKey,
+            impl.@"getty.ser.Map".serializeValue,
+            impl.@"getty.ser.Map".end,
         );
 
-        pub usingnamespace getty.ser.SerializeSeq(
+        pub usingnamespace getty.ser.Seq(
             *Self,
-            impl.sequenceSerialize.Ok,
-            impl.sequenceSerialize.Error,
-            impl.sequenceSerialize.serializeElement,
-            impl.sequenceSerialize.end,
+            impl.@"getty.ser.Seq".Ok,
+            impl.@"getty.ser.Seq".Error,
+            impl.@"getty.ser.Seq".serializeElement,
+            impl.@"getty.ser.Seq".end,
         );
 
-        pub usingnamespace getty.ser.Struct(
+        pub usingnamespace getty.ser.Structure(
             *Self,
-            impl.@"getty.ser.Struct".Ok,
-            impl.@"getty.ser.Struct".Error,
-            impl.@"getty.ser.Struct".serializeField,
-            impl.mapSerialize.end,
+            impl.@"getty.ser.Structure".Ok,
+            impl.@"getty.ser.Structure".Error,
+            impl.@"getty.ser.Structure".serializeField,
+            impl.@"getty.ser.Map".end,
         );
 
-        pub usingnamespace getty.ser.TupleSerialize(
+        pub usingnamespace getty.ser.Tuple(
             *Self,
-            impl.sequenceSerialize.Ok,
-            impl.sequenceSerialize.Error,
-            impl.sequenceSerialize.serializeElement,
-            impl.sequenceSerialize.end,
+            impl.@"getty.ser.Seq".Ok,
+            impl.@"getty.ser.Seq".Error,
+            impl.@"getty.ser.Seq".serializeElement,
+            impl.@"getty.ser.Seq".end,
         );
     };
 }
@@ -207,9 +207,9 @@ fn @"impl Serialize"(comptime Ser: type) type {
     const Self = Serialize(Ser);
 
     return struct {
-        pub const mapSerialize = struct {
-            pub const Ok = @"impl Serializer"(Ser).serializer.Ok;
-            pub const Error = @"impl Serializer"(Ser).serializer.Error;
+        pub const @"getty.ser.Map" = struct {
+            pub const Ok = @"impl Serializer"(Ser).@"getty.Serializer".Ok;
+            pub const Error = @"impl Serializer"(Ser).@"getty.Serializer".Error;
 
             // TODO: serde-json passes in MapKeySerializer instead of self to
             // `getty.serialize`. This works though, so should we change it?
@@ -234,9 +234,9 @@ fn @"impl Serialize"(comptime Ser: type) type {
             }
         };
 
-        pub const sequenceSerialize = struct {
-            pub const Ok = @"impl Serializer"(Ser).serializer.Ok;
-            pub const Error = @"impl Serializer"(Ser).serializer.Error;
+        pub const @"getty.ser.Seq" = struct {
+            pub const Ok = @"impl Serializer"(Ser).@"getty.Serializer".Ok;
+            pub const Error = @"impl Serializer"(Ser).@"getty.Serializer".Error;
 
             pub fn serializeElement(self: *Self, value: anytype) Error!Ok {
                 self.ser.formatter.beginArrayValue(self.ser.writer, self.state == .first) catch return Error.Io;
@@ -253,9 +253,9 @@ fn @"impl Serialize"(comptime Ser: type) type {
             }
         };
 
-        pub const @"getty.ser.Struct" = struct {
-            pub const Ok = @"impl Serializer"(Ser).serializer.Ok;
-            pub const Error = @"impl Serializer"(Ser).serializer.Error;
+        pub const @"getty.ser.Structure" = struct {
+            pub const Ok = @"impl Serializer"(Ser).@"getty.Serializer".Ok;
+            pub const Error = @"impl Serializer"(Ser).@"getty.Serializer".Error;
 
             pub fn serializeField(self: *Self, comptime key: []const u8, value: anytype) Error!void {
                 var k = blk: {
@@ -274,7 +274,7 @@ fn @"impl Serialize"(comptime Ser: type) type {
                 self.ser.formatter.writeRawFragment(self.ser.writer, &k) catch return error.Io;
                 self.ser.formatter.endObjectKey(self.ser.writer) catch return error.Io;
 
-                try self.mapSerialize().serializeValue(value);
+                try self.map().serializeValue(value);
 
                 self.state = .rest;
             }
