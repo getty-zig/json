@@ -27,7 +27,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime Ser:
             Ser,
             impl.serializer.SerializeMap,
             impl.serializer.SerializeSeq,
-            impl.serializer.StructSerialize,
+            impl.serializer.Struct,
             impl.serializer.TupleSerialize,
             impl.serializer.serializeBool,
             impl.serializer.serializeEnum,
@@ -73,7 +73,7 @@ fn @"impl Serializer"(comptime Self: type) type {
 
             pub const SerializeMap = S;
             pub const SerializeSeq = S;
-            pub const StructSerialize = S;
+            pub const Struct = S;
             pub const TupleSerialize = S;
 
             pub fn serializeBool(self: *Self, value: bool) Error!Ok {
@@ -140,17 +140,17 @@ fn @"impl Serializer"(comptime Self: type) type {
                 self.formatter.endString(self.writer) catch return Error.Io;
             }
 
-            pub fn serializeStruct(self: *Self, comptime name: []const u8, length: usize) Error!StructSerialize {
+            pub fn serializeStruct(self: *Self, comptime name: []const u8, length: usize) Error!Struct {
                 _ = name;
 
                 self.formatter.beginObject(self.writer) catch return Error.Io;
 
                 if (length == 0) {
                     self.formatter.endObject(self.writer) catch return Error.Io;
-                    return StructSerialize{ .ser = self, .state = .empty };
+                    return Struct{ .ser = self, .state = .empty };
                 }
 
-                return StructSerialize{ .ser = self, .state = .first };
+                return Struct{ .ser = self, .state = .first };
             }
 
             pub fn serializeTuple(self: *Self, length: ?usize) Error!TupleSerialize {
@@ -185,11 +185,11 @@ fn Serialize(comptime Ser: type) type {
             impl.sequenceSerialize.end,
         );
 
-        pub usingnamespace getty.ser.StructSerialize(
+        pub usingnamespace getty.ser.Struct(
             *Self,
-            impl.structSerialize.Ok,
-            impl.structSerialize.Error,
-            impl.structSerialize.serializeField,
+            impl.@"getty.ser.Struct".Ok,
+            impl.@"getty.ser.Struct".Error,
+            impl.@"getty.ser.Struct".serializeField,
             impl.mapSerialize.end,
         );
 
@@ -253,7 +253,7 @@ fn @"impl Serialize"(comptime Ser: type) type {
             }
         };
 
-        pub const structSerialize = struct {
+        pub const @"getty.ser.Struct" = struct {
             pub const Ok = @"impl Serializer"(Ser).serializer.Ok;
             pub const Error = @"impl Serializer"(Ser).serializer.Error;
 
