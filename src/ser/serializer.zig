@@ -25,8 +25,8 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime Ser:
             impl.serializer.Ok,
             impl.serializer.Error,
             Ser,
-            impl.serializer.MapSerialize,
-            impl.serializer.SequenceSerialize,
+            impl.serializer.SerializeMap,
+            impl.serializer.SerializeSeq,
             impl.serializer.StructSerialize,
             impl.serializer.TupleSerialize,
             impl.serializer.serializeBool,
@@ -71,8 +71,8 @@ fn @"impl Serializer"(comptime Self: type) type {
                 Eof,
             };
 
-            pub const MapSerialize = S;
-            pub const SequenceSerialize = S;
+            pub const SerializeMap = S;
+            pub const SerializeSeq = S;
             pub const StructSerialize = S;
             pub const TupleSerialize = S;
 
@@ -96,34 +96,34 @@ fn @"impl Serializer"(comptime Self: type) type {
                 self.formatter.writeInt(self.writer, value) catch return Error.Io;
             }
 
-            pub fn serializeMap(self: *Self, length: ?usize) Error!MapSerialize {
+            pub fn serializeMap(self: *Self, length: ?usize) Error!SerializeMap {
                 self.formatter.beginObject(self.writer) catch return Error.Io;
 
                 if (length) |l| {
                     if (l == 0) {
                         self.formatter.endObject(self.writer) catch return Error.Io;
-                        return MapSerialize{ .ser = self, .state = .empty };
+                        return SerializeMap{ .ser = self, .state = .empty };
                     }
                 }
 
-                return MapSerialize{ .ser = self, .state = .first };
+                return SerializeMap{ .ser = self, .state = .first };
             }
 
             pub fn serializeNull(self: *Self) Error!Ok {
                 self.formatter.writeNull(self.writer) catch return Error.Io;
             }
 
-            pub fn serializeSequence(self: *Self, length: ?usize) Error!SequenceSerialize {
+            pub fn serializeSequence(self: *Self, length: ?usize) Error!SerializeSeq {
                 self.formatter.beginArray(self.writer) catch return Error.Io;
 
                 if (length) |l| {
                     if (l == 0) {
                         self.formatter.endArray(self.writer) catch return Error.Io;
-                        return SequenceSerialize{ .ser = self, .state = .empty };
+                        return SerializeSeq{ .ser = self, .state = .empty };
                     }
                 }
 
-                return SequenceSerialize{ .ser = self, .state = .first };
+                return SerializeSeq{ .ser = self, .state = .first };
             }
 
             pub fn serializeSome(self: *Self, value: anytype) Error!Ok {
@@ -168,7 +168,7 @@ fn Serialize(comptime Ser: type) type {
         const Self = @This();
         const impl = @"impl Serialize"(Ser);
 
-        pub usingnamespace getty.ser.MapSerialize(
+        pub usingnamespace getty.ser.SerializeMap(
             *Self,
             impl.mapSerialize.Ok,
             impl.mapSerialize.Error,
@@ -177,7 +177,7 @@ fn Serialize(comptime Ser: type) type {
             impl.mapSerialize.end,
         );
 
-        pub usingnamespace getty.ser.SequenceSerialize(
+        pub usingnamespace getty.ser.SerializeSeq(
             *Self,
             impl.sequenceSerialize.Ok,
             impl.sequenceSerialize.Error,
