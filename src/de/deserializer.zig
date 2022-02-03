@@ -2,7 +2,7 @@ const concepts = @import("concepts");
 const getty = @import("getty");
 const std = @import("std");
 
-pub fn Deserializer(comptime De: type) type {
+pub fn Deserializer(comptime with: ?type) type {
     return struct {
         allocator: ?std.mem.Allocator = null,
         tokens: std.json.TokenStream,
@@ -35,7 +35,7 @@ pub fn Deserializer(comptime De: type) type {
         pub usingnamespace getty.Deserializer(
             *Self,
             Error,
-            De,
+            with,
             deserializeBool,
             deserializeEnum,
             deserializeFloat,
