@@ -105,7 +105,7 @@
                 }
 
                 pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                    const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
+                    const seq = (try serializer.serializeSequence(2)).seq();
                     try seq.serializeElement(value.x);
                     try seq.serializeElement(value.y);
                     return try seq.end();
@@ -148,7 +148,7 @@
                 }
 
                 pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                    const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
+                    const seq = (try serializer.serializeSequence(2)).seq();
                     try seq.serializeElement(value.x);
                     try seq.serializeElement(value.y);
                     return try seq.end();
@@ -254,7 +254,7 @@
                 }
 
                 pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                    const seq = (try serializer.serializeSequence(2)).sequenceSerialize();
+                    const seq = (try serializer.serializeSequence(2)).seq();
                     try seq.serializeElement(value.x);
                     try seq.serializeElement(value.y);
                     return try seq.end();
