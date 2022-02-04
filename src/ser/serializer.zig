@@ -3,11 +3,7 @@ const std = @import("std");
 
 const escape = @import("impl/formatter/details/escape.zig").escape;
 
-pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime with: ?type) type {
-    comptime {
-        if (with) |w| getty.concepts.@"getty.ser.with"(w);
-    }
-
+pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime with: anytype) type {
     return struct {
         writer: Writer,
         formatter: Formatter,
