@@ -33,7 +33,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime with
             impl.@"getty.Serializer".serializeInt,
             impl.@"getty.Serializer".serializeMap,
             impl.@"getty.Serializer".serializeNull,
-            impl.@"getty.Serializer".serializeSequence,
+            impl.@"getty.Serializer".serializeSeq,
             impl.@"getty.Serializer".serializeSome,
             impl.@"getty.Serializer".serializeString,
             impl.@"getty.Serializer".serializeStruct,
@@ -111,7 +111,7 @@ fn @"impl Serializer"(comptime Self: type) type {
                 self.formatter.writeNull(self.writer) catch return Error.Io;
             }
 
-            pub fn serializeSequence(self: *Self, length: ?usize) Error!Seq {
+            pub fn serializeSeq(self: *Self, length: ?usize) Error!Seq {
                 self.formatter.beginArray(self.writer) catch return Error.Io;
 
                 if (length) |l| {
@@ -152,7 +152,7 @@ fn @"impl Serializer"(comptime Self: type) type {
             }
 
             pub fn serializeTuple(self: *Self, length: ?usize) Error!Tuple {
-                return serializeSequence(self, length);
+                return serializeSeq(self, length);
             }
         };
     };
