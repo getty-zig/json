@@ -3,6 +3,10 @@ const getty = @import("getty");
 const std = @import("std");
 
 pub fn Deserializer(comptime with: ?type) type {
+    comptime {
+        if (with) |w| getty.concepts.@"getty.de.with"(w);
+    }
+
     return struct {
         allocator: ?std.mem.Allocator = null,
         tokens: std.json.TokenStream,
