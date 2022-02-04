@@ -99,18 +99,17 @@
 
     pub fn main() anyerror!void {
         const string = try json.toSliceWith(allocator, point, struct {
-            pub const points = struct {
-                pub fn is(comptime T: type) bool {
-                    return T == Point;
-                }
+            pub fn is(comptime T: type) bool {
+                return T == Point;
+            }
 
-                pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                    const seq = (try serializer.serializeSeq(2)).seq();
-                    try seq.serializeElement(value.x);
-                    try seq.serializeElement(value.y);
-                    return try seq.end();
+            pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+                const seq = (try serializer.serializeSeq(null)).seq();
+                inline for (std.meta.fields(Point)) |field| {
+                    try seq.serializeElement(@field(value, field.name));
                 }
-            };
+                return try seq.end();
+            }
         });
         defer allocator.free(string);
 
@@ -142,18 +141,17 @@
 
     pub fn main() anyerror!void {
         const string = try json.toPrettySliceWith(allocator, point, struct {
-            pub const points = struct {
-                pub fn is(comptime T: type) bool {
-                    return T == Point;
-                }
+            pub fn is(comptime T: type) bool {
+                return T == Point;
+            }
 
-                pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                    const seq = (try serializer.serializeSeq(2)).seq();
-                    try seq.serializeElement(value.x);
-                    try seq.serializeElement(value.y);
-                    return try seq.end();
+            pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+                const seq = (try serializer.serializeSeq(null)).seq();
+                inline for (std.meta.fields(Point)) |field| {
+                    try seq.serializeElement(@field(value, field.name));
                 }
-            };
+                return try seq.end();
+            }
         });
         defer allocator.free(string);
 
@@ -248,18 +246,16 @@
 
         // [1,2]
         try json.toWriterWith(point, stdout, struct {
-            pub const points = struct {
-                pub fn is(comptime T: type) bool {
-                    return T == Point;
-                }
+            pub fn is(comptime T: type) bool {
+                return T == Point;
+            }
 
-                pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                    const seq = (try serializer.serializeSeq(2)).seq();
-                    try seq.serializeElement(value.x);
-                    try seq.serializeElement(value.y);
-                    return try seq.end();
-                }
-            };
+            pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+                const seq = (try serializer.serializeSeq(2)).seq();
+                try seq.serializeElement(value.x);
+                try seq.serializeElement(value.y);
+                return try seq.end();
+            }
         });
     }
     ```
@@ -288,20 +284,21 @@
     pub fn main() anyerror!void {
         const stdout = std.io.getStdOut().writer();
 
-        // [1,2]
+        // [
+        //   1,
+        //   2
+        // ]
         try json.toPrettyWriterWith(point, stdout, struct {
-            pub const points = struct {
-                pub fn is(comptime T: type) bool {
-                    return T == Point;
-                }
+            pub fn is(comptime T: type) bool {
+                return T == Point;
+            }
 
-                pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                    const seq = (try serializer.serializeSeq(2)).seq();
-                    try seq.serializeElement(value.x);
-                    try seq.serializeElement(value.y);
-                    return try seq.end();
-                }
-            };
+            pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+                const seq = (try serializer.serializeSeq(2)).seq();
+                try seq.serializeElement(value.x);
+                try seq.serializeElement(value.y);
+                return try seq.end();
+            }
         });
     }
     ```
