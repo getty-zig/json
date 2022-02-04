@@ -38,12 +38,12 @@ pub fn toPrettyWriterWith(value: anytype, writer: anytype, comptime with: anytyp
 
 /// Serialize the given value as JSON into the given I/O stream.
 pub fn toWriter(value: anytype, writer: anytype) !void {
-    return try toWriterWith(value, writer, null);
+    return try toWriterWith(value, writer, getty.ser.default_with);
 }
 
 /// Serialize the given value as pretty-printed JSON into the given I/O stream.
 pub fn toPrettyWriter(value: anytype, writer: anytype) !void {
-    return try toPrettyWriterWith(value, writer, null);
+    return try toPrettyWriterWith(value, writer, getty.ser.default_with);
 }
 
 /// Serialize the given value as a JSON string.
