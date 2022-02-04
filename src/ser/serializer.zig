@@ -5,7 +5,7 @@ const escape = @import("impl/formatter/details/escape.zig").escape;
 
 pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime with: ?type) type {
     comptime {
-        if (with) |w| getty.concepts.@"getty.with"(w);
+        if (with) |w| getty.concepts.@"getty.ser.with"(w);
     }
 
     return struct {
