@@ -9,13 +9,13 @@ const expectEqual = testing.expectEqual;
 const expectEqualSlices = testing.expectEqualSlices;
 const expectError = testing.expectError;
 
+pub const Deserializer = @import("de/deserializer.zig").Deserializer;
+
 pub const de = struct {
     pub fn free(allocator: std.mem.Allocator, value: anytype) void {
         return getty.de.free(allocator, value);
     }
 };
-
-pub const Deserializer = @import("de/deserializer.zig").Deserializer;
 
 pub fn fromDeserializer(comptime T: type, d: anytype) !T {
     const value = try getty.deserialize(d.allocator, T, d.deserializer());
@@ -26,13 +26,13 @@ pub fn fromDeserializer(comptime T: type, d: anytype) !T {
 }
 
 pub fn fromSlice(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8) !T {
-    const D = Deserializer(null);
+    const D = Deserializer(getty.de.default_with);
     var d = if (allocator) |alloc| D.withAllocator(alloc, slice) else D.init(slice);
 
     return fromDeserializer(T, &d);
 }
 
-pub fn fromSliceWith(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8, comptime with: ?type) !T {
+pub fn fromSliceWith(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8, comptime with: anytype) !T {
     const D = Deserializer(with);
     var d = if (allocator) |alloc| D.withAllocator(alloc, slice) else D.init(slice);
 
