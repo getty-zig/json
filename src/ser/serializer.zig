@@ -23,6 +23,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime with
             impl.@"getty.Serializer".Ok,
             impl.@"getty.Serializer".Error,
             with,
+            impl.@"getty.Serializer".ser_with,
             impl.@"getty.Serializer".Map,
             impl.@"getty.Serializer".Seq,
             impl.@"getty.Serializer".Structure,
@@ -68,6 +69,8 @@ fn @"impl Serializer"(comptime Self: type) type {
                 /// retrying the deserialization once more data is available.
                 Eof,
             };
+
+            pub const ser_with = getty.ser.default_with;
 
             pub const Map = S;
             pub const Seq = S;
