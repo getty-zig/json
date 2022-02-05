@@ -360,54 +360,54 @@
     const json = @import("json");
 
     const Point = struct { x: i32, y: i32 };
-    const string =
-        \\[
-        \\  1,
-        \\  2
-        \\]
-    ;
-
-    const Visitor = struct {
-        pub usingnamespace getty.de.Visitor(
-            @This(),
-            Point,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            visitSequence,
-            undefined,
-            undefined,
-            undefined,
-        );
-
-        pub fn visitSequence(_: @This(), sequenceAccess: anytype) !Point {
-            var point: Point = undefined;
-
-            inline for (std.meta.fields(Point)) |field| {
-                if (try sequenceAccess.nextElement(i32)) |elem| {
-                    @field(point, field.name) = elem;
-                }
-            }
-
-            if ((try sequenceAccess.nextElement(i32)) != null) {
-                return error.InvalidLength;
-            }
-
-            return point;
-        }
-    };
 
     pub fn main() anyerror!void {
-        var v = Visitor{};
-        const visitor = v.visitor();
+        const point = try json.fromSliceWith(null, Point, "[1,2]", struct {
+            pub fn is(comptime T: type) bool {
+                return T == Point;
+            }
 
-        var d = getty.de.SequenceDe(@TypeOf(visitor)){ .visitor = visitor };
-        const de = d.de();
+            pub fn visitor(_: ?std.mem.Allocator, comptime _: type) Visitor {
+                return .{};
+            }
 
-        const point = try json.fromSliceWith(null, Point, string, de);
+            pub fn deserialize(comptime _: type, deserializer: anytype, v: anytype) !@TypeOf(v).Value {
+                return try deserializer.deserializeSequence(v);
+            }
+
+            const Visitor = struct {
+                pub usingnamespace getty.de.Visitor(
+                    @This(),
+                    Point,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    visitSequence,
+                    undefined,
+                    undefined,
+                    undefined,
+                );
+
+                pub fn visitSequence(_: @This(), sequenceAccess: anytype) !Point {
+                    var point: Point = undefined;
+
+                    inline for (std.meta.fields(Point)) |field| {
+                        if (try sequenceAccess.nextElement(i32)) |elem| {
+                            @field(point, field.name) = elem;
+                        }
+                    }
+
+                    if ((try sequenceAccess.nextElement(i32)) != null) {
+                        return error.InvalidLength;
+                    }
+
+                    return point;
+                }
+            };
+        });
 
         // Point{ .x = 1, .y = 2 }
         std.debug.print("{any}\n", .{point});
