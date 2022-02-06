@@ -43,7 +43,7 @@ pub fn Deserializer(comptime with: anytype) type {
             deserializeInt,
             deserializeMap,
             deserializeOptional,
-            deserializeSequence,
+            deserializeSeq,
             deserializeString,
             deserializeStruct,
             deserializeVoid,
@@ -264,7 +264,7 @@ pub fn Deserializer(comptime with: anytype) type {
 
         /// Hint that the type being deserialized into is expecting a sequence of
         /// values.
-        fn deserializeSequence(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeSeq(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ArrayBegin) {
                     var access = SeqAccess(Self){ .allocator = self.allocator, .deserializer = self };
