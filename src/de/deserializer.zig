@@ -268,7 +268,7 @@ pub fn Deserializer(comptime with: anytype) type {
             if (try self.tokens.next()) |token| {
                 if (token == .ArrayBegin) {
                     var access = SeqAccess(Self){ .allocator = self.allocator, .deserializer = self };
-                    return try visitor.visitSequence(Self.@"getty.Deserializer", access.sequenceAccess());
+                    return try visitor.visitSeq(Self.@"getty.Deserializer", access.sequenceAccess());
                 }
             }
 
