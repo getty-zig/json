@@ -36,7 +36,7 @@ pub fn Deserializer(comptime with: anytype) type {
             *Self,
             Error,
             with,
-            getty.de.default_with,
+            de_with,
             deserializeBool,
             deserializeEnum,
             deserializeFloat,
@@ -49,10 +49,105 @@ pub fn Deserializer(comptime with: anytype) type {
             deserializeVoid,
         );
 
-        pub const Error = getty.de.Error ||
+        const Error = getty.de.Error ||
             std.json.TokenStream.Error ||
             std.fmt.ParseIntError ||
             std.fmt.ParseFloatError;
+
+        const de_with = .{struct_with};
+
+        const struct_with = struct {
+            pub fn is(comptime T: type) bool {
+                return @typeInfo(T) == .Struct and !@typeInfo(T).Struct.is_tuple and !std.mem.startsWith(u8, @typeName(T), "std.");
+            }
+
+            pub fn visitor(allocator: ?std.mem.Allocator, comptime T: type) Visitor(T) {
+                return .{ .allocator = allocator };
+            }
+
+            pub fn deserialize(comptime _: type, deserializer: anytype, v: anytype) !@TypeOf(v).Value {
+                return try deserializer.deserializeStruct(v);
+            }
+
+            fn Visitor(comptime Struct: type) type {
+                return struct {
+                    allocator: ?std.mem.Allocator = null,
+
+                    pub usingnamespace getty.de.Visitor(
+                        @This(),
+                        Value,
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                        visitMap,
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                    );
+
+                    const Value = Struct;
+
+                    fn visitMap(self: @This(), comptime De: type, mapAccess: anytype) De.Error!Value {
+                        const fields = std.meta.fields(Value);
+
+                        var map: Value = undefined;
+                        var seen = [_]bool{false} ** fields.len;
+
+                        errdefer {
+                            if (self.allocator) |allocator| {
+                                inline for (fields) |field, i| {
+                                    if (!field.is_comptime and seen[i]) {
+                                        getty.de.free(allocator, @field(map, field.name));
+                                    }
+                                }
+                            }
+                        }
+
+                        while (try mapAccess.nextKey([]const u8)) |key| {
+                            var found = false;
+
+                            inline for (fields) |field, i| {
+                                if (std.mem.eql(u8, field.name, key)) {
+                                    if (seen[i]) {
+                                        return error.DuplicateField;
+                                    }
+
+                                    switch (field.is_comptime) {
+                                        true => @compileError("TODO: deserialize comptime struct fields"),
+                                        false => @field(map, field.name) = try mapAccess.nextValue(field.field_type),
+                                    }
+
+                                    seen[i] = true;
+                                    found = true;
+                                    break;
+                                }
+                            }
+
+                            if (!found) {
+                                return error.UnknownField;
+                            }
+                        }
+
+                        inline for (fields) |field, i| {
+                            if (!seen[i]) {
+                                if (field.default_value) |default| {
+                                    if (!field.is_comptime) {
+                                        @field(map, field.name) = default;
+                                    }
+                                } else {
+                                    return error.MissingField;
+                                }
+                            }
+                        }
+
+                        return map;
+                    }
+                };
+            }
+        };
 
         /// Hint that the type being deserialized into is expecting a `bool` value.
         fn deserializeBool(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
@@ -344,6 +439,44 @@ fn MapAccess(comptime D: type) type {
         }
 
         pub fn nextValueSeed(self: *Self, seed: anytype) Error!@TypeOf(seed).Value {
+            return try seed.deserialize(self.allocator, self.deserializer.deserializer());
+        }
+    };
+}
+
+fn StructAccess(comptime D: type) type {
+    return struct {
+        allocator: ?std.mem.Allocator,
+        deserializer: *D,
+
+        const Self = @This();
+
+        pub usingnamespace getty.de.MapAccess(
+            *Self,
+            Error,
+            nextKeySeed,
+            nextValueSeed,
+        );
+
+        const Error = D.Error;
+
+        fn nextKeySeed(self: *Self, seed: anytype) Error!?@TypeOf(seed).Value {
+            comptime concepts.Concept("StringKey", "expected key type to be `[]const u8`")(.{
+                concepts.traits.isSame(@TypeOf(seed).Value, []const u8),
+            });
+
+            if (try self.deserializer.tokens.next()) |token| {
+                switch (token) {
+                    .ObjectEnd => return null,
+                    .String => |str| return str.slice(self.deserializer.tokens.slice, self.deserializer.tokens.i - 1),
+                    else => {},
+                }
+            }
+
+            return error.InvalidType;
+        }
+
+        fn nextValueSeed(self: *Self, seed: anytype) Error!@TypeOf(seed).Value {
             return try seed.deserialize(self.allocator, self.deserializer.deserializer());
         }
     };
