@@ -70,7 +70,7 @@ fn @"impl Serializer"(comptime Self: type) type {
                 Eof,
             };
 
-            pub const ser_with = getty.ser.default_with;
+            pub const ser_with = getty.default_st;
 
             pub const Map = S;
             pub const Seq = S;

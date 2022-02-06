@@ -26,7 +26,7 @@ pub fn fromDeserializer(comptime T: type, d: anytype) !T {
 }
 
 pub fn fromSlice(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8) !T {
-    const D = Deserializer(getty.de.default_with);
+    const D = Deserializer(getty.default_dt);
     var d = if (allocator) |alloc| D.withAllocator(alloc, slice) else D.init(slice);
 
     return fromDeserializer(T, &d);
