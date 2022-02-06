@@ -1,3 +1,5 @@
+<br/>
+
 <p align="center">
   <img alt="Getty" src="https://github.com/getty-zig/logo/blob/main/getty-solid.svg" width="410px">
   <br/>
@@ -8,7 +10,9 @@
   <a href="https://github.com/getty-zig/json/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square"></a>
 </p>
 
-<p align="center">A serialization library for the JSON data format.</p>
+## Overview
+
+Getty JSON is a serialization library for the JSON data format.
 
 ## API Reference
 
