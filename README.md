@@ -395,16 +395,16 @@ Getty JSON is a serialization library for the JSON data format.
                     undefined,
                 );
 
-                pub fn visitSeq(_: @This(), comptime _: type, seqAccess: anytype) !Point {
+                pub fn visitSeq(_: @This(), comptime _: type, seq: anytype) !Point {
                     var point: Point = undefined;
 
                     inline for (std.meta.fields(Point)) |field| {
-                        if (try seqAccess.nextElement(i32)) |elem| {
+                        if (try seq.nextElement(i32)) |elem| {
                             @field(point, field.name) = elem;
                         }
                     }
 
-                    if ((try seqAccess.nextElement(i32)) != null) {
+                    if ((try seq.nextElement(i32)) != null) {
                         return error.InvalidLength;
                     }
 
