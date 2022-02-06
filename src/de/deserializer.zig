@@ -55,11 +55,11 @@ pub fn Deserializer(comptime with: anytype) type {
             std.fmt.ParseFloatError;
 
         /// Hint that the type being deserialized into is expecting a `bool` value.
-        pub fn deserializeBool(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeBool(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 switch (token) {
-                    .True => return try visitor.visitBool(Error, true),
-                    .False => return try visitor.visitBool(Error, false),
+                    .True => return try visitor.visitBool(Self.@"getty.Deserializer", true),
+                    .False => return try visitor.visitBool(Self.@"getty.Deserializer", false),
                     else => {},
                 }
             }
@@ -69,7 +69,7 @@ pub fn Deserializer(comptime with: anytype) type {
 
         /// Hint that the type being deserialized into is expecting an `enum`
         /// value.
-        pub fn deserializeEnum(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeEnum(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 switch (token) {
                     .Number => |num| {
@@ -77,14 +77,14 @@ pub fn Deserializer(comptime with: anytype) type {
 
                         if (num.is_integer) {
                             return try switch (slice[0]) {
-                                '-' => visitor.visitInt(Error, try parseSigned(slice)),
-                                else => visitor.visitInt(Error, try parseUnsigned(slice)),
+                                '-' => visitor.visitInt(Self.@"getty.Deserializer", try parseSigned(slice)),
+                                else => visitor.visitInt(Self.@"getty.Deserializer", try parseUnsigned(slice)),
                             };
                         }
                     },
                     .String => |str| {
                         const slice = str.slice(self.tokens.slice, self.tokens.i - 1);
-                        return try visitor.visitString(Error, try self.allocator.?.dupe(u8, slice));
+                        return try visitor.visitString(Self.@"getty.Deserializer", try self.allocator.?.dupe(u8, slice));
                     },
                     else => {},
                 }
@@ -95,12 +95,12 @@ pub fn Deserializer(comptime with: anytype) type {
 
         /// Hint that the type being deserialized into is expecting a
         /// floating-point value.
-        pub fn deserializeFloat(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeFloat(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 switch (token) {
                     .Number => |num| {
                         const slice = num.slice(self.tokens.slice, self.tokens.i - 1);
-                        return try visitor.visitFloat(Error, try std.fmt.parseFloat(f128, slice));
+                        return try visitor.visitFloat(Self.@"getty.Deserializer", try std.fmt.parseFloat(f128, slice));
                     },
                     else => {},
                 }
@@ -111,7 +111,7 @@ pub fn Deserializer(comptime with: anytype) type {
 
         /// Hint that the type being deserialized into is expecting an
         /// integer value.
-        pub fn deserializeInt(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeInt(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 switch (token) {
                     .Number => |num| {
@@ -119,8 +119,8 @@ pub fn Deserializer(comptime with: anytype) type {
 
                         switch (num.is_integer) {
                             true => return try switch (slice[0]) {
-                                '-' => visitor.visitInt(Error, try parseSigned(slice)),
-                                else => visitor.visitInt(Error, try parseUnsigned(slice)),
+                                '-' => visitor.visitInt(Self.@"getty.Deserializer", try parseSigned(slice)),
+                                else => visitor.visitInt(Self.@"getty.Deserializer", try parseUnsigned(slice)),
                             },
                             false => {},
                         }
@@ -134,11 +134,11 @@ pub fn Deserializer(comptime with: anytype) type {
 
         /// Hint that the type being deserialized into is expecting a map of
         /// key-value pairs.
-        pub fn deserializeMap(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeMap(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
                     var access = MapAccess(Self){ .allocator = self.allocator, .deserializer = self };
-                    return try visitor.visitMap(access.mapAccess());
+                    return try visitor.visitMap(getty.@"getty.Deserializer", access.mapAccess());
                 }
             }
 
@@ -147,12 +147,12 @@ pub fn Deserializer(comptime with: anytype) type {
 
         /// Hint that the type being deserialized into is expecting an optional
         /// value.
-        pub fn deserializeOptional(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeOptional(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             const tokens = self.tokens;
 
             if (try self.tokens.next()) |token| {
                 return try switch (token) {
-                    .Null => visitor.visitNull(Error),
+                    .Null => visitor.visitNull(Self.@"getty.Deserializer"),
                     else => blk: {
                         // Get back the token we just ate if it was an actual
                         // value so that whenever the next deserialize method
@@ -169,11 +169,11 @@ pub fn Deserializer(comptime with: anytype) type {
 
         /// Hint that the type being deserialized into is expecting a sequence of
         /// values.
-        pub fn deserializeSequence(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeSequence(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ArrayBegin) {
                     var access = SeqAccess(Self){ .allocator = self.allocator, .deserializer = self };
-                    return try visitor.visitSequence(access.sequenceAccess());
+                    return try visitor.visitSequence(Self.@"getty.Deserializer", access.sequenceAccess());
                 }
             }
 
@@ -181,12 +181,12 @@ pub fn Deserializer(comptime with: anytype) type {
         }
 
         /// Hint that the type being deserialized into is expecting a string value.
-        pub fn deserializeString(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeString(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 switch (token) {
                     .String => |str| {
                         const slice = str.slice(self.tokens.slice, self.tokens.i - 1);
-                        return visitor.visitString(Error, try self.allocator.?.dupe(u8, slice));
+                        return visitor.visitString(Self.@"getty.Deserializer", try self.allocator.?.dupe(u8, slice));
                     },
                     else => {},
                 }
@@ -196,15 +196,22 @@ pub fn Deserializer(comptime with: anytype) type {
         }
 
         /// Hint that the type being deserialized into is expecting a struct value.
-        pub fn deserializeStruct(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
-            return try deserializeMap(self, visitor);
+        fn deserializeStruct(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+            if (try self.tokens.next()) |token| {
+                if (token == .ObjectBegin) {
+                    var access = StructAccess(Self){ .allocator = self.allocator, .deserializer = self };
+                    return try visitor.visitMap(Self.@"getty.Deserializer", access.mapAccess());
+                }
+            }
+
+            return error.InvalidType;
         }
 
         /// Hint that the type being deserialized into is expecting a `void` value.
-        pub fn deserializeVoid(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeVoid(self: *Self, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .Null) {
-                    return try visitor.visitVoid(Error);
+                    return try visitor.visitVoid(Self.@"getty.Deserializer");
                 }
             }
 
