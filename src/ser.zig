@@ -12,12 +12,12 @@ pub const ser = struct {
 
 /// Serialize the given value as JSON into the given I/O stream with the given
 /// `getty.Ser` interface value.
-pub fn toWriterWith(value: anytype, writer: anytype, comptime with: anytype) !void {
+pub fn toWriterWith(value: anytype, writer: anytype, comptime user_sbt: anytype) !void {
     comptime concepts.@"std.io.Writer"(@TypeOf(writer));
 
     const F = ser.CompactFormatter(@TypeOf(writer));
     var f = F{};
-    const S = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter()), with);
+    const S = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter()), user_sbt);
     var s = S.init(writer, f.formatter());
 
     try getty.serialize(value, s.serializer());
@@ -25,12 +25,12 @@ pub fn toWriterWith(value: anytype, writer: anytype, comptime with: anytype) !vo
 
 /// Serialize the given value as pretty-printed JSON into the given I/O stream
 /// with the given `getty.Ser` interface value.
-pub fn toPrettyWriterWith(value: anytype, writer: anytype, comptime with: anytype) !void {
+pub fn toPrettyWriterWith(value: anytype, writer: anytype, comptime user_sbt: anytype) !void {
     comptime concepts.@"std.io.Writer"(@TypeOf(writer));
 
     const F = ser.PrettyFormatter(@TypeOf(writer));
     var f = F.init();
-    const S = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter()), with);
+    const S = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter()), user_sbt);
     var s = S.init(writer, f.formatter());
 
     try getty.serialize(value, s.serializer());
@@ -75,11 +75,11 @@ pub fn toPrettySlice(allocator: std.mem.Allocator, value: anytype) ![]const u8 {
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toSliceWith(allocator: std.mem.Allocator, value: anytype, comptime with: anytype) ![]const u8 {
+pub fn toSliceWith(allocator: std.mem.Allocator, value: anytype, comptime user_sbt: anytype) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
-    try toWriterWith(value, list.writer(), with);
+    try toWriterWith(value, list.writer(), user_sbt);
     return list.toOwnedSlice();
 }
 
@@ -88,11 +88,11 @@ pub fn toSliceWith(allocator: std.mem.Allocator, value: anytype, comptime with: 
 ///
 /// The serialized string is an owned slice. The caller is responsible for
 /// freeing the returned memory.
-pub fn toPrettySliceWith(allocator: std.mem.Allocator, value: anytype, comptime with: anytype) ![]const u8 {
+pub fn toPrettySliceWith(allocator: std.mem.Allocator, value: anytype, comptime user_sbt: anytype) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
-    try toPrettyWriterWith(value, list.writer(), with);
+    try toPrettyWriterWith(value, list.writer(), user_sbt);
     return list.toOwnedSlice();
 }
 

@@ -3,7 +3,7 @@ const std = @import("std");
 
 const escape = @import("impl/formatter/details/escape.zig").escape;
 
-pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime with: anytype) type {
+pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user_sbt: anytype) type {
     return struct {
         writer: Writer,
         formatter: Formatter,
@@ -22,8 +22,8 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime with
             *Self,
             impl.@"getty.Serializer".Ok,
             impl.@"getty.Serializer".Error,
-            with,
-            impl.@"getty.Serializer".ser_with,
+            user_sbt,
+            getty.default_st,
             impl.@"getty.Serializer".Map,
             impl.@"getty.Serializer".Seq,
             impl.@"getty.Serializer".Structure,
@@ -69,8 +69,6 @@ fn @"impl Serializer"(comptime Self: type) type {
                 /// retrying the deserialization once more data is available.
                 Eof,
             };
-
-            pub const ser_with = getty.default_st;
 
             pub const Map = S;
             pub const Seq = S;

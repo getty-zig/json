@@ -32,8 +32,8 @@ pub fn fromSlice(allocator: ?std.mem.Allocator, comptime T: type, slice: []const
     return fromDeserializer(T, &d);
 }
 
-pub fn fromSliceWith(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8, comptime with: anytype) !T {
-    const D = Deserializer(with);
+pub fn fromSliceWith(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8, comptime user_dbt: anytype) !T {
+    const D = Deserializer(user_dbt);
     var d = if (allocator) |alloc| D.withAllocator(alloc, slice) else D.init(slice);
 
     return fromDeserializer(T, &d);

@@ -2,7 +2,7 @@ const concepts = @import("concepts");
 const getty = @import("getty");
 const std = @import("std");
 
-pub fn Deserializer(comptime with: anytype) type {
+pub fn Deserializer(comptime user_dbt: anytype) type {
     return struct {
         allocator: ?std.mem.Allocator = null,
         tokens: std.json.TokenStream,
@@ -35,8 +35,8 @@ pub fn Deserializer(comptime with: anytype) type {
         pub usingnamespace getty.Deserializer(
             *Self,
             Error,
-            with,
-            de_with,
+            user_dbt,
+            dt,
             deserializeBool,
             deserializeEnum,
             deserializeFloat,
@@ -54,9 +54,9 @@ pub fn Deserializer(comptime with: anytype) type {
             std.fmt.ParseIntError ||
             std.fmt.ParseFloatError;
 
-        const de_with = .{struct_with};
+        const dt = .{struct_db};
 
-        const struct_with = struct {
+        const struct_db = struct {
             pub fn is(comptime T: type) bool {
                 return @typeInfo(T) == .Struct and !@typeInfo(T).Struct.is_tuple and !std.mem.startsWith(u8, @typeName(T), "std.");
             }
