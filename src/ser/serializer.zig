@@ -27,7 +27,6 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             impl.@"getty.Serializer".Map,
             impl.@"getty.Serializer".Seq,
             impl.@"getty.Serializer".Structure,
-            impl.@"getty.Serializer".Tuple,
             impl.@"getty.Serializer".serializeBool,
             impl.@"getty.Serializer".serializeEnum,
             impl.@"getty.Serializer".serializeFloat,
@@ -38,7 +37,6 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             impl.@"getty.Serializer".serializeSome,
             impl.@"getty.Serializer".serializeString,
             impl.@"getty.Serializer".serializeStruct,
-            impl.@"getty.Serializer".serializeTuple,
             impl.@"getty.Serializer".serializeNull,
         );
     };
@@ -73,7 +71,6 @@ fn @"impl Serializer"(comptime Self: type) type {
             pub const Map = S;
             pub const Seq = S;
             pub const Structure = S;
-            pub const Tuple = S;
 
             pub fn serializeBool(self: *Self, value: bool) Error!Ok {
                 self.formatter.writeBool(self.writer, value) catch return Error.Io;
@@ -151,10 +148,6 @@ fn @"impl Serializer"(comptime Self: type) type {
 
                 return Structure{ .ser = self, .state = .first };
             }
-
-            pub fn serializeTuple(self: *Self, length: ?usize) Error!Tuple {
-                return serializeSeq(self, length);
-            }
         };
     };
 }
@@ -190,14 +183,6 @@ fn Serialize(comptime Ser: type) type {
             impl.@"getty.ser.Structure".Error,
             impl.@"getty.ser.Structure".serializeField,
             impl.@"getty.ser.Map".end,
-        );
-
-        pub usingnamespace getty.ser.Tuple(
-            *Self,
-            impl.@"getty.ser.Seq".Ok,
-            impl.@"getty.ser.Seq".Error,
-            impl.@"getty.ser.Seq".serializeElement,
-            impl.@"getty.ser.Seq".end,
         );
     };
 }
