@@ -24,7 +24,7 @@ Getty JSON is a serialization library for the JSON data format.
 - **Synopsis**
 
     ```zig
-    fn toSlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8
+    fn toSlice(allocator: std.mem.Allocator, value: anytype) ![]const u8
     ```
 
 - **Example**
@@ -54,7 +54,7 @@ Getty JSON is a serialization library for the JSON data format.
 - **Synopsis**
 
     ```zig
-    fn toPrettySlice(allocator: *std.mem.Allocator, value: anytype) ![]const u8
+    fn toPrettySlice(allocator: std.mem.Allocator, value: anytype) ![]const u8
     ```
 
 - **Example**
@@ -87,7 +87,7 @@ Getty JSON is a serialization library for the JSON data format.
 - **Synopsis**
 
     ```zig
-    fn toSliceWith(allocator: *std.mem.Allocator, value: anytype, ser: anytype) ![]const u8
+    fn toSliceWith(allocator: std.mem.Allocator, value: anytype, ser: anytype) ![]const u8
     ```
 
 - **Example**
@@ -129,7 +129,7 @@ Getty JSON is a serialization library for the JSON data format.
 - **Synopsis**
 
     ```zig
-    fn toPrettySliceWith(allocator: *std.mem.Allocator, value: anytype, ser: anytype) ![]const u8
+    fn toPrettySliceWith(allocator: std.mem.Allocator, value: anytype, ser: anytype) ![]const u8
     ```
 
 - **Example**
@@ -316,7 +316,7 @@ Getty JSON is a serialization library for the JSON data format.
 - **Synopsis**
 
     ```zig
-    fn fromSlice(allocator: ?*std.mem.Allocator, comptime T: type, slice: []const u8) !T
+    fn fromSlice(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8) !T
     ```
 
 - **Example**
@@ -349,7 +349,7 @@ Getty JSON is a serialization library for the JSON data format.
 
     ```zig
     fn fromSliceWith(
-        allocator: ?*std.mem.Allocator,
+        allocator: ?std.mem.Allocator,
         comptime T: type,
         slice: []const u8,
         de: anytype,
