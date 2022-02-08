@@ -371,12 +371,17 @@ Getty JSON is a serialization library for the JSON data format.
                 return T == Point;
             }
 
-            pub fn visitor(_: ?std.mem.Allocator, comptime _: type) Visitor {
+            pub fn visitor(comptime _: type) Visitor {
                 return .{};
             }
 
-            pub fn deserialize(comptime _: type, deserializer: anytype, v: anytype) !Point {
-                return try deserializer.deserializeSeq(v);
+            pub fn deserialize(
+                allocator: ?std.mem.Allocator,
+                comptime _: type,
+                deserializer: anytype,
+                v: anytype,
+            ) !Point {
+                return try deserializer.deserializeSeq(allocator, v);
             }
 
             const Visitor = struct {
@@ -395,16 +400,21 @@ Getty JSON is a serialization library for the JSON data format.
                     undefined,
                 );
 
-                pub fn visitSeq(_: @This(), comptime _: type, seq: anytype) !Point {
+                pub fn visitSeq(
+                    _: @This(),
+                    allocator: ?std.mem.Allocator,
+                    comptime _: type,
+                    seq: anytype,
+                ) !Point {
                     var point: Point = undefined;
 
                     inline for (std.meta.fields(Point)) |field| {
-                        if (try seq.nextElement(i32)) |elem| {
+                        if (try seq.nextElement(allocator, i32)) |elem| {
                             @field(point, field.name) = elem;
                         }
                     }
 
-                    if ((try seq.nextElement(i32)) != null) {
+                    if ((try seq.nextElement(allocator, i32)) != null) {
                         return error.InvalidLength;
                     }
 
