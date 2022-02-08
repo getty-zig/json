@@ -61,15 +61,15 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
                 return @typeInfo(T) == .Struct and !@typeInfo(T).Struct.is_tuple and !std.mem.startsWith(u8, @typeName(T), "std.");
             }
 
-            pub fn visitor(comptime T: type) Visitor(T) {
-                return .{};
+            pub fn Visitor(comptime T: type) type {
+                return StructVisitor(T);
             }
 
             pub fn deserialize(allocator: ?std.mem.Allocator, comptime _: type, deserializer: anytype, v: anytype) !@TypeOf(v).Value {
                 return try deserializer.deserializeStruct(allocator, v);
             }
 
-            fn Visitor(comptime T: type) type {
+            fn StructVisitor(comptime T: type) type {
                 return struct {
                     pub usingnamespace getty.de.Visitor(
                         @This(),
