@@ -112,7 +112,7 @@ Getty JSON is a serialization library for the JSON data format.
 </details>
 
 <details>
-<summary><code>toSliceWith</code> - Serializes a value as a JSON string using a <code>getty.Ser</code> value.</summary>
+<summary><code>toSliceWith</code> - Serializes a value as a JSON string using a Serialization Block or Tuple.</summary>
 
 - **Synopsis**
 
@@ -154,7 +154,7 @@ Getty JSON is a serialization library for the JSON data format.
 </details>
 
 <details>
-<summary><code>toPrettySliceWith</code> - Serializes a value as a JSON string using a <code>getty.Ser</code> value.</summary>
+<summary><code>toPrettySliceWith</code> - Serializes a value as a JSON string using a Serialization BLock or Tuple.</summary>
 
 - **Synopsis**
 
@@ -256,7 +256,7 @@ Getty JSON is a serialization library for the JSON data format.
 </details>
 
 <details>
-<summary><code>toWriterWith</code> - Serializes a value as JSON into an I/O stream using a <code>getty.Ser</code> value.</summary>
+<summary><code>toWriterWith</code> - Serializes a value as JSON into an I/O stream using a Serialization Block or Tuple.</summary>
 
 - **Synopsis**
 
@@ -296,7 +296,7 @@ Getty JSON is a serialization library for the JSON data format.
 </details>
 
 <details>
-<summary><code>toPrettyWriterWith</code> - Serializes a value as pretty-printed JSON into an I/O stream using a <code>getty.Ser</code> value.</summary>
+<summary><code>toPrettyWriterWith</code> - Serializes a value as pretty-printed JSON into an I/O stream using a Serialization Block or Tuple.</summary>
 
 - **Synopsis**
 
@@ -373,7 +373,7 @@ Getty JSON is a serialization library for the JSON data format.
 </details>
 
 <details>
-<summary><code>fromSliceWith</code> - Deserializes a value of type <code>T</code> from a string of JSON text using a <code>getty.De</code> value.</summary>
+<summary><code>fromSliceWith</code> - Deserializes a value of type <code>T</code> from a string of JSON text using a Deserialization Block or Tuple.</summary>
 
 - **Synopsis**
 
