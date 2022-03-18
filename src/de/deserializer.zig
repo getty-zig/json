@@ -137,7 +137,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         fn deserializeMap(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
-                    var map = Map(Self){ .deserializer = self };
+                    var map = Map(Self){ .de = self };
                     return try visitor.visitMap(allocator, getty.@"getty.Deserializer", map.map());
                 }
             }
@@ -172,7 +172,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         fn deserializeSeq(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ArrayBegin) {
-                    var seq = Seq(Self){ .deserializer = self };
+                    var seq = Seq(Self){ .de = self };
                     return try visitor.visitSeq(allocator, Self.@"getty.Deserializer", seq.seq());
                 }
             }
@@ -274,64 +274,29 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
     };
 }
 
-fn Seq(comptime D: type) type {
+fn Map(comptime De: type) type {
     return struct {
-        deserializer: *D,
-
-        const Self = @This();
-
-        pub usingnamespace getty.de.Seq(
-            *Self,
-            Error,
-            nextElementSeed,
-        );
-
-        const Error = D.Error;
-
-        pub fn nextElementSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
-            const element = seed.deserialize(allocator, self.deserializer.deserializer()) catch |err| {
-                // Slice for the current token instead of looking at the
-                // `token` field since the token isn't set for some reason.
-                if (self.deserializer.tokens.i - 1 >= self.deserializer.tokens.slice.len) {
-                    return err;
-                }
-
-                return switch (self.deserializer.tokens.slice[self.deserializer.tokens.i - 1]) {
-                    ']' => null,
-                    else => err,
-                };
-            };
-
-            return element;
-        }
-    };
-}
-
-fn Map(comptime D: type) type {
-    return struct {
-        deserializer: *D,
+        de: *De,
 
         const Self = @This();
 
         pub usingnamespace getty.de.Map(
             *Self,
-            Error,
+            De.Error,
             nextKeySeed,
             nextValueSeed,
         );
 
-        pub const Error = D.Error;
-
-        pub fn nextKeySeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
+        fn nextKeySeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) De.Error!?@TypeOf(seed).Value {
             comptime concepts.Concept("StringKey", "expected key type to be `[]const u8`")(.{
                 concepts.traits.isSame(@TypeOf(seed).Value, []const u8),
             });
 
-            if (try self.deserializer.tokens.next()) |token| {
+            if (try self.de.tokens.next()) |token| {
                 switch (token) {
                     .ObjectEnd => return null,
                     .String => |str| {
-                        const slice = str.slice(self.deserializer.tokens.slice, self.deserializer.tokens.i - 1);
+                        const slice = str.slice(self.de.tokens.slice, self.de.tokens.i - 1);
                         return try allocator.?.dupe(u8, slice);
                     },
                     else => {},
@@ -341,8 +306,39 @@ fn Map(comptime D: type) type {
             return error.InvalidType;
         }
 
-        pub fn nextValueSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
-            return try seed.deserialize(allocator, self.deserializer.deserializer());
+        fn nextValueSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) De.Error!@TypeOf(seed).Value {
+            return try seed.deserialize(allocator, self.de.deserializer());
+        }
+    };
+}
+
+fn Seq(comptime De: type) type {
+    return struct {
+        de: *De,
+
+        const Self = @This();
+
+        pub usingnamespace getty.de.Seq(
+            *Self,
+            De.Error,
+            nextElementSeed,
+        );
+
+        fn nextElementSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) De.Error!?@TypeOf(seed).Value {
+            const element = seed.deserialize(allocator, self.de.deserializer()) catch |err| {
+                // Slice for the current token instead of looking at the
+                // `token` field since the token isn't set for some reason.
+                if (self.de.tokens.i - 1 >= self.de.tokens.slice.len) {
+                    return err;
+                }
+
+                return switch (self.de.tokens.slice[self.de.tokens.i - 1]) {
+                    ']' => null,
+                    else => err,
+                };
+            };
+
+            return element;
         }
     };
 }
