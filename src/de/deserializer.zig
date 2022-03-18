@@ -36,7 +36,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             *Self,
             Error,
             user_dbt,
-            dt,
+            getty.default_dt,
             deserializeBool,
             deserializeEnum,
             deserializeFloat,
@@ -53,95 +53,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             std.json.TokenStream.Error ||
             std.fmt.ParseIntError ||
             std.fmt.ParseFloatError;
-
-        const dt = .{struct_db};
-
-        const struct_db = struct {
-            pub fn is(comptime T: type) bool {
-                return @typeInfo(T) == .Struct and !@typeInfo(T).Struct.is_tuple and !std.mem.startsWith(u8, @typeName(T), "std.");
-            }
-
-            pub fn deserialize(allocator: ?std.mem.Allocator, comptime _: type, deserializer: anytype, v: anytype) !@TypeOf(v).Value {
-                return try deserializer.deserializeStruct(allocator, v);
-            }
-
-            pub fn Visitor(comptime T: type) type {
-                return struct {
-                    pub usingnamespace getty.de.Visitor(
-                        @This(),
-                        Value,
-                        undefined,
-                        undefined,
-                        undefined,
-                        undefined,
-                        visitMap,
-                        undefined,
-                        undefined,
-                        undefined,
-                        undefined,
-                        undefined,
-                    );
-
-                    const Value = T;
-
-                    fn visitMap(_: @This(), allocator: ?std.mem.Allocator, comptime De: type, map: anytype) De.Error!Value {
-                        const fields = std.meta.fields(Value);
-
-                        var structure: Value = undefined;
-                        var seen = [_]bool{false} ** fields.len;
-
-                        errdefer {
-                            if (allocator) |alloc| {
-                                inline for (fields) |field, i| {
-                                    if (!field.is_comptime and seen[i]) {
-                                        getty.de.free(alloc, @field(structure, field.name));
-                                    }
-                                }
-                            }
-                        }
-
-                        while (try map.nextKey(allocator, []const u8)) |key| {
-                            var found = false;
-
-                            inline for (fields) |field, i| {
-                                if (std.mem.eql(u8, field.name, key)) {
-                                    if (seen[i]) {
-                                        return error.DuplicateField;
-                                    }
-
-                                    switch (field.is_comptime) {
-                                        true => @compileError("TODO: deserialize comptime struct fields"),
-                                        false => @field(structure, field.name) = try map.nextValue(allocator, field.field_type),
-                                    }
-
-                                    seen[i] = true;
-                                    found = true;
-                                    break;
-                                }
-                            }
-
-                            if (!found) {
-                                return error.UnknownField;
-                            }
-                        }
-
-                        inline for (fields) |field, i| {
-                            if (!seen[i]) {
-                                if (field.default_value) |default| {
-                                    if (!field.is_comptime) {
-                                        @field(structure, field.name) = default;
-                                    }
-                                } else {
-                                    return error.MissingField;
-                                }
-                            }
-                        }
-
-                        return structure;
-                    }
-                };
-            }
-        };
 
         /// Hint that the type being deserialized into is expecting a `bool` value.
         fn deserializeBool(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
@@ -288,7 +199,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         fn deserializeStruct(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
-                    var s = Struct(Self){ .deserializer = self };
+                    var s = Struct(Self){ .de = self };
                     return try visitor.visitMap(allocator, Self.@"getty.Deserializer", s.map());
                 }
             }
@@ -436,30 +347,28 @@ fn Map(comptime D: type) type {
     };
 }
 
-fn Struct(comptime D: type) type {
+fn Struct(comptime De: type) type {
     return struct {
-        deserializer: *D,
+        de: *De,
 
         const Self = @This();
 
         pub usingnamespace getty.de.Map(
             *Self,
-            Error,
+            De.Error,
             nextKeySeed,
             nextValueSeed,
         );
 
-        const Error = D.Error;
-
-        fn nextKeySeed(self: *Self, _: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
+        fn nextKeySeed(self: *Self, _: ?std.mem.Allocator, seed: anytype) De.Error!?@TypeOf(seed).Value {
             comptime concepts.Concept("StringKey", "expected key type to be `[]const u8`")(.{
                 concepts.traits.isSame(@TypeOf(seed).Value, []const u8),
             });
 
-            if (try self.deserializer.tokens.next()) |token| {
+            if (try self.de.tokens.next()) |token| {
                 switch (token) {
                     .ObjectEnd => return null,
-                    .String => |str| return str.slice(self.deserializer.tokens.slice, self.deserializer.tokens.i - 1),
+                    .String => |str| return str.slice(self.de.tokens.slice, self.de.tokens.i - 1),
                     else => {},
                 }
             }
@@ -467,8 +376,8 @@ fn Struct(comptime D: type) type {
             return error.InvalidType;
         }
 
-        fn nextValueSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
-            return try seed.deserialize(allocator, self.deserializer.deserializer());
+        fn nextValueSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) De.Error!@TypeOf(seed).Value {
+            return try seed.deserialize(allocator, self.de.deserializer());
         }
     };
 }
