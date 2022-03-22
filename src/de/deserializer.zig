@@ -83,8 +83,11 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
                         }
                     },
                     .String => |str| {
-                        const slice = str.slice(self.tokens.slice, self.tokens.i - 1);
-                        return try visitor.visitString(allocator, Self.@"getty.Deserializer", try self.allocator.?.dupe(u8, slice));
+                        return try visitor.visitString(
+                            allocator,
+                            Self.@"getty.Deserializer",
+                            str.slice(self.tokens.slice, self.tokens.i - 1),
+                        );
                     },
                     else => {},
                 }
