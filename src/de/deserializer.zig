@@ -54,13 +54,13 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             std.fmt.ParseIntError ||
             std.fmt.ParseFloatError;
 
+        const De = Self.@"getty.Deserializer";
+
         /// Hint that the type being deserialized into is expecting a `bool` value.
         fn deserializeBool(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
-                switch (token) {
-                    .True => return try visitor.visitBool(allocator, Self.@"getty.Deserializer", true),
-                    .False => return try visitor.visitBool(allocator, Self.@"getty.Deserializer", false),
-                    else => {},
+                if (token == .True or token == .False) {
+                    return try visitor.visitBool(allocator, De, token == .True);
                 }
             }
 
@@ -71,25 +71,13 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         /// value.
         fn deserializeEnum(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
-                switch (token) {
-                    .Number => |num| {
-                        const slice = num.slice(self.tokens.slice, self.tokens.i - 1);
+                if (token == .Number and token.Number.is_integer) {
+                    return try self._deserializeInt(allocator, token, visitor);
+                }
 
-                        if (num.is_integer) {
-                            return try switch (slice[0]) {
-                                '-' => visitor.visitInt(allocator, Self.@"getty.Deserializer", try parseSigned(slice)),
-                                else => visitor.visitInt(allocator, Self.@"getty.Deserializer", try parseUnsigned(slice)),
-                            };
-                        }
-                    },
-                    .String => |str| {
-                        return try visitor.visitString(
-                            allocator,
-                            Self.@"getty.Deserializer",
-                            str.slice(self.tokens.slice, self.tokens.i - 1),
-                        );
-                    },
-                    else => {},
+                if (token == .String) {
+                    const slice = token.String.slice(self.tokens.slice, self.tokens.i - 1);
+                    return try visitor.visitString(allocator, De, slice);
                 }
             }
 
@@ -100,12 +88,9 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         /// floating-point value.
         fn deserializeFloat(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
-                switch (token) {
-                    .Number => |num| {
-                        const slice = num.slice(self.tokens.slice, self.tokens.i - 1);
-                        return try visitor.visitFloat(allocator, Self.@"getty.Deserializer", try std.fmt.parseFloat(f128, slice));
-                    },
-                    else => {},
+                if (token == .Number) {
+                    const slice = token.Number.slice(self.tokens.slice, self.tokens.i - 1);
+                    return try visitor.visitFloat(allocator, De, try std.fmt.parseFloat(f128, slice));
                 }
             }
 
@@ -116,19 +101,8 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         /// integer value.
         fn deserializeInt(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
-                switch (token) {
-                    .Number => |num| {
-                        const slice = num.slice(self.tokens.slice, self.tokens.i - 1);
-
-                        switch (num.is_integer) {
-                            true => return try switch (slice[0]) {
-                                '-' => visitor.visitInt(allocator, Self.@"getty.Deserializer", try parseSigned(slice)),
-                                else => visitor.visitInt(allocator, Self.@"getty.Deserializer", try parseUnsigned(slice)),
-                            },
-                            false => {},
-                        }
-                    },
-                    else => {},
+                if (token == .Number and token.Number.is_integer) {
+                    return try self._deserializeInt(allocator, token, visitor);
                 }
             }
 
@@ -141,7 +115,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
                     var map = Map(Self){ .de = self };
-                    return try visitor.visitMap(allocator, getty.@"getty.Deserializer", map.map());
+                    return try visitor.visitMap(allocator, De, map.map());
                 }
             }
 
@@ -154,19 +128,20 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             const tokens = self.tokens;
 
             if (try self.tokens.next()) |token| {
-                return try switch (token) {
-                    .Null => visitor.visitNull(allocator, Self.@"getty.Deserializer"),
-                    else => blk: {
-                        // Get back the token we just ate if it was an actual
-                        // value so that whenever the next deserialize method
-                        // is called by visitSome, it'll eat the token we just
-                        // saw instead of whatever comes after it.
-                        self.tokens = tokens;
-                        break :blk visitor.visitSome(allocator, self.deserializer());
-                    },
-                };
+                if (token == .Null) {
+                    return try visitor.visitNull(allocator, De);
+                }
+
+                // Get back the token we just ate if it was an actual
+                // value so that whenever the next deserialize method
+                // is called by visitSome, it'll eat the token we just
+                // saw instead of whatever comes after it.
+                self.tokens = tokens;
+                return try visitor.visitSome(allocator, self.deserializer());
             }
 
+            // TODO: If we're here, it's because there's no more tokens. So is
+            // this the right error to return?
             return error.InvalidType;
         }
 
@@ -176,7 +151,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             if (try self.tokens.next()) |token| {
                 if (token == .ArrayBegin) {
                     var seq = Seq(Self){ .de = self };
-                    return try visitor.visitSeq(allocator, Self.@"getty.Deserializer", seq.seq());
+                    return try visitor.visitSeq(allocator, De, seq.seq());
                 }
             }
 
@@ -186,12 +161,9 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         /// Hint that the type being deserialized into is expecting a string value.
         fn deserializeString(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
-                switch (token) {
-                    .String => |str| {
-                        const slice = str.slice(self.tokens.slice, self.tokens.i - 1);
-                        return visitor.visitString(allocator, Self.@"getty.Deserializer", try self.allocator.?.dupe(u8, slice));
-                    },
-                    else => {},
+                if (token == .String) {
+                    const slice = token.String.slice(self.tokens.slice, self.tokens.i - 1);
+                    return visitor.visitString(allocator, De, try self.allocator.?.dupe(u8, slice));
                 }
             }
 
@@ -203,7 +175,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
                     var s = Struct(Self){ .de = self };
-                    return try visitor.visitMap(allocator, Self.@"getty.Deserializer", s.map());
+                    return try visitor.visitMap(allocator, De, s.map());
                 }
             }
 
@@ -214,11 +186,23 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         fn deserializeVoid(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .Null) {
-                    return try visitor.visitVoid(allocator, Self.@"getty.Deserializer");
+                    return try visitor.visitVoid(allocator, De);
                 }
             }
 
             return error.InvalidType;
+        }
+
+        fn _deserializeInt(self: Self, allocator: ?std.mem.Allocator, token: std.json.Token, visitor: anytype) Error!@TypeOf(visitor).Value {
+            std.debug.assert(std.meta.activeTag(token) == std.json.Token.Number);
+            std.debug.assert(token.Number.is_integer);
+
+            const slice = token.Number.slice(self.tokens.slice, self.tokens.i - 1);
+
+            return try switch (slice[0]) {
+                '-' => visitor.visitInt(allocator, De, try parseInt(i128, slice)),
+                else => visitor.visitInt(allocator, De, try parseInt(u128, slice)),
+            };
         }
 
         fn parseInt(comptime T: type, buf: []const u8) std.fmt.ParseIntError!T {
@@ -266,14 +250,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
 
             return int;
         }
-
-        fn parseSigned(buf: []const u8) Error!i128 {
-            return try parseInt(i128, buf);
-        }
-
-        fn parseUnsigned(buf: []const u8) Error!u128 {
-            return try parseInt(u128, buf);
-        }
     };
 }
 
@@ -296,13 +272,13 @@ fn Map(comptime De: type) type {
             });
 
             if (try self.de.tokens.next()) |token| {
-                switch (token) {
-                    .ObjectEnd => return null,
-                    .String => |str| {
-                        const slice = str.slice(self.de.tokens.slice, self.de.tokens.i - 1);
-                        return try allocator.?.dupe(u8, slice);
-                    },
-                    else => {},
+                if (token == .ObjectEnd) {
+                    return null;
+                }
+
+                if (token == .String) {
+                    const slice = token.String.slice(self.de.tokens.slice, self.de.tokens.i - 1);
+                    return try allocator.?.dupe(u8, slice);
                 }
             }
 
@@ -365,10 +341,12 @@ fn Struct(comptime De: type) type {
             });
 
             if (try self.de.tokens.next()) |token| {
-                switch (token) {
-                    .ObjectEnd => return null,
-                    .String => |str| return str.slice(self.de.tokens.slice, self.de.tokens.i - 1),
-                    else => {},
+                if (token == .ObjectEnd) {
+                    return null;
+                }
+
+                if (token == .String) {
+                    return token.String.slice(self.de.tokens.slice, self.de.tokens.i - 1);
                 }
             }
 
