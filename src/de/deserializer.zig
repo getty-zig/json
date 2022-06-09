@@ -239,12 +239,12 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
 
                 if (int != 0) {
                     // TODO: Does math.cast not accept comptime_int?
-                    int = try std.math.mul(T, int, try std.math.cast(T, radix));
+                    int = try std.math.mul(T, int, std.math.cast(T, radix) orelse return error.Overflow);
                 }
 
                 int = switch (sign) {
-                    .pos => try std.math.add(T, int, try std.math.cast(T, digit)),
-                    .neg => try std.math.sub(T, int, try std.math.cast(T, digit)),
+                    .pos => try std.math.add(T, int, std.math.cast(T, digit) orelse return error.Overflow),
+                    .neg => try std.math.sub(T, int, std.math.cast(T, digit) orelse return error.Overflow),
                 };
             }
 
