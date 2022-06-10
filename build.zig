@@ -6,7 +6,7 @@ const package_path = "src/lib.zig";
 
 const json_pkg = std.build.Pkg{
     .name = package_name,
-    .path = .{ .path = package_path },
+    .source = .{ .path = package_path },
     .dependencies = &[_]std.build.Pkg{
         pkgs.concepts,
         pkgs.getty,
