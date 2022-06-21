@@ -4,4 +4,5 @@ main: src/lib.zig
 license: MIT
 description: Serialization library for JSON
 dependencies:
-  - src: git https://github.com/getty-zig/getty commit-69b4df5
+  - src: git https://github.com/getty-zig/getty
+    version: commit-69b4df5
