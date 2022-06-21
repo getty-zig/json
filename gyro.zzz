@@ -9,10 +9,10 @@ deps:
   getty:
     git:
       url: "https://github.com/getty-zig/getty.git"
-      ref: main
+      ref: 69b4df59511203f91d38660794d8cb7a073eb815
       root: src/lib.zig
   concepts:
     git:
       url: "https://github.com/ibokuri/concepts.git"
-      ref: main
+      ref: b06412d08fa867ff0bfcff4b2b876f7bb24bf279
       root: src/lib.zig
