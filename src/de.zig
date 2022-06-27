@@ -282,6 +282,30 @@ test "struct" {
     try expect(eql(u8, "Hello", got.y));
 }
 
+test "union" {
+    {
+        const Tagged = union(enum) { foo: bool, bar: void };
+        const expected_foo = Tagged{ .foo = true };
+        const expected_bar = Tagged{ .bar = {} };
+        const got_foo = try fromSlice(null, Tagged, "{\"foo\":true}");
+        const got_bar = try fromSlice(null, Tagged, "\"bar\"");
+
+        try expectEqual(expected_foo, got_foo);
+        try expectEqual(expected_bar, got_bar);
+    }
+
+    {
+        const Untagged = union { foo: bool, bar: void };
+        const expected_foo = Untagged{ .foo = false };
+        const expected_bar = Untagged{ .bar = {} };
+        const got_foo = try fromSlice(null, Untagged, "{\"foo\":false}");
+        const got_bar = try fromSlice(null, Untagged, "\"bar\"");
+
+        try expectEqual(expected_foo.foo, got_foo.foo);
+        try expectEqual(expected_bar.bar, got_bar.bar);
+    }
+}
+
 test "void" {
     try expectEqual({}, try fromSlice(null, void, "null"));
     try testing.expectError(error.InvalidType, fromSlice(null, void, "true"));
