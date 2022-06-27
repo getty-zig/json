@@ -46,6 +46,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             deserializeSeq,
             deserializeString,
             deserializeStruct,
+            deserializeUnion,
             deserializeVoid,
         );
 
@@ -176,6 +177,24 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
                 if (token == .ObjectBegin) {
                     var s = Struct(Self){ .de = self };
                     return try visitor.visitMap(allocator, De, s.map());
+                }
+            }
+
+            return error.InvalidType;
+        }
+
+        /// Hint that the type being deserialized into is expecting a union value.
+        fn deserializeUnion(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+            const backup = self.tokens;
+
+            if (try self.tokens.next()) |token| {
+                if (token == .String) {
+                    self.tokens = backup;
+                }
+
+                if (token == .String or token == .ObjectBegin) {
+                    var u = Union(Self){ .de = self };
+                    return try visitor.visitUnion(allocator, De, u.unionAccess(), u.variantAccess());
                 }
             }
 
@@ -355,6 +374,59 @@ fn Struct(comptime De: type) type {
 
         fn nextValueSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) De.Error!@TypeOf(seed).Value {
             return try seed.deserialize(allocator, self.de.deserializer());
+        }
+    };
+}
+
+fn Union(comptime De: type) type {
+    return struct {
+        de: *De,
+
+        const Self = @This();
+
+        pub usingnamespace getty.de.UnionAccess(
+            *Self,
+            De.Error,
+            variantSeed,
+        );
+
+        pub usingnamespace getty.de.VariantAccess(
+            *Self,
+            De.Error,
+            payloadSeed,
+        );
+
+        fn variantSeed(self: *Self, _: ?std.mem.Allocator, seed: anytype) De.Error!@TypeOf(seed).Value {
+            comptime concepts.Concept("StringVariant", "expected variant type to be a string")(.{
+                concepts.traits.isString(@TypeOf(seed).Value),
+            });
+
+            const token = (try self.de.tokens.next()) orelse return error.MissingVariant;
+
+            if (token == .String) {
+                return token.String.slice(self.de.tokens.slice, self.de.tokens.i - 1);
+            }
+
+            return error.InvalidType;
+        }
+
+        fn payloadSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) De.Error!@TypeOf(seed).Value {
+            if (@TypeOf(seed).Value != void) {
+                // Deserialize payload.
+                const payload = try seed.deserialize(allocator, self.de.deserializer());
+                errdefer getty.de.free(allocator.?, payload);
+
+                // Eat trailing '}'.
+                if (try self.de.tokens.next()) |t| {
+                    if (t != .ObjectEnd) {
+                        return error.InvalidTopLevelTrailing;
+                    }
+                } else {
+                    return error.UnbalancedBraces;
+                }
+
+                return payload;
+            }
         }
     };
 }
