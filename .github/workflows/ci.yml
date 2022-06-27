@@ -46,7 +46,9 @@ jobs:
           access-token: ${{secrets.GITHUB_TOKEN}}
 
       - name: fetch
-        run: gyro fetch
+        run: |
+          gyro fetch
+          gyro update
 
       - name: build
         run: zig build
