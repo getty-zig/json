@@ -115,8 +115,8 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         fn deserializeMap(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
-                    var map = Map(Self){ .de = self };
-                    return try visitor.visitMap(allocator, De, map.map());
+                    var map = MapAccess(Self){ .de = self };
+                    return try visitor.visitMap(allocator, De, map.mapAccess());
                 }
             }
 
@@ -175,8 +175,8 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         fn deserializeStruct(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
-                    var s = Struct(Self){ .de = self };
-                    return try visitor.visitMap(allocator, De, s.map());
+                    var s = StructAccess(Self){ .de = self };
+                    return try visitor.visitMap(allocator, De, s.mapAccess());
                 }
             }
 
@@ -272,13 +272,13 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
     };
 }
 
-fn Map(comptime De: type) type {
+fn MapAccess(comptime De: type) type {
     return struct {
         de: *De,
 
         const Self = @This();
 
-        pub usingnamespace getty.de.Map(
+        pub usingnamespace getty.de.MapAccess(
             *Self,
             De.Error,
             nextKeySeed,
@@ -341,13 +341,13 @@ fn SeqAccess(comptime De: type) type {
     };
 }
 
-fn Struct(comptime De: type) type {
+fn StructAccess(comptime De: type) type {
     return struct {
         de: *De,
 
         const Self = @This();
 
-        pub usingnamespace getty.de.Map(
+        pub usingnamespace getty.de.MapAccess(
             *Self,
             De.Error,
             nextKeySeed,
