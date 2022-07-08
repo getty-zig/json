@@ -151,8 +151,8 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         fn deserializeSeq(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ArrayBegin) {
-                    var seq = Seq(Self){ .de = self };
-                    return try visitor.visitSeq(allocator, De, seq.seq());
+                    var sa = SeqAccess(Self){ .de = self };
+                    return try visitor.visitSeq(allocator, De, sa.seqAccess());
                 }
             }
 
@@ -310,13 +310,13 @@ fn Map(comptime De: type) type {
     };
 }
 
-fn Seq(comptime De: type) type {
+fn SeqAccess(comptime De: type) type {
     return struct {
         de: *De,
 
         const Self = @This();
 
-        pub usingnamespace getty.de.Seq(
+        pub usingnamespace getty.de.SeqAccess(
             *Self,
             De.Error,
             nextElementSeed,
