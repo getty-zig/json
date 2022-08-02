@@ -289,7 +289,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             allocator: std.mem.Allocator,
             str_token: std.meta.TagPayload(std.json.Token, std.json.Token.String),
             slice: []const u8,
-        ) ![]const u8 {
+        ) ![]u8 {
             std.debug.assert(str_token.escapes == .Some);
 
             const escaped = try allocator.alloc(u8, str_token.decodedLength());
