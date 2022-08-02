@@ -77,12 +77,12 @@ test "bool" {
 }
 
 test "enum" {
-    const Enum = enum { foo, bar };
+    const Enum = enum { foo, @"bar\n" };
 
     try expectEqual(Enum.foo, try fromSlice(null, Enum, "0"));
-    try expectEqual(Enum.bar, try fromSlice(null, Enum, "1"));
+    try expectEqual(Enum.@"bar\n", try fromSlice(null, Enum, "1"));
     try expectEqual(Enum.foo, try fromSlice(testing.allocator, Enum, "\"foo\""));
-    try expectEqual(Enum.bar, try fromSlice(testing.allocator, Enum, "\"bar\""));
+    try expectEqual(Enum.@"bar\n", try fromSlice(testing.allocator, Enum, "\"bar\\n\""));
 }
 
 test "float" {
@@ -202,12 +202,24 @@ test "pointer" {
 
 test "slice (string)" {
     // Zig string
-    const got = try fromSlice(testing.allocator, []const u8, "\"Hello\\nWorld!\"");
-    defer de.free(testing.allocator, got);
-    try expect(eql(u8, "Hello\nWorld!", got));
+    {
+        // Not escaped
+        {
+            const got = try fromSlice(testing.allocator, []const u8, "\"Hello, World!\"");
+            defer de.free(testing.allocator, got);
+            try expect(eql(u8, "Hello, World!", got));
+        }
+
+        // Escaped
+        {
+            const got = try fromSlice(testing.allocator, []const u8, "\"Hello\\nWorld!\"");
+            defer de.free(testing.allocator, got);
+            try expect(eql(u8, "Hello\nWorld!", got));
+        }
+    }
 
     // Non-zig string
-    try expectError(error.InvalidType, fromSlice(testing.allocator, []i8, "\"Hello, World!\""));
+    try expectError(error.InvalidType, fromSlice(testing.allocator, []i8, "\"Hello\\nWorld!\""));
 }
 
 test "slice (non-string)" {
