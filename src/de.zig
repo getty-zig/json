@@ -202,9 +202,9 @@ test "pointer" {
 
 test "slice (string)" {
     // Zig string
-    const got = try fromSlice(testing.allocator, []const u8, "\"Hello, World!\"");
+    const got = try fromSlice(testing.allocator, []const u8, "\"Hello\\nWorld!\"");
     defer de.free(testing.allocator, got);
-    try expect(eql(u8, "Hello, World!", got));
+    try expect(eql(u8, "Hello\nWorld!", got));
 
     // Non-zig string
     try expectError(error.InvalidType, fromSlice(testing.allocator, []i8, "\"Hello, World!\""));
