@@ -78,7 +78,12 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
 
                 if (token == .String) {
                     const slice = token.String.slice(self.tokens.slice, self.tokens.i - 1);
-                    return try visitor.visitString(allocator, De, slice);
+                    var allocated = false;
+                    const escaped = try escapeString(token.String, slice, allocator, &allocated);
+                    const result = try visitor.visitString(allocator, De, escaped);
+                    if (allocated)
+                        allocator.?.free(escaped);
+                    return result;
                 }
             }
 
@@ -164,7 +169,13 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             if (try self.tokens.next()) |token| {
                 if (token == .String) {
                     const slice = token.String.slice(self.tokens.slice, self.tokens.i - 1);
-                    return visitor.visitString(allocator, De, try self.allocator.?.dupe(u8, slice));
+                    var allocated = false;
+                    const escaped = try escapeString(token.String, slice, allocator, &allocated);
+                    return visitor.visitString(
+                        allocator,
+                        De,
+                        if (allocated) escaped else try allocator.?.dupe(u8, escaped),
+                    );
                 }
             }
 
@@ -268,6 +279,28 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             }
 
             return int;
+        }
+
+        fn escapeString(
+            s: std.meta.TagPayload(std.json.Token, std.json.Token.String),
+            slice: []const u8,
+            alloc: ?std.mem.Allocator,
+            /// This is set to true if a new string was allocated, false otherwise.
+            allocated_out: *bool,
+        ) ![]const u8 {
+            switch (s.escapes) {
+                .None => {
+                    allocated_out.* = false;
+                    return slice;
+                },
+                .Some => {
+                    const escaped = try alloc.?.alloc(u8, s.decodedLength());
+                    errdefer alloc.?.free(escaped);
+                    allocated_out.* = true;
+                    try std.json.unescapeValidString(escaped, slice);
+                    return escaped;
+                },
+            }
         }
     };
 }
