@@ -205,14 +205,14 @@ test "slice (string)" {
     {
         // Not escaped
         {
-            const got = try fromSlice(testing.allocator, []const u8, "\"Hello, World!\"");
+            const got = try fromSlice(testing.allocator, []u8, "\"Hello, World!\"");
             defer de.free(testing.allocator, got);
             try expect(eql(u8, "Hello, World!", got));
         }
 
         // Escaped
         {
-            const got = try fromSlice(testing.allocator, []const u8, "\"Hello\\nWorld!\"");
+            const got = try fromSlice(testing.allocator, []u8, "\"Hello\\nWorld!\"");
             defer de.free(testing.allocator, got);
             try expect(eql(u8, "Hello\nWorld!", got));
         }
