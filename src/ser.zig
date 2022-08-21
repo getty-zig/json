@@ -107,7 +107,7 @@ const concepts = struct {
             }
 
             // Constraints
-            const has_name = std.mem.startsWith(u8, @typeName(T), "std.io.writer.Writer");
+            const has_name = std.mem.startsWith(u8, @typeName(T), "io.writer.Writer");
             const has_field = std.meta.trait.hasField("context")(T);
             const has_decl = @hasDecl(T, "Error");
             const has_funcs = std.meta.trait.hasFunctions(T, .{
