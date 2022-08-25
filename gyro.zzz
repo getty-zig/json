@@ -14,5 +14,5 @@ deps:
   concepts:
     git:
       url: "https://github.com/ibokuri/concepts.git"
-      ref: b06412d08fa867ff0bfcff4b2b876f7bb24bf279
+      ref: 05c73681bc131a32f71b1f330dc5f4bdcea53675
       root: src/lib.zig
