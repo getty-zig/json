@@ -277,7 +277,11 @@ test "toWriter - Tuple" {
 }
 
 test "toWriter - Tagged Union" {
-    try t(.compact, union(enum) { Foo: i32, Bar: bool }{ .Foo = 42 }, "42");
+    try t(
+        .compact,
+        union(enum) { Foo: i32, Bar: bool }{ .Foo = 42 },
+        "{\"Foo\":42}",
+    );
 }
 
 test "toWriter - Vector" {
