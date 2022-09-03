@@ -119,12 +119,13 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
         }
 
         fn serializeString(self: *Self, value: anytype) Error!Ok {
-            if (!std.unicode.utf8ValidateSlice(value)) {
+            var slice = std.mem.sliceTo(value, 0);
+            if (!std.unicode.utf8ValidateSlice(slice)) {
                 return Error.Syntax;
             }
 
             self.formatter.beginString(self.writer) catch return Error.Io;
-            escape(value, self.writer, self.formatter) catch return Error.Syntax;
+            escape(slice, self.writer, self.formatter) catch return Error.Syntax;
             self.formatter.endString(self.writer) catch return Error.Io;
         }
 

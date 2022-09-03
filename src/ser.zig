@@ -256,6 +256,17 @@ test "toWriter - String" {
         try t(.compact, "hello😁", "\"hello\\ud83d\\ude01\"");
         try t(.compact, "hello😁world😂", "\"hello\\ud83d\\ude01world\\ud83d\\ude02\"");
     }
+
+    {
+        // Null-terminated (with sentinel 0)
+        var buf = try std.testing.allocator.allocSentinel(u8, 5, 0);
+        _ = try std.fmt.bufPrintZ(buf, "Test", .{});
+        try t(.compact, "Test", buf);
+            
+        buf = try std.testing.allocator.allocSentinel(u8, 6, 0);
+        _ = try std.fmt.bufPrintZ(buf, "Test", .{});
+        try t(.compact, "Test", buf);
+    }
 }
 
 test "toWriter - Struct" {
