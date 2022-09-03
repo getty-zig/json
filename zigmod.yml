@@ -5,10 +5,6 @@ license: MIT
 description: Serialization library for JSON
 dependencies:
   - src: git https://github.com/getty-zig/getty
-<<<<<<< Updated upstream
-    version: commit-d032ff4
-=======
     version: commit-7b1296d
->>>>>>> Stashed changes
   - src: git https://github.com/ibokuri/concepts
     version: commit-05c7368

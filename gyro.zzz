@@ -9,11 +9,7 @@ deps:
   getty:
     git:
       url: "https://github.com/getty-zig/getty.git"
-<<<<<<< Updated upstream
-      ref: d032ff421985c710b8185cad30622d2406e70bd9
-=======
       ref: 7b1296d31c8acbca9dbc1212140b589b47ee9d5a
->>>>>>> Stashed changes
       root: src/lib.zig
   concepts:
     git:
