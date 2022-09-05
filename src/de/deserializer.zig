@@ -173,9 +173,14 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
                 if (token == .String) {
                     const slice = token.String.slice(self.tokens.slice, self.tokens.i - 1);
 
-                    return try switch (token.String.escapes) {
-                        .None => visitor.visitString(allocator, De, try allocator.?.dupe(u8, slice)),
-                        .Some => visitor.visitString(allocator, De, try unescapeString(allocator.?, token.String, slice)),
+                    return switch (token.String.escapes) {
+                        .None => try visitor.visitString(allocator, De, slice),
+                        .Some => blk: {
+                            const s = try unescapeString(allocator.?, token.String, slice);
+                            defer allocator.?.free(s);
+
+                            break :blk try visitor.visitString(allocator, De, s);
+                        },
                     };
                 }
             }
