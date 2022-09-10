@@ -291,9 +291,7 @@ fn MapKeySerializer(comptime S: type) type {
         }
 
         fn serializeInt(self: Self, value: anytype) Error!Ok {
-            // This buffer should be large enough to hold all digits and a sign.
-            //
-            // TODO: Change to digits10 + 1 for better space efficiency.
+            // TODO: Change to buffer size to digits10 + 1 for better space efficiency.
             var buf: [std.math.max(std.meta.bitCount(@TypeOf(value)), 1) + 1]u8 = undefined;
             var fbs = std.io.fixedBufferStream(&buf);
             fmt.formatInt(value, fbs.writer()) catch return error.Io;

@@ -24,11 +24,8 @@ pub fn formatInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
     };
     const int = @as(Int, value);
 
-    // This buffer should be large enough to hold all digits of T and a sign.
-    //
     // TODO: Change to digits10 + 1 for better space efficiency.
     var buf: [math.max(meta.bitCount(Int), 1) + 1]u8 = undefined;
-
     var start = switch (@typeInfo(Int).Int.signedness) {
         .signed => blk: {
             var start = formatDecimal(abs(int), &buf);
