@@ -151,6 +151,16 @@ test "toWriter - ArrayList" {
     try t(.compact, list, "[1,2,3]");
 }
 
+test "toWriter - AutoHashMap" {
+    var map = std.AutoHashMap(i32, i32).init(std.testing.allocator);
+    defer map.deinit();
+
+    try map.put(1, 10);
+    try map.put(-1, -10);
+
+    try t(.compact, map, "{\"1\":10,\"-1\":-10}");
+}
+
 test "toWriter - Bool" {
     try t(.compact, true, "true");
     try t(.compact, false, "false");
@@ -163,16 +173,6 @@ test "toWriter - Enum" {
 
 test "toWriter - Error" {
     try t(.compact, error.Foobar, "\"Foobar\"");
-}
-
-test "toWriter - HashMap" {
-    var map = std.StringHashMap(i32).init(std.testing.allocator);
-    defer map.deinit();
-
-    try map.put("x", 1);
-    try map.put("y", 2);
-
-    try t(.compact, map, "{\"x\":1,\"y\":2}");
 }
 
 test "toWriter - Integer" {
@@ -256,6 +256,16 @@ test "toWriter - String" {
         try t(.compact, "hello😁", "\"hello\\ud83d\\ude01\"");
         try t(.compact, "hello😁world😂", "\"hello\\ud83d\\ude01world\\ud83d\\ude02\"");
     }
+}
+
+test "toWriter - StringHashMap" {
+    var map = std.StringHashMap(i32).init(std.testing.allocator);
+    defer map.deinit();
+
+    try map.put("x", 1);
+    try map.put("y", 2);
+
+    try t(.compact, map, "{\"x\":1,\"y\":2}");
 }
 
 test "toWriter - Struct" {

@@ -1,6 +1,8 @@
 const getty = @import("getty");
 const std = @import("std");
 
+const fmt = @import("impl/formatter/details/fmt.zig");
+
 const escape = @import("impl/formatter/details/escape.zig").escape;
 
 pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user_sbt: anytype) type {
@@ -176,11 +178,12 @@ fn Serialize(comptime Ser: type) type {
         );
 
         const _map = struct {
-            // TODO: serde-json passes in MapKeySerializer instead of self to
-            // `getty.serialize`. This works though, so should we change it?
             fn serializeKey(self: *Self, key: anytype) Ser.Error!void {
+                var mks = MapKeySerializer(Ser.@"getty.Serializer"){ .ser = self.ser.serializer() };
+                const s = mks.serializer();
+
                 self.ser.formatter.beginObjectKey(self.ser.writer, self.state == .first) catch return error.Io;
-                try getty.serialize(key, self.ser.serializer());
+                try getty.serialize(key, s);
                 self.ser.formatter.endObjectKey(self.ser.writer) catch return error.Io;
 
                 self.state = .rest;
@@ -238,5 +241,88 @@ fn Serialize(comptime Ser: type) type {
                 self.state = .rest;
             }
         };
+    };
+}
+
+fn MapKeySerializer(comptime S: type) type {
+    comptime getty.concepts.@"getty.Serializer"(S);
+
+    return struct {
+        ser: S,
+
+        const Self = @This();
+
+        pub usingnamespace getty.Serializer(
+            Self,
+            Ok,
+            Error,
+            S.user_st,
+            S.ser_st,
+            Compound,
+            Compound,
+            Compound,
+            serializeBool,
+            serializeEnum,
+            serializeFloat,
+            serializeInt,
+            serializeMap,
+            serializeNull,
+            serializeSeq,
+            serializeSome,
+            serializeString,
+            serializeStruct,
+            serializeNull,
+        );
+
+        const Ok = S.Ok;
+        const Error = S.Error;
+        const Compound = getty.TODO;
+
+        fn serializeBool(self: Self, value: bool) Error!Ok {
+            try getty.serialize(if (value) "true" else "false", self.ser);
+        }
+
+        fn serializeEnum(_: Self, _: anytype) Error!Ok {
+            return error.Syntax;
+        }
+
+        fn serializeFloat(_: Self, _: anytype) Error!Ok {
+            return error.Syntax;
+        }
+
+        fn serializeInt(self: Self, value: anytype) Error!Ok {
+            // This buffer should be large enough to hold all digits and a sign.
+            //
+            // TODO: Change to digits10 + 1 for better space efficiency.
+            var buf: [std.math.max(std.meta.bitCount(@TypeOf(value)), 1) + 1]u8 = undefined;
+            var fbs = std.io.fixedBufferStream(&buf);
+            fmt.formatInt(value, fbs.writer()) catch return error.Io;
+
+            try getty.serialize(fbs.getWritten(), self.ser);
+        }
+
+        fn serializeMap(_: Self, _: ?usize) Error!Compound {
+            return error.Syntax;
+        }
+
+        fn serializeNull(_: Self) Error!Ok {
+            return error.Syntax;
+        }
+
+        fn serializeSeq(_: Self, _: ?usize) Error!Compound {
+            return error.Syntax;
+        }
+
+        fn serializeSome(_: Self, _: anytype) Error!Ok {
+            return error.Syntax;
+        }
+
+        fn serializeString(self: Self, value: anytype) Error!Ok {
+            try getty.serialize(value, self.ser);
+        }
+
+        fn serializeStruct(_: Self, comptime _: []const u8, _: usize) Error!Compound {
+            return error.Syntax;
+        }
     };
 }
