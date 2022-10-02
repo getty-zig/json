@@ -216,6 +216,13 @@ test "slice (string)" {
             defer de.free(testing.allocator, got);
             try expect(eql(u8, "Hello\nWorld!", got));
         }
+
+        // Sentinel-terminated
+        {
+            const got = try fromSlice(testing.allocator, [:0]u8, "\"Hello\\nWorld!\"");
+            defer de.free(testing.allocator, got);
+            try expect(eql(u8, "Hello\nWorld!", got));
+        }
     }
 
     // Non-zig string
