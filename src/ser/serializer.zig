@@ -257,7 +257,7 @@ fn MapKeySerializer(comptime S: type) type {
             Ok,
             Error,
             S.user_st,
-            S.ser_st,
+            S.serializer_st,
             Compound,
             Compound,
             Compound,
