@@ -174,7 +174,9 @@ Getty JSON is a serialization library for the JSON data format.
             }
 
             pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                const seq = (try serializer.serializeSeq(2)).seq();
+                var s = try serializer.serializeSeq(2);
+                const seq = s.seq();
+
                 inline for (std.meta.fields(Point)) |field| {
                     try seq.serializeElement(@field(value, field.name));
                 }
@@ -216,7 +218,9 @@ Getty JSON is a serialization library for the JSON data format.
             }
 
             pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                const seq = (try serializer.serializeSeq(2)).seq();
+                var s = try serializer.serializeSeq(2);
+                const seq = s.seq();
+
                 inline for (std.meta.fields(Point)) |field| {
                     try seq.serializeElement(@field(value, field.name));
                 }
@@ -321,7 +325,9 @@ Getty JSON is a serialization library for the JSON data format.
             }
 
             pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                const seq = (try serializer.serializeSeq(2)).seq();
+                var s = try serializer.serializeSeq(2);
+                const seq = s.seq();
+
                 try seq.serializeElement(value.x);
                 try seq.serializeElement(value.y);
                 return try seq.end();
@@ -364,7 +370,9 @@ Getty JSON is a serialization library for the JSON data format.
             }
 
             pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                const seq = (try serializer.serializeSeq(2)).seq();
+                var s = try serializer.serializeSeq(2);
+                const seq = s.seq();
+
                 try seq.serializeElement(value.x);
                 try seq.serializeElement(value.y);
                 return try seq.end();
