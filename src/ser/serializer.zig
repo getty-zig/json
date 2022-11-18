@@ -24,7 +24,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             Ok,
             Error,
             user_sbt,
-            getty.default_st,
+            null,
             Map,
             Seq,
             Structure,

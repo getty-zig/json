@@ -36,7 +36,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             *Self,
             Error,
             user_dbt,
-            getty.default_dt,
+            null,
             .{
                 .deserializeBool = deserializeBool,
                 .deserializeEnum = deserializeEnum,
