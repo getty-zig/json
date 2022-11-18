@@ -37,17 +37,19 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             Error,
             user_dbt,
             getty.default_dt,
-            deserializeBool,
-            deserializeEnum,
-            deserializeFloat,
-            deserializeInt,
-            deserializeMap,
-            deserializeOptional,
-            deserializeSeq,
-            deserializeString,
-            deserializeStruct,
-            deserializeUnion,
-            deserializeVoid,
+            .{
+                .deserializeBool = deserializeBool,
+                .deserializeEnum = deserializeEnum,
+                .deserializeFloat = deserializeFloat,
+                .deserializeInt = deserializeInt,
+                .deserializeMap = deserializeMap,
+                .deserializeOptional = deserializeOptional,
+                .deserializeSeq = deserializeSeq,
+                .deserializeString = deserializeString,
+                .deserializeStruct = deserializeStruct,
+                .deserializeUnion = deserializeUnion,
+                .deserializeVoid = deserializeVoid,
+            },
         );
 
         const Error = getty.de.Error ||
@@ -315,8 +317,10 @@ fn MapAccess(comptime De: type) type {
         pub usingnamespace getty.de.MapAccess(
             *Self,
             De.Error,
-            nextKeySeed,
-            nextValueSeed,
+            .{
+                .nextKeySeed = nextKeySeed,
+                .nextValueSeed = nextValueSeed,
+            },
         );
 
         fn nextKeySeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) De.Error!?@TypeOf(seed).Value {
@@ -353,7 +357,7 @@ fn SeqAccess(comptime De: type) type {
         pub usingnamespace getty.de.SeqAccess(
             *Self,
             De.Error,
-            nextElementSeed,
+            .{ .nextElementSeed = nextElementSeed },
         );
 
         fn nextElementSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) De.Error!?@TypeOf(seed).Value {
@@ -384,8 +388,10 @@ fn StructAccess(comptime De: type) type {
         pub usingnamespace getty.de.MapAccess(
             *Self,
             De.Error,
-            nextKeySeed,
-            nextValueSeed,
+            .{
+                .nextKeySeed = nextKeySeed,
+                .nextValueSeed = nextValueSeed,
+            },
         );
 
         fn nextKeySeed(self: *Self, _: ?std.mem.Allocator, seed: anytype) De.Error!?@TypeOf(seed).Value {
@@ -421,13 +427,13 @@ fn Union(comptime De: type) type {
         pub usingnamespace getty.de.UnionAccess(
             *Self,
             De.Error,
-            variantSeed,
+            .{ .variantSeed = variantSeed },
         );
 
         pub usingnamespace getty.de.VariantAccess(
             *Self,
             De.Error,
-            payloadSeed,
+            .{ .payloadSeed = payloadSeed },
         );
 
         fn variantSeed(self: *Self, _: ?std.mem.Allocator, seed: anytype) De.Error!@TypeOf(seed).Value {

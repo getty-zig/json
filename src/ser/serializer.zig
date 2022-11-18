@@ -28,17 +28,19 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             Map,
             Seq,
             Structure,
-            serializeBool,
-            serializeEnum,
-            serializeFloat,
-            serializeInt,
-            serializeMap,
-            serializeNull,
-            serializeSeq,
-            serializeSome,
-            serializeString,
-            serializeStruct,
-            serializeNull,
+            .{
+                .serializeBool = serializeBool,
+                .serializeEnum = serializeEnum,
+                .serializeFloat = serializeFloat,
+                .serializeInt = serializeInt,
+                .serializeMap = serializeMap,
+                .serializeNull = serializeNull,
+                .serializeSeq = serializeSeq,
+                .serializeSome = serializeSome,
+                .serializeString = serializeString,
+                .serializeStruct = serializeStruct,
+                .serializeVoid = serializeNull,
+            },
         );
 
         const Ok = void;
@@ -156,25 +158,31 @@ fn Serialize(comptime Ser: type) type {
             *Self,
             Ser.Ok,
             Ser.Error,
-            _map.serializeKey,
-            _map.serializeValue,
-            _map.end,
+            .{
+                .serializeKey = _map.serializeKey,
+                .serializeValue = _map.serializeValue,
+                .end = _map.end,
+            },
         );
 
         pub usingnamespace getty.ser.Seq(
             *Self,
             Ser.Ok,
             Ser.Error,
-            _seq.serializeElement,
-            _seq.end,
+            .{
+                .serializeElement = _seq.serializeElement,
+                .end = _seq.end,
+            },
         );
 
         pub usingnamespace getty.ser.Structure(
             *Self,
             Ser.Ok,
             Ser.Error,
-            _structure.serializeField,
-            _map.end,
+            .{
+                .serializeField = _structure.serializeField,
+                .end = _map.end,
+            },
         );
 
         const _map = struct {
@@ -261,17 +269,19 @@ fn MapKeySerializer(comptime S: type) type {
             Compound,
             Compound,
             Compound,
-            serializeBool,
-            serializeEnum,
-            serializeFloat,
-            serializeInt,
-            serializeMap,
-            serializeNull,
-            serializeSeq,
-            serializeSome,
-            serializeString,
-            serializeStruct,
-            serializeNull,
+            .{
+                .serializeBool = serializeBool,
+                .serializeEnum = serializeEnum,
+                .serializeFloat = serializeFloat,
+                .serializeInt = serializeInt,
+                .serializeMap = serializeMap,
+                .serializeNull = serializeNull,
+                .serializeSeq = serializeSeq,
+                .serializeSome = serializeSome,
+                .serializeString = serializeString,
+                .serializeStruct = serializeStruct,
+                .serializeVoid = serializeNull,
+            },
         );
 
         const Ok = S.Ok;
