@@ -459,16 +459,7 @@ Getty JSON is a serialization library for the JSON data format.
                     pub usingnamespace getty.de.Visitor(
                         @This(),
                         Point,
-                        undefined,
-                        undefined,
-                        undefined,
-                        undefined,
-                        undefined,
-                        undefined,
-                        visitSeq,
-                        undefined,
-                        undefined,
-                        undefined,
+                        .{ .visitSeq = visitSeq },
                     );
 
                     pub fn visitSeq(
