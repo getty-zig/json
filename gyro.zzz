@@ -7,6 +7,7 @@ pkgs:
     root: src/lib.zig
 deps:
   getty:
+    git:
       url: "https://github.com/getty-zig/getty.git"
       ref: 4a980dfdb0f822a2ee68e9b873db32e4327696a4
       root: src/lib.zig
