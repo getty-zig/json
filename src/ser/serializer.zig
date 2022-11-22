@@ -258,6 +258,11 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
                 // TODO: Change to buffer size to digits10 + 1 for better space efficiency.
                 var buf: [std.math.max(std.meta.bitCount(@TypeOf(value)), 1) + 1]u8 = undefined;
                 var fbs = std.io.fixedBufferStream(&buf);
+
+                // We have to manually format the integer into a string
+                // ourselves instead of using the serializer's formatter. The
+                // formatter's expecting the user's writer type, so we can't
+                // use it here.
                 fmt.formatInt(value, fbs.writer()) catch return error.Io;
 
                 try getty.serialize(fbs.getWritten(), s.ser.serializer());
