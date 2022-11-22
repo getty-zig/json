@@ -93,7 +93,7 @@ pub fn escapeChar(codepoint: u21, writer: anytype) !void {
 }
 
 /// Escapes characters of a UTF-8 encoded string using JSON escape sequences.
-pub fn escape(bytes: []const u8, writer: anytype, formatter: anytype) !void {
+pub fn writeEscaped(bytes: []const u8, writer: anytype, formatter: anytype) !void {
     var i: usize = 0;
     var start: usize = 0;
 

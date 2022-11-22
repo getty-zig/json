@@ -2,8 +2,7 @@ const getty = @import("getty");
 const std = @import("std");
 
 const fmt = @import("impl/formatter/details/fmt.zig");
-
-const escape = @import("impl/formatter/details/escape.zig").escape;
+const writeEscaped = @import("impl/formatter/details/escape.zig").writeEscaped;
 
 pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user_sbt: anytype) type {
     return struct {
@@ -124,7 +123,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             }
 
             self.formatter.beginString(self.writer) catch return Error.Io;
-            escape(value, self.writer, self.formatter) catch return Error.Syntax;
+            writeEscaped(value, self.writer, self.formatter) catch return Error.Syntax;
             self.formatter.endString(self.writer) catch return Error.Io;
         }
 
