@@ -102,9 +102,10 @@ Getty JSON is a serialization library for the JSON data format.
     const allocator = std.heap.page_allocator;
 
     const Point = struct { x: i32, y: i32 };
-    const point = Point{ .x = 1, .y = 2 };
 
     pub fn main() anyerror!void {
+        const point = Point{ .x = 1, .y = 2 };
+
         const string = try json.toSlice(allocator, point);
         defer allocator.free(string);
 
@@ -132,9 +133,10 @@ Getty JSON is a serialization library for the JSON data format.
     const allocator = std.heap.page_allocator;
 
     const Point = struct { x: i32, y: i32 };
-    const point = Point{ .x = 1, .y = 2 };
 
     pub fn main() anyerror!void {
+        const point = Point{ .x = 1, .y = 2 };
+
         const string = try json.toPrettySlice(allocator, point);
         defer allocator.free(string);
 
@@ -165,24 +167,27 @@ Getty JSON is a serialization library for the JSON data format.
     const allocator = std.heap.page_allocator;
 
     const Point = struct { x: i32, y: i32 };
-    const point = Point{ .x = 1, .y = 2 };
+
+    const block = struct {
+        pub fn is(comptime T: type) bool {
+            return T == Point;
+        }
+
+        pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+            var s = try serializer.serializeSeq(2);
+            const seq = s.seq();
+
+            inline for (std.meta.fields(Point)) |field| {
+                try seq.serializeElement(@field(value, field.name));
+            }
+            return try seq.end();
+        }
+    };
 
     pub fn main() anyerror!void {
-        const string = try json.toSliceWith(allocator, point, struct {
-            pub fn is(comptime T: type) bool {
-                return T == Point;
-            }
+        const point = Point{ .x = 1, .y = 2 };
 
-            pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                var s = try serializer.serializeSeq(2);
-                const seq = s.seq();
-
-                inline for (std.meta.fields(Point)) |field| {
-                    try seq.serializeElement(@field(value, field.name));
-                }
-                return try seq.end();
-            }
-        });
+        const string = try json.toSliceWith(allocator, point, block);
         defer allocator.free(string);
 
         // [1,2]
@@ -209,24 +214,27 @@ Getty JSON is a serialization library for the JSON data format.
     const allocator = std.heap.page_allocator;
 
     const Point = struct { x: i32, y: i32 };
-    const point = Point{ .x = 1, .y = 2 };
+
+    const block = struct {
+        pub fn is(comptime T: type) bool {
+            return T == Point;
+        }
+
+        pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+            var s = try serializer.serializeSeq(2);
+            const seq = s.seq();
+
+            inline for (std.meta.fields(Point)) |field| {
+                try seq.serializeElement(@field(value, field.name));
+            }
+            return try seq.end();
+        }
+    };
 
     pub fn main() anyerror!void {
-        const string = try json.toPrettySliceWith(allocator, point, struct {
-            pub fn is(comptime T: type) bool {
-                return T == Point;
-            }
+        const point = Point{ .x = 1, .y = 2 };
 
-            pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                var s = try serializer.serializeSeq(2);
-                const seq = s.seq();
-
-                inline for (std.meta.fields(Point)) |field| {
-                    try seq.serializeElement(@field(value, field.name));
-                }
-                return try seq.end();
-            }
-        });
+        const string = try json.toPrettySliceWith(allocator, point, block);
         defer allocator.free(string);
 
         // [
@@ -254,9 +262,10 @@ Getty JSON is a serialization library for the JSON data format.
     const json = @import("json");
 
     const Point = struct { x: i32, y: i32 };
-    const point = Point{ .x = 1, .y = 2 };
 
     pub fn main() anyerror!void {
+        const point = Point{ .x = 1, .y = 2 };
+
         const stdout = std.io.getStdOut().writer();
 
         // {"x":1,"y":2}
@@ -281,9 +290,10 @@ Getty JSON is a serialization library for the JSON data format.
     const json = @import("json");
 
     const Point = struct { x: i32, y: i32 };
-    const point = Point{ .x = 1, .y = 2 };
 
     pub fn main() anyerror!void {
+        const point = Point{ .x = 1, .y = 2 };
+
         const stdout = std.io.getStdOut().writer();
 
         // {
@@ -310,29 +320,30 @@ Getty JSON is a serialization library for the JSON data format.
     const std = @import("std");
     const json = @import("json");
 
-    const allocator = std.heap.page_allocator;
-
     const Point = struct { x: i32, y: i32 };
-    const point = Point{ .x = 1, .y = 2 };
+
+    const block = struct {
+        pub fn is(comptime T: type) bool {
+            return T == Point;
+        }
+
+        pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+            var s = try serializer.serializeSeq(2);
+            const seq = s.seq();
+
+            try seq.serializeElement(value.x);
+            try seq.serializeElement(value.y);
+            return try seq.end();
+        }
+    };
 
     pub fn main() anyerror!void {
+        const point = Point{ .x = 1, .y = 2 };
+
         const stdout = std.io.getStdOut().writer();
 
         // [1,2]
-        try json.toWriterWith(point, stdout, struct {
-            pub fn is(comptime T: type) bool {
-                return T == Point;
-            }
-
-            pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                var s = try serializer.serializeSeq(2);
-                const seq = s.seq();
-
-                try seq.serializeElement(value.x);
-                try seq.serializeElement(value.y);
-                return try seq.end();
-            }
-        });
+        try json.toWriterWith(point, stdout, block);
     }
     ```
 </details>
@@ -352,32 +363,33 @@ Getty JSON is a serialization library for the JSON data format.
     const std = @import("std");
     const json = @import("json");
 
-    const allocator = std.heap.page_allocator;
-
     const Point = struct { x: i32, y: i32 };
-    const point = Point{ .x = 1, .y = 2 };
+
+    const block = struct {
+        pub fn is(comptime T: type) bool {
+            return T == Point;
+        }
+
+        pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
+            var s = try serializer.serializeSeq(2);
+            const seq = s.seq();
+
+            try seq.serializeElement(value.x);
+            try seq.serializeElement(value.y);
+            return try seq.end();
+        }
+    };
 
     pub fn main() anyerror!void {
+        const point = Point{ .x = 1, .y = 2 };
+
         const stdout = std.io.getStdOut().writer();
 
         // [
         //   1,
         //   2
         // ]
-        try json.toPrettyWriterWith(point, stdout, struct {
-            pub fn is(comptime T: type) bool {
-                return T == Point;
-            }
-
-            pub fn serialize(value: anytype, serializer: anytype) !@TypeOf(serializer).Ok {
-                var s = try serializer.serializeSeq(2);
-                const seq = s.seq();
-
-                try seq.serializeElement(value.x);
-                try seq.serializeElement(value.y);
-                return try seq.end();
-            }
-        });
+        try json.toPrettyWriterWith(point, stdout, block);
     }
     ```
 </details>
@@ -439,42 +451,44 @@ Getty JSON is a serialization library for the JSON data format.
 
     const Point = struct { x: i32, y: i32 };
 
-    pub fn main() anyerror!void {
-        const point = try json.fromSliceWith(null, Point, "[1,2]", struct {
-            pub fn is(comptime T: type) bool {
-                return T == Point;
-            }
+    const block = struct {
+        pub fn is(comptime T: type) bool {
+            return T == Point;
+        }
 
-            pub fn deserialize(allocator: ?std.mem.Allocator, comptime _: type, deserializer: anytype, visitor: anytype) !Point {
-                return try deserializer.deserializeSeq(allocator, visitor);
-            }
+        pub fn deserialize(allocator: ?std.mem.Allocator, comptime _: type, deserializer: anytype, visitor: anytype) !Point {
+            return try deserializer.deserializeSeq(allocator, visitor);
+        }
 
-            pub fn Visitor(comptime _: type) type {
-                return struct {
-                    pub usingnamespace getty.de.Visitor(
-                        @This(),
-                        Point,
-                        .{ .visitSeq = visitSeq },
-                    );
+        pub fn Visitor(comptime _: type) type {
+            return struct {
+                pub usingnamespace getty.de.Visitor(
+                    @This(),
+                    Point,
+                    .{ .visitSeq = visitSeq },
+                );
 
-                    pub fn visitSeq(_: @This(), allocator: ?std.mem.Allocator, comptime _: type, seq: anytype) !Point {
-                        var point: Point = undefined;
+                pub fn visitSeq(_: @This(), allocator: ?std.mem.Allocator, comptime _: type, seq: anytype) !Point {
+                    var point: Point = undefined;
 
-                        inline for (std.meta.fields(Point)) |field| {
-                            if (try seq.nextElement(allocator, i32)) |elem| {
-                                @field(point, field.name) = elem;
-                            }
+                    inline for (std.meta.fields(Point)) |field| {
+                        if (try seq.nextElement(allocator, i32)) |elem| {
+                            @field(point, field.name) = elem;
                         }
-
-                        if ((try seq.nextElement(allocator, i32)) != null) {
-                            return error.InvalidLength;
-                        }
-
-                        return point;
                     }
-                };
-            }
-        });
+
+                    if ((try seq.nextElement(allocator, i32)) != null) {
+                        return error.InvalidLength;
+                    }
+
+                    return point;
+                }
+            };
+        }
+    };
+
+    pub fn main() anyerror!void {
+        const point = try json.fromSliceWith(null, Point, "[1,2]", block);
 
         // Point{ .x = 1, .y = 2 }
         std.debug.print("{any}\n", .{point});
