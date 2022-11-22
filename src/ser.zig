@@ -46,30 +46,6 @@ pub fn toPrettyWriter(value: anytype, writer: anytype) !void {
     return try toPrettyWriterWith(value, writer, null);
 }
 
-/// Serialize the given value as a JSON string.
-///
-/// The serialized string is an owned slice. The caller is responsible for
-/// freeing the returned memory.
-pub fn toSlice(allocator: std.mem.Allocator, value: anytype) ![]const u8 {
-    var list = try std.ArrayList(u8).initCapacity(allocator, 128);
-    errdefer list.deinit();
-
-    try toWriter(value, list.writer());
-    return list.toOwnedSlice();
-}
-
-/// Serialize the given value as a pretty-printed JSON string.
-///
-/// The serialized string is an owned slice. The caller is responsible for
-/// freeing the returned memory.
-pub fn toPrettySlice(allocator: std.mem.Allocator, value: anytype) ![]const u8 {
-    var list = try std.ArrayList(u8).initCapacity(allocator, 128);
-    errdefer list.deinit();
-
-    try toPrettyWriter(value, list.writer());
-    return list.toOwnedSlice();
-}
-
 /// Serialize the given value as a JSON string with the given `getty.Ser`
 /// interface value.
 ///
@@ -94,6 +70,22 @@ pub fn toPrettySliceWith(allocator: std.mem.Allocator, value: anytype, comptime 
 
     try toPrettyWriterWith(value, list.writer(), user_sbt);
     return list.toOwnedSlice();
+}
+
+/// Serialize the given value as a JSON string.
+///
+/// The serialized string is an owned slice. The caller is responsible for
+/// freeing the returned memory.
+pub fn toSlice(allocator: std.mem.Allocator, value: anytype) ![]const u8 {
+    return toSliceWith(allocator, value, null);
+}
+
+/// Serialize the given value as a pretty-printed JSON string.
+///
+/// The serialized string is an owned slice. The caller is responsible for
+/// freeing the returned memory.
+pub fn toPrettySlice(allocator: std.mem.Allocator, value: anytype) ![]const u8 {
+    return toPrettySliceWith(allocator, value, null);
 }
 
 const concepts = struct {

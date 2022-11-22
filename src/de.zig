@@ -25,18 +25,15 @@ pub fn fromDeserializer(comptime T: type, d: anytype) !T {
     return value;
 }
 
-pub fn fromSlice(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8) !T {
-    const D = Deserializer(null);
-    var d = if (allocator) |alloc| D.withAllocator(alloc, slice) else D.init(slice);
-
-    return fromDeserializer(T, &d);
-}
-
 pub fn fromSliceWith(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8, comptime user_dbt: anytype) !T {
     const D = Deserializer(user_dbt);
     var d = if (allocator) |alloc| D.withAllocator(alloc, slice) else D.init(slice);
 
     return fromDeserializer(T, &d);
+}
+
+pub fn fromSlice(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8) !T {
+    return try fromSliceWith(allocator, T, slice, null);
 }
 
 test "array" {
