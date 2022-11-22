@@ -141,6 +141,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             return Serialize{ .ser = self, .state = .first };
         }
 
+        // Implementation of Getty's aggregate serialization interfaces.
         const Serialize = struct {
             ser: *Self,
             state: enum { empty, first, rest },
@@ -178,7 +179,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
 
             const _map = struct {
                 fn serializeKey(s: *Serialize, key: anytype) Error!void {
-                    var mks = MapKeySerializer(Self.@"getty.Serializer"){ .ser = s.ser.serializer() };
+                    var mks = MapKeySerializer{ .ser = s.ser };
 
                     s.ser.formatter.beginObjectKey(s.ser.writer, s.state == .first) catch return error.Io;
                     try getty.serialize(key, mks.serializer());
@@ -240,51 +241,43 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
                 }
             };
         };
-    };
-}
 
-fn MapKeySerializer(comptime S: type) type {
-    comptime getty.concepts.@"getty.Serializer"(S);
+        // An internal Getty serializer for map keys.
+        const MapKeySerializer = struct {
+            ser: *Self,
 
-    return struct {
-        ser: S,
+            pub usingnamespace getty.Serializer(
+                MapKeySerializer,
+                Ok,
+                Error,
+                Self.@"getty.Serializer".user_st,
+                Self.@"getty.Serializer".serializer_st,
+                null,
+                null,
+                null,
+                .{
+                    .serializeBool = mks_serializeBool,
+                    .serializeInt = mks_serializeInt,
+                    .serializeString = mks_serializeString,
+                },
+            );
 
-        const Self = @This();
+            fn mks_serializeBool(s: MapKeySerializer, value: bool) Error!Ok {
+                try getty.serialize(if (value) "true" else "false", s.ser.serializer());
+            }
 
-        pub usingnamespace getty.Serializer(
-            Self,
-            Ok,
-            Error,
-            S.user_st,
-            S.serializer_st,
-            null,
-            null,
-            null,
-            .{
-                .serializeBool = serializeBool,
-                .serializeInt = serializeInt,
-                .serializeString = serializeString,
-            },
-        );
+            fn mks_serializeInt(s: MapKeySerializer, value: anytype) Error!Ok {
+                // TODO: Change to buffer size to digits10 + 1 for better space efficiency.
+                var buf: [std.math.max(std.meta.bitCount(@TypeOf(value)), 1) + 1]u8 = undefined;
+                var fbs = std.io.fixedBufferStream(&buf);
+                fmt.formatInt(value, fbs.writer()) catch return error.Io;
 
-        const Ok = S.Ok;
-        const Error = S.Error;
+                try getty.serialize(fbs.getWritten(), s.ser.serializer());
+            }
 
-        fn serializeBool(self: Self, value: bool) Error!Ok {
-            try getty.serialize(if (value) "true" else "false", self.ser);
-        }
-
-        fn serializeInt(self: Self, value: anytype) Error!Ok {
-            // TODO: Change to buffer size to digits10 + 1 for better space efficiency.
-            var buf: [std.math.max(std.meta.bitCount(@TypeOf(value)), 1) + 1]u8 = undefined;
-            var fbs = std.io.fixedBufferStream(&buf);
-            fmt.formatInt(value, fbs.writer()) catch return error.Io;
-
-            try getty.serialize(fbs.getWritten(), self.ser);
-        }
-
-        fn serializeString(self: Self, value: anytype) Error!Ok {
-            try getty.serialize(value, self.ser);
-        }
+            fn mks_serializeString(s: MapKeySerializer, value: anytype) Error!Ok {
+                try getty.serialize(value, s.ser.serializer());
+            }
+        };
     };
 }
