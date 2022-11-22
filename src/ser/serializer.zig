@@ -226,25 +226,8 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             );
 
             fn serializeField(s: *Serialize, comptime key: []const u8, value: anytype) Error!void {
-                var k = blk: {
-                    var k: [key.len + 2]u8 = undefined;
-                    k[0] = '"';
-                    k[k.len - 1] = '"';
-
-                    var fbs = std.io.fixedBufferStream(&k);
-                    fbs.seekTo(1) catch unreachable; // UNREACHABLE: The length of `k` is guaranteed to be > 1.
-                    fbs.writer().writeAll(key) catch return error.Io;
-
-                    break :blk k;
-                };
-
-                s.ser.formatter.beginObjectKey(s.ser.writer, s.state == .first) catch return error.Io;
-                s.ser.formatter.writeRawFragment(s.ser.writer, &k) catch return error.Io;
-                s.ser.formatter.endObjectKey(s.ser.writer) catch return error.Io;
-
-                try s.map().serializeValue(value);
-
-                s.state = .rest;
+                try serializeKey(s, key);
+                try serializeValue(s, value);
             }
         };
 
