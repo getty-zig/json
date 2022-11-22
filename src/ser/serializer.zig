@@ -266,38 +266,21 @@ fn MapKeySerializer(comptime S: type) type {
             Error,
             S.user_st,
             S.serializer_st,
-            Compound,
-            Compound,
-            Compound,
+            null,
+            null,
+            null,
             .{
                 .serializeBool = serializeBool,
-                .serializeEnum = serializeEnum,
-                .serializeFloat = serializeFloat,
                 .serializeInt = serializeInt,
-                .serializeMap = serializeMap,
-                .serializeNull = serializeNull,
-                .serializeSeq = serializeSeq,
-                .serializeSome = serializeSome,
                 .serializeString = serializeString,
-                .serializeStruct = serializeStruct,
-                .serializeVoid = serializeNull,
             },
         );
 
         const Ok = S.Ok;
         const Error = S.Error;
-        const Compound = getty.TODO;
 
         fn serializeBool(self: Self, value: bool) Error!Ok {
             try getty.serialize(if (value) "true" else "false", self.ser);
-        }
-
-        fn serializeEnum(_: Self, _: anytype) Error!Ok {
-            return error.Syntax;
-        }
-
-        fn serializeFloat(_: Self, _: anytype) Error!Ok {
-            return error.Syntax;
         }
 
         fn serializeInt(self: Self, value: anytype) Error!Ok {
@@ -309,28 +292,8 @@ fn MapKeySerializer(comptime S: type) type {
             try getty.serialize(fbs.getWritten(), self.ser);
         }
 
-        fn serializeMap(_: Self, _: ?usize) Error!Compound {
-            return error.Syntax;
-        }
-
-        fn serializeNull(_: Self) Error!Ok {
-            return error.Syntax;
-        }
-
-        fn serializeSeq(_: Self, _: ?usize) Error!Compound {
-            return error.Syntax;
-        }
-
-        fn serializeSome(_: Self, _: anytype) Error!Ok {
-            return error.Syntax;
-        }
-
         fn serializeString(self: Self, value: anytype) Error!Ok {
             try getty.serialize(value, self.ser);
-        }
-
-        fn serializeStruct(_: Self, comptime _: []const u8, _: usize) Error!Compound {
-            return error.Syntax;
         }
     };
 }
