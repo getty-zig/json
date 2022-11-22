@@ -25,9 +25,9 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             Error,
             user_sbt,
             null,
-            Map,
-            Seq,
-            Structure,
+            Serialize,
+            Serialize,
+            Serialize,
             .{
                 .serializeBool = serializeBool,
                 .serializeEnum = serializeEnum,
@@ -64,10 +64,6 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             Eof,
         };
 
-        const Map = Serialize(Self);
-        const Seq = Serialize(Self);
-        const Structure = Serialize(Self);
-
         fn serializeBool(self: *Self, value: bool) Error!Ok {
             self.formatter.writeBool(self.writer, value) catch return Error.Io;
         }
@@ -88,34 +84,34 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             self.formatter.writeInt(self.writer, value) catch return Error.Io;
         }
 
-        fn serializeMap(self: *Self, length: ?usize) Error!Map {
+        fn serializeMap(self: *Self, length: ?usize) Error!Serialize {
             self.formatter.beginObject(self.writer) catch return Error.Io;
 
             if (length) |l| {
                 if (l == 0) {
                     self.formatter.endObject(self.writer) catch return Error.Io;
-                    return Map{ .ser = self, .state = .empty };
+                    return Serialize{ .ser = self, .state = .empty };
                 }
             }
 
-            return Map{ .ser = self, .state = .first };
+            return Serialize{ .ser = self, .state = .first };
         }
 
         fn serializeNull(self: *Self) Error!Ok {
             self.formatter.writeNull(self.writer) catch return Error.Io;
         }
 
-        fn serializeSeq(self: *Self, length: ?usize) Error!Seq {
+        fn serializeSeq(self: *Self, length: ?usize) Error!Serialize {
             self.formatter.beginArray(self.writer) catch return Error.Io;
 
             if (length) |l| {
                 if (l == 0) {
                     self.formatter.endArray(self.writer) catch return Error.Io;
-                    return Seq{ .ser = self, .state = .empty };
+                    return Serialize{ .ser = self, .state = .empty };
                 }
             }
 
-            return Seq{ .ser = self, .state = .first };
+            return Serialize{ .ser = self, .state = .first };
         }
 
         fn serializeSome(self: *Self, value: anytype) Error!Ok {
@@ -132,122 +128,117 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             self.formatter.endString(self.writer) catch return Error.Io;
         }
 
-        fn serializeStruct(self: *Self, comptime name: []const u8, length: usize) Error!Structure {
+        fn serializeStruct(self: *Self, comptime name: []const u8, length: usize) Error!Serialize {
             _ = name;
 
             self.formatter.beginObject(self.writer) catch return Error.Io;
 
             if (length == 0) {
                 self.formatter.endObject(self.writer) catch return Error.Io;
-                return Structure{ .ser = self, .state = .empty };
+                return Serialize{ .ser = self, .state = .empty };
             }
 
-            return Structure{ .ser = self, .state = .first };
+            return Serialize{ .ser = self, .state = .first };
         }
-    };
-}
 
-fn Serialize(comptime Ser: type) type {
-    return struct {
-        ser: *Ser,
-        state: enum { empty, first, rest },
+        const Serialize = struct {
+            ser: *Self,
+            state: enum { empty, first, rest },
 
-        const Self = @This();
+            pub usingnamespace getty.ser.Map(
+                *Serialize,
+                Ok,
+                Error,
+                .{
+                    .serializeKey = _map.serializeKey,
+                    .serializeValue = _map.serializeValue,
+                    .end = _map.end,
+                },
+            );
 
-        pub usingnamespace getty.ser.Map(
-            *Self,
-            Ser.Ok,
-            Ser.Error,
-            .{
-                .serializeKey = _map.serializeKey,
-                .serializeValue = _map.serializeValue,
-                .end = _map.end,
-            },
-        );
+            pub usingnamespace getty.ser.Seq(
+                *Serialize,
+                Ok,
+                Error,
+                .{
+                    .serializeElement = _seq.serializeElement,
+                    .end = _seq.end,
+                },
+            );
 
-        pub usingnamespace getty.ser.Seq(
-            *Self,
-            Ser.Ok,
-            Ser.Error,
-            .{
-                .serializeElement = _seq.serializeElement,
-                .end = _seq.end,
-            },
-        );
+            pub usingnamespace getty.ser.Structure(
+                *Serialize,
+                Ok,
+                Error,
+                .{
+                    .serializeField = _structure.serializeField,
+                    .end = _map.end,
+                },
+            );
 
-        pub usingnamespace getty.ser.Structure(
-            *Self,
-            Ser.Ok,
-            Ser.Error,
-            .{
-                .serializeField = _structure.serializeField,
-                .end = _map.end,
-            },
-        );
+            const _map = struct {
+                fn serializeKey(s: *Serialize, key: anytype) Error!void {
+                    var mks = MapKeySerializer(Self.@"getty.Serializer"){ .ser = s.ser.serializer() };
 
-        const _map = struct {
-            fn serializeKey(self: *Self, key: anytype) Ser.Error!void {
-                var mks = MapKeySerializer(Ser.@"getty.Serializer"){ .ser = self.ser.serializer() };
-                const s = mks.serializer();
+                    s.ser.formatter.beginObjectKey(s.ser.writer, s.state == .first) catch return error.Io;
+                    try getty.serialize(key, mks.serializer());
+                    s.ser.formatter.endObjectKey(s.ser.writer) catch return error.Io;
 
-                self.ser.formatter.beginObjectKey(self.ser.writer, self.state == .first) catch return error.Io;
-                try getty.serialize(key, s);
-                self.ser.formatter.endObjectKey(self.ser.writer) catch return error.Io;
-
-                self.state = .rest;
-            }
-
-            fn serializeValue(self: *Self, value: anytype) Ser.Error!void {
-                self.ser.formatter.beginObjectValue(self.ser.writer) catch return error.Io;
-                try getty.serialize(value, self.ser.serializer());
-                self.ser.formatter.endObjectValue(self.ser.writer) catch return error.Io;
-            }
-
-            fn end(self: *Self) Ser.Error!Ser.Ok {
-                if (self.state != .empty) {
-                    self.ser.formatter.endObject(self.ser.writer) catch return error.Io;
+                    s.state = .rest;
                 }
-            }
-        };
 
-        const _seq = struct {
-            fn serializeElement(self: *Self, value: anytype) Ser.Error!void {
-                self.ser.formatter.beginArrayValue(self.ser.writer, self.state == .first) catch return error.Io;
-                try getty.serialize(value, self.ser.serializer());
-                self.ser.formatter.endArrayValue(self.ser.writer) catch return error.Io;
-
-                self.state = .rest;
-            }
-
-            fn end(self: *Self) Ser.Error!Ser.Ok {
-                if (self.state != .empty) {
-                    self.ser.formatter.endArray(self.ser.writer) catch return error.Io;
+                fn serializeValue(s: *Serialize, value: anytype) Error!void {
+                    s.ser.formatter.beginObjectValue(s.ser.writer) catch return error.Io;
+                    try getty.serialize(value, s.ser.serializer());
+                    s.ser.formatter.endObjectValue(s.ser.writer) catch return error.Io;
                 }
-            }
-        };
 
-        const _structure = struct {
-            fn serializeField(self: *Self, comptime key: []const u8, value: anytype) Ser.Error!void {
-                var k = blk: {
-                    var k: [key.len + 2]u8 = undefined;
-                    k[0] = '"';
-                    k[k.len - 1] = '"';
+                fn end(s: *Serialize) Error!Ok {
+                    if (s.state != .empty) {
+                        s.ser.formatter.endObject(s.ser.writer) catch return error.Io;
+                    }
+                }
+            };
 
-                    var fbs = std.io.fixedBufferStream(&k);
-                    fbs.seekTo(1) catch unreachable; // UNREACHABLE: The length of `k` is guaranteed to be > 1.
-                    fbs.writer().writeAll(key) catch return error.Io;
+            const _seq = struct {
+                fn serializeElement(s: *Serialize, value: anytype) Error!void {
+                    s.ser.formatter.beginArrayValue(s.ser.writer, s.state == .first) catch return error.Io;
+                    try getty.serialize(value, s.ser.serializer());
+                    s.ser.formatter.endArrayValue(s.ser.writer) catch return error.Io;
 
-                    break :blk k;
-                };
+                    s.state = .rest;
+                }
 
-                self.ser.formatter.beginObjectKey(self.ser.writer, self.state == .first) catch return error.Io;
-                self.ser.formatter.writeRawFragment(self.ser.writer, &k) catch return error.Io;
-                self.ser.formatter.endObjectKey(self.ser.writer) catch return error.Io;
+                fn end(s: *Serialize) Error!Ok {
+                    if (s.state != .empty) {
+                        s.ser.formatter.endArray(s.ser.writer) catch return error.Io;
+                    }
+                }
+            };
 
-                try self.map().serializeValue(value);
+            const _structure = struct {
+                fn serializeField(s: *Serialize, comptime key: []const u8, value: anytype) Error!void {
+                    var k = blk: {
+                        var k: [key.len + 2]u8 = undefined;
+                        k[0] = '"';
+                        k[k.len - 1] = '"';
 
-                self.state = .rest;
-            }
+                        var fbs = std.io.fixedBufferStream(&k);
+                        fbs.seekTo(1) catch unreachable; // UNREACHABLE: The length of `k` is guaranteed to be > 1.
+                        fbs.writer().writeAll(key) catch return error.Io;
+
+                        break :blk k;
+                    };
+
+                    s.ser.formatter.beginObjectKey(s.ser.writer, s.state == .first) catch return error.Io;
+                    s.ser.formatter.writeRawFragment(s.ser.writer, &k) catch return error.Io;
+                    s.ser.formatter.endObjectKey(s.ser.writer) catch return error.Io;
+
+                    try s.map().serializeValue(value);
+
+                    s.state = .rest;
+                }
+            };
         };
     };
 }
