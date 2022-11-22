@@ -84,7 +84,7 @@ jobs:
 
       - name: build
         run: |
-          zig build -Dtarget=i386-windows --prefix tmp
+          zig build -Dtarget=x86_64-windows --prefix tmp
           zig build
 
       - name: test
