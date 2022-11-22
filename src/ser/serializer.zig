@@ -123,7 +123,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             }
 
             self.formatter.beginString(self.writer) catch return Error.Io;
-            writeEscaped(value, self.writer, self.formatter) catch return Error.Syntax;
+            writeEscaped(value, self.writer, self.formatter) catch return Error.Io;
             self.formatter.endString(self.writer) catch return Error.Io;
         }
 
