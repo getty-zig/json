@@ -180,6 +180,7 @@ Getty JSON is a serialization library for the JSON data format.
             inline for (std.meta.fields(Point)) |field| {
                 try seq.serializeElement(@field(value, field.name));
             }
+
             return try seq.end();
         }
     };
@@ -227,6 +228,7 @@ Getty JSON is a serialization library for the JSON data format.
             inline for (std.meta.fields(Point)) |field| {
                 try seq.serializeElement(@field(value, field.name));
             }
+
             return try seq.end();
         }
     };
@@ -333,6 +335,7 @@ Getty JSON is a serialization library for the JSON data format.
 
             try seq.serializeElement(value.x);
             try seq.serializeElement(value.y);
+
             return try seq.end();
         }
     };
@@ -376,6 +379,7 @@ Getty JSON is a serialization library for the JSON data format.
 
             try seq.serializeElement(value.x);
             try seq.serializeElement(value.y);
+
             return try seq.end();
         }
     };
