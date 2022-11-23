@@ -257,17 +257,17 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
                 null,
                 null,
                 .{
-                    .serializeBool = mks_serializeBool,
-                    .serializeInt = mks_serializeInt,
-                    .serializeString = mks_serializeString,
+                    .serializeBool = _serializeBool,
+                    .serializeInt = _serializeInt,
+                    .serializeString = _serializeString,
                 },
             );
 
-            fn mks_serializeBool(s: MapKeySerializer, value: bool) Error!Ok {
+            fn _serializeBool(s: MapKeySerializer, value: bool) Error!Ok {
                 try getty.serialize(if (value) "true" else "false", s.ser.serializer());
             }
 
-            fn mks_serializeInt(s: MapKeySerializer, value: anytype) Error!Ok {
+            fn _serializeInt(s: MapKeySerializer, value: anytype) Error!Ok {
                 // TODO: Change to buffer size to digits10 + 1 for better space efficiency.
                 var buf: [std.math.max(std.meta.bitCount(@TypeOf(value)), 1) + 1]u8 = undefined;
                 var fbs = std.io.fixedBufferStream(&buf);
@@ -281,7 +281,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
                 try getty.serialize(fbs.getWritten(), s.ser.serializer());
             }
 
-            fn mks_serializeString(s: MapKeySerializer, value: anytype) Error!Ok {
+            fn _serializeString(s: MapKeySerializer, value: anytype) Error!Ok {
                 try getty.serialize(value, s.ser.serializer());
             }
         };
@@ -305,11 +305,11 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
                 null,
                 null,
                 .{
-                    .serializeString = struct_serializeString,
+                    .serializeString = _serializeString,
                 },
             );
 
-            fn struct_serializeString(s: StructKeySerializer, value: anytype) Error!Ok {
+            fn _serializeString(s: StructKeySerializer, value: anytype) Error!Ok {
                 s.ser.formatter.beginString(s.ser.writer) catch return Error.Io;
                 writeEscaped(value, s.ser.writer, s.ser.formatter) catch return Error.Io;
                 s.ser.formatter.endString(s.ser.writer) catch return Error.Io;
