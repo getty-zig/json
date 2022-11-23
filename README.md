@@ -499,7 +499,3 @@ Getty JSON is a serialization library for the JSON data format.
     }
     ```
 </details>
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
