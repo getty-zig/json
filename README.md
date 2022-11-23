@@ -12,7 +12,7 @@
 
 ## Overview
 
-Getty JSON is a serialization library for the JSON data format.
+_Getty JSON_ is a (de)serialization library for the JSON data format.
 
 ## Installation
 
