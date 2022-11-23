@@ -225,7 +225,20 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             );
 
             fn serializeField(s: *Serialize, comptime key: []const u8, value: anytype) Error!void {
-                try serializeKey(s, key);
+                // Serialize key.
+                if (comptime !std.unicode.utf8ValidateSlice(key)) {
+                    return Error.Syntax;
+                }
+
+                var sks = StructKeySerializer{ .ser = s.ser };
+
+                s.ser.formatter.beginObjectKey(s.ser.writer, s.state == .first) catch return error.Io;
+                try getty.serialize(key, sks.serializer());
+                s.ser.formatter.endObjectKey(s.ser.writer) catch return error.Io;
+
+                s.state = .rest;
+
+                // Serialize field.
                 try serializeValue(s, value);
             }
         };
@@ -270,6 +283,36 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
 
             fn mks_serializeString(s: MapKeySerializer, value: anytype) Error!Ok {
                 try getty.serialize(value, s.ser.serializer());
+            }
+        };
+
+        // An internal Getty serializer for struct keys.
+        //
+        // The main difference between key serialization for structs
+        // and maps is that keys are compile-time known for structs,
+        // meaning we can avoid having to validate them at runtime,
+        // which gives us a pretty significant performance increase.
+        const StructKeySerializer = struct {
+            ser: *Self,
+
+            pub usingnamespace getty.Serializer(
+                StructKeySerializer,
+                Ok,
+                Error,
+                Self.@"getty.Serializer".user_st,
+                Self.@"getty.Serializer".serializer_st,
+                null,
+                null,
+                null,
+                .{
+                    .serializeString = struct_serializeString,
+                },
+            );
+
+            fn struct_serializeString(s: StructKeySerializer, value: anytype) Error!Ok {
+                s.ser.formatter.beginString(s.ser.writer) catch return Error.Io;
+                writeEscaped(value, s.ser.writer, s.ser.formatter) catch return Error.Io;
+                s.ser.formatter.endString(s.ser.writer) catch return Error.Io;
             }
         };
     };
