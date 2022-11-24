@@ -78,16 +78,7 @@ pub fn PrettyFormatter(comptime Writer: type) type {
         }
 
         fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
-            var buf: [512]u8 = undefined;
-            var stream = std.io.fixedBufferStream(&buf);
-
-            std.fmt.formatFloatDecimal(value, std.fmt.FormatOptions{}, stream.writer()) catch |err| switch (err) {
-                error.NoSpaceLeft => unreachable,
-                else => unreachable, // TODO: handle error
-            };
-
-            // TODO: fix getPos error
-            try writer.writeAll(buf[0 .. stream.getPos() catch unreachable]);
+            try std.fmt.formatFloatScientific(value, std.fmt.FormatOptions{}, writer);
         }
 
         fn writeNumberString(_: *Self, writer: Writer, value: []const u8) Writer.Error!void {
