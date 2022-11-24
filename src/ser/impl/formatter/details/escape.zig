@@ -44,6 +44,48 @@ const CARRIAGE_RETURN = '\r';
 
 const HEX_DIGITS = [_]u8{ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
+// ASCII characters that require escaping.
+//
+// The list of ASCII characters that require escaping include: 0x00-0x1F, 0x22
+// (double quote), 0x5C (backslash), and 0x7F.
+const escape_characters_ascii = [_]bool{
+    true,  true,  true,  true,  true,  true,  true,  true,
+    true,  true,  true,  true,  true,  true,  true,  true,
+    true,  true,  true,  true,  true,  true,  true,  true,
+    true,  true,  true,  true,  true,  true,  true,  true,
+    false, false, true,  false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, true,  false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, true,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false,
+
+    // Ensures that 0xFF is not out of bounds.
+    false,
+};
+
 /// Escapes a UTF-8 encoded code point using JSON escape sequences.
 pub fn escapeChar(codepoint: u21, writer: anytype) !void {
     switch (codepoint) {
@@ -101,14 +143,22 @@ pub fn writeEscaped(bytes: []const u8, writer: anytype, formatter: anytype) !voi
         const length = std.unicode.utf8ByteSequenceLength(bytes[i]) catch unreachable;
 
         // Skip ASCII characters that don't require escaping.
-        switch (bytes[i]) {
-            0x00...0x1F, DOUBLE_QUOTE, BACKSLASH, 0x7F => {},
-            else => if (length == 1) continue,
+        if (length == 1 and !escape_characters_ascii[bytes[i]]) {
+            continue;
         }
 
         const codepoint = std.unicode.utf8Decode(bytes[i .. i + length]) catch unreachable;
 
         // Skip all other code points that don't require escaping.
+        //
+        // Oddly enough, all attempts to refactor this section have resulted in
+        // lower performance when serializing strings that don't have any
+        // characters that need escaping, and I have no idea why. Additionally,
+        // overall performance is actually lowered even when we don't execute
+        // the refactored versions of this section! Very weird.
+        //
+        // In any case, this switch lets us be faster than std.json, so I guess
+        // it's fine as it is for now.
         switch (codepoint) {
             0x00...0x1F, DOUBLE_QUOTE, BACKSLASH, 0x7F, 0x2028, 0x2029 => {},
             else => if (codepoint <= 0xFFFF) {
