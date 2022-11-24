@@ -6,22 +6,23 @@ const meta = std.meta;
 pub fn formatInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
     comptime std.debug.assert(meta.trait.isIntegral(@TypeOf(value)));
 
+    // Coerce integers into an i8 or larger integer type.
+    //
+    // The reason we need to do this because formatDecimal may need to perform
+    // @rem(value, 100), but 100 can't fit in unsigned integers with less than
+    // 7 bits or signed integers with less than 8 bits.
     const Int = switch (@typeInfo(@TypeOf(value))) {
-        .Int => @TypeOf(value),
         .ComptimeInt => blk: {
-            // Coerce comptime_int into an appropriate integer type.
-            //
-            // The `Fitted` type is converted into a i8 so that @rem(value,
-            // 100) can be computed in `formatDecimal`.
-            //
-            // Unsigned comptime_ints with less than 7 bits and signed
-            // comptime_ints with less than 8 bits cause a compile error since
-            // 100 cannot be coerced into such types.
             const Fitted = math.IntFittingRange(value, value);
+            break :blk if (meta.bitCount(Fitted) < 8) i8 else Fitted;
+        },
+        .Int => blk: {
+            const Fitted = math.IntFittingRange(math.minInt(@TypeOf(value)), math.maxInt(@TypeOf(value)));
             break :blk if (meta.bitCount(Fitted) < 8) i8 else Fitted;
         },
         else => unreachable,
     };
+
     const int = @as(Int, value);
 
     // TODO: Change to digits10 + 1 for better space efficiency.
@@ -41,55 +42,6 @@ pub fn formatInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
     };
 
     try writer.writeAll(buf[start..]);
-}
-
-/// Returns the absolute value of `x`.
-///
-/// The return type of `abs` is the smallest type between u32, u64, and u128
-/// that can store all possible absolute values of the type of `x`. For
-/// example, if the type of `x` is i8, then the greatest absolute value
-/// possible is 128. 128 can be stored as a u32, and u32 is smaller than u64
-/// and u128, so u32 is the return type.
-///
-/// For positive integers, `x` is simply casted to the return type and
-/// returned.
-///
-/// For negative integers, if `x` is greater than the smallest possible value
-/// of @TypeOf(x), then the negation of `x` is casted to the return type and is
-/// returned. Otherwise, the wrapped difference between `x` and 1 is casted to
-/// the return type and the sum between the difference and 1 is returned.
-fn abs(x: anytype) U32Or64Or128(@TypeOf(x)) {
-    const T = @TypeOf(x);
-    comptime std.debug.assert(@typeInfo(T) == .Int);
-    const Unsigned = U32Or64Or128(T);
-
-    if (x > 0) return @intCast(Unsigned, x);
-
-    if (x > math.minInt(T)) {
-        return @intCast(Unsigned, -x);
-    } else {
-        return @intCast(Unsigned, x -% 1) + 1;
-    }
-}
-
-/// Returns the smallest type between u32, u64, and u128 that can hold all
-/// positive values of T.
-fn U32Or64Or128(comptime T: type) type {
-    comptime std.debug.assert(@typeInfo(T) == .Int);
-    comptime std.debug.assert(@typeInfo(T).Int.bits <= 128);
-
-    const max = math.maxInt(T);
-    const max_u32 = math.maxInt(u32);
-    const max_u64 = math.maxInt(u64);
-    const max_u128 = math.maxInt(u128);
-
-    if (max <= max_u32) return u32;
-    if (max <= max_u64) return u64;
-    if (max <= max_u128) return u128;
-
-    // UNREACHABLE: It is asserted above that the number of bits in T is less
-    // than or equal to 128.
-    unreachable;
 }
 
 fn formatDecimal(value: anytype, buf: []u8) usize {
@@ -112,6 +64,53 @@ fn formatDecimal(value: anytype, buf: []u8) usize {
     }
 
     return index;
+}
+
+/// Returns the absolute value of `x`.
+///
+/// The return type is the smallest, unsigned integer type that can store all
+/// possible absolute values of the type of `x` plus 1. For example, if the
+/// type of `x` is i8, then the greatest possible absolute value is 127. The
+/// smallest unsigned integer type that can store 127 + 1 = 128 is u7, so u7
+/// would be the return type.
+///
+/// For positive integers, `x` is simply casted to the return type and
+/// returned.
+///
+/// For negative integers, if `x` is greater than the smallest possible value
+/// of @TypeOf(x), then the negation of `x` is casted to the return type and is
+/// returned. For example, an i8 whose value is -127 will be returned as 127.
+/// Otherwise, the wrapped difference between `x` and 1 is casted to the return
+/// type and the sum between the difference and 1 is returned. For example, an
+/// i8 whose value is -128 will be returned as (-128 -% 1) + 1 = 127 + 1 = 128.
+fn abs(x: anytype) blk: {
+    std.debug.assert(@typeInfo(@TypeOf(x)) == .Int);
+    std.debug.assert(@typeInfo(@TypeOf(x)).Int.signedness == .signed);
+
+    break :blk SmallestUnsigned(@TypeOf(x));
+} {
+    const T = @TypeOf(x);
+    const Unsigned = SmallestUnsigned(T);
+
+    if (x > 0) {
+        return @intCast(Unsigned, x);
+    }
+
+    if (x > math.minInt(T)) {
+        return @intCast(Unsigned, -x);
+    }
+
+    return @intCast(Unsigned, x -% 1) + 1;
+}
+
+/// Returns the smallest unsigned integer type that can hold all positive
+/// values of T + 1.
+fn SmallestUnsigned(comptime T: type) type {
+    comptime std.debug.assert(@typeInfo(T) == .Int);
+
+    const max = math.maxInt(T);
+
+    return math.IntFittingRange(max, max + 1);
 }
 
 /// Converts values in the range [0, 100) to a string.
