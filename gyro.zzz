@@ -9,7 +9,7 @@ deps:
   getty:
     git:
       url: "https://github.com/getty-zig/getty.git"
-      ref: 8784890e40642629f2237641cb710ae5c31d8afa
+      ref: d8d0c1575ebd995ecc278506d1093770906e65e5
       root: src/getty.zig
   concepts:
     git:
