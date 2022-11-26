@@ -77,7 +77,12 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         fn deserializeEnum(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .Number and token.Number.is_integer) {
-                    return try self._deserializeInt(allocator, token, visitor);
+                    const slice = token.Number.slice(self.tokens.slice, self.tokens.i - 1);
+
+                    switch (slice[0]) {
+                        '0'...'9' => return try visitor.visitInt(allocator, De, try std.fmt.parseInt(u128, slice, 10)),
+                        else => return try visitor.visitInt(allocator, De, try std.fmt.parseInt(i128, slice, 10)),
+                    }
                 }
 
                 if (token == .String) {
@@ -128,9 +133,33 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         /// Hint that the type being deserialized into is expecting an
         /// integer value.
         fn deserializeInt(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+            const Visitor = @TypeOf(visitor);
+            const visitor_info = @typeInfo(Visitor);
+
             if (try self.tokens.next()) |token| {
                 if (token == .Number and token.Number.is_integer) {
-                    return try self._deserializeInt(allocator, token, visitor);
+                    const slice = token.Number.slice(self.tokens.slice, self.tokens.i - 1);
+
+                    // We know what type the visitor will produce, so we can
+                    // pass it along to std.fmt.ParseInt.
+                    if (visitor_info == .Int) {
+                        const sign = visitor_info.Int.signedness;
+
+                        // Return an error if the parsed number is negative,
+                        // but the visitor's value type is unsigned.
+                        if (sign == .unsigned and slice[0] == '-') {
+                            return error.InvalidType;
+                        }
+
+                        return try visitor.visitInt(allocator, De, try std.fmt.parseInt(Visitor, slice, 10));
+                    }
+
+                    // We don't know what type the visitor will produce, so we
+                    // default to deserializing a 128-bit integer.
+                    switch (slice[0]) {
+                        '0'...'9' => return try visitor.visitInt(allocator, De, try std.fmt.parseInt(u128, slice, 10)),
+                        else => return try visitor.visitInt(allocator, De, try std.fmt.parseInt(i128, slice, 10)),
+                    }
                 }
             }
 
@@ -246,64 +275,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             }
 
             return error.InvalidType;
-        }
-
-        fn _deserializeInt(self: Self, allocator: ?std.mem.Allocator, token: std.json.Token, visitor: anytype) Error!@TypeOf(visitor).Value {
-            std.debug.assert(std.meta.activeTag(token) == std.json.Token.Number);
-            std.debug.assert(token.Number.is_integer);
-
-            const slice = token.Number.slice(self.tokens.slice, self.tokens.i - 1);
-
-            return try switch (slice[0]) {
-                '-' => visitor.visitInt(allocator, De, try parseInt(i128, slice)),
-                else => visitor.visitInt(allocator, De, try parseInt(u128, slice)),
-            };
-        }
-
-        fn parseInt(comptime T: type, buf: []const u8) std.fmt.ParseIntError!T {
-            comptime std.debug.assert(T == u128 or T == i128);
-
-            if (buf.len == 0) return error.InvalidCharacter;
-
-            var start = buf;
-            var sign: enum { pos, neg } = .pos;
-
-            switch (buf[0]) {
-                '0'...'9' => {},
-                '+' => start = buf[1..],
-                '-' => {
-                    sign = .neg;
-                    start = buf[1..];
-                },
-                else => return error.InvalidCharacter,
-            }
-
-            if (start[0] == '_' or start[start.len - 1] == '_') {
-                return error.InvalidCharacter;
-            }
-
-            const radix: T = 10;
-            var int: T = 0;
-
-            for (start) |c| {
-                if (c == '_') {
-                    continue;
-                }
-
-                const digit = try std.fmt.charToDigit(c, radix);
-
-                if (int != 0) {
-                    // TODO: Does math.cast not accept comptime_int?
-                    int = try std.math.mul(T, int, std.math.cast(T, radix) orelse return error.Overflow);
-                }
-
-                int = switch (sign) {
-                    .pos => try std.math.add(T, int, std.math.cast(T, digit) orelse return error.Overflow),
-                    .neg => try std.math.sub(T, int, std.math.cast(T, digit) orelse return error.Overflow),
-                };
-            }
-
-            return int;
         }
 
         /// Unescapes an escaped JSON string token.
