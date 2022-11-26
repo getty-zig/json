@@ -2,7 +2,7 @@ const escape = @import("details/escape.zig");
 const fmt = @import("details/fmt.zig");
 const std = @import("std");
 
-const Formatter = @import("../../../lib.zig").ser.Formatter;
+const Formatter = @import("../../../json.zig").ser.Formatter;
 
 pub fn CompactFormatter(comptime Writer: type) type {
     return struct {

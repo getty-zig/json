@@ -1,6 +1,6 @@
 id: 3z97yrmn6oia0ynpwjlg5aa57zw6921x6n52d7wm1ub8u1we
 name: json
-main: src/lib.zig
+main: src/json.zig
 license: MIT
 description: Serialization library for JSON
 dependencies:
