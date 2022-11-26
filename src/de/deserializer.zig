@@ -41,6 +41,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
                 .deserializeBool = deserializeBool,
                 .deserializeEnum = deserializeEnum,
                 .deserializeFloat = deserializeFloat,
+                .deserializeIgnored = deserializeIgnored,
                 .deserializeInt = deserializeInt,
                 .deserializeMap = deserializeMap,
                 .deserializeOptional = deserializeOptional,
@@ -54,6 +55,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
 
         const Error = getty.de.Error ||
             std.json.TokenStream.Error ||
+            error{UnexpectedJsonDepth} || // may be returned while skipping values
             std.fmt.ParseIntError ||
             std.fmt.ParseFloatError;
 
@@ -106,6 +108,13 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             }
 
             return error.InvalidType;
+        }
+
+        /// Hint that the type being deserialized into is expecting to
+        /// deserialize a value whose type does not matter because it is
+        /// ignored.
+        fn deserializeIgnored(self: *Self, _: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+            return try skip_value(&self.tokens);
         }
 
         /// Hint that the type being deserialized into is expecting an
@@ -304,6 +313,23 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
 
             try std.json.unescapeValidString(escaped, slice);
             return escaped;
+        }
+
+        fn skip_value(tokens: *std.json.TokenStream) Error!void {
+            const original_depth = stack_used(tokens);
+
+            // Return an error if no value is found
+            _ = try tokens.next();
+            if (stack_used(tokens) < original_depth) return error.UnexpectedJsonDepth;
+            if (stack_used(tokens) == original_depth) return;
+
+            while (try tokens.next()) |_| {
+                if (stack_used(tokens) == original_depth) return;
+            }
+        }
+
+        fn stack_used(tokens: *std.json.TokenStream) usize {
+            return tokens.parser.stack.len + if (tokens.token != null) @as(usize, 1) else 0;
         }
     };
 }
