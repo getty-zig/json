@@ -1,6 +1,7 @@
 const getty = @import("getty");
 const std = @import("std");
 
+/// A namespace for serialization-specific types and functions.
 pub const ser = struct {
     pub usingnamespace @import("ser/serializer.zig");
 
@@ -10,9 +11,16 @@ pub const ser = struct {
     pub usingnamespace @import("ser/impl/formatter/pretty.zig");
 };
 
-/// Serialize the given value as JSON into the given I/O stream with the given
-/// `getty.Ser` interface value.
-pub fn toWriterWith(value: anytype, writer: anytype, comptime user_sbt: anytype) !void {
+/// Serializes a value as JSON into an I/O stream using a serialization block
+/// or tuple.
+pub fn toWriterWith(
+    /// A value to serialize.
+    value: anytype,
+    /// A `std.io.Writer` interface value.
+    writer: anytype,
+    /// A serialization block or tuple.
+    comptime user_sbt: anytype,
+) !void {
     comptime concepts.@"std.io.Writer"(@TypeOf(writer));
 
     const F = ser.CompactFormatter(@TypeOf(writer));
@@ -23,9 +31,16 @@ pub fn toWriterWith(value: anytype, writer: anytype, comptime user_sbt: anytype)
     try getty.serialize(value, s.serializer());
 }
 
-/// Serialize the given value as pretty-printed JSON into the given I/O stream
-/// with the given `getty.Ser` interface value.
-pub fn toPrettyWriterWith(value: anytype, writer: anytype, comptime user_sbt: anytype) !void {
+/// Serializes a value as pretty-printed JSON into an I/O stream using a
+/// serialization block or tuple.
+pub fn toPrettyWriterWith(
+    /// A value to serialize.
+    value: anytype,
+    /// A `std.io.Writer` interface value.
+    writer: anytype,
+    /// A serialization block or tuple.
+    comptime user_sbt: anytype,
+) !void {
     comptime concepts.@"std.io.Writer"(@TypeOf(writer));
 
     const F = ser.PrettyFormatter(@TypeOf(writer));
@@ -36,22 +51,38 @@ pub fn toPrettyWriterWith(value: anytype, writer: anytype, comptime user_sbt: an
     try getty.serialize(value, s.serializer());
 }
 
-/// Serialize the given value as JSON into the given I/O stream.
-pub fn toWriter(value: anytype, writer: anytype) !void {
+/// Serializes a value as JSON into an I/O stream.
+pub fn toWriter(
+    /// A value to serialize.
+    value: anytype,
+    /// A `std.io.Writer` interface value.
+    writer: anytype,
+) !void {
     return try toWriterWith(value, writer, null);
 }
 
-/// Serialize the given value as pretty-printed JSON into the given I/O stream.
-pub fn toPrettyWriter(value: anytype, writer: anytype) !void {
+/// Serializes a value as pretty-printed JSON into an I/O stream.
+pub fn toPrettyWriter(
+    /// A value to serialize.
+    value: anytype,
+    /// A `std.io.Writer` interface value.
+    writer: anytype,
+) !void {
     return try toPrettyWriterWith(value, writer, null);
 }
 
-/// Serialize the given value as a JSON string with the given `getty.Ser`
-/// interface value.
+/// Serializes a value as a JSON string using a serialization block or tuple.
 ///
-/// The serialized string is an owned slice. The caller is responsible for
-/// freeing the returned memory.
-pub fn toSliceWith(allocator: std.mem.Allocator, value: anytype, comptime user_sbt: anytype) ![]const u8 {
+/// The returned string is an owned slice. The caller is responsible for
+/// freeing its memory.
+pub fn toSliceWith(
+    /// A memory allocator.
+    allocator: std.mem.Allocator,
+    /// A value to serialize.
+    value: anytype,
+    /// A serialization block or tuple.
+    comptime user_sbt: anytype,
+) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
@@ -59,12 +90,19 @@ pub fn toSliceWith(allocator: std.mem.Allocator, value: anytype, comptime user_s
     return list.toOwnedSlice();
 }
 
-/// Serialize the given value as a pretty-printed JSON string with the given
-/// `getty.Ser` interface value.
+/// Serializes a value as a pretty-printed JSON string using a serialization
+/// block or tuple.
 ///
-/// The serialized string is an owned slice. The caller is responsible for
-/// freeing the returned memory.
-pub fn toPrettySliceWith(allocator: std.mem.Allocator, value: anytype, comptime user_sbt: anytype) ![]const u8 {
+/// The returned string is an owned slice. The caller is responsible for
+/// freeing its memory.
+pub fn toPrettySliceWith(
+    /// A memory allocator.
+    allocator: std.mem.Allocator,
+    /// A value to serialize.
+    value: anytype,
+    /// A serialization block or tuple.
+    comptime user_sbt: anytype,
+) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
     errdefer list.deinit();
 
@@ -72,19 +110,29 @@ pub fn toPrettySliceWith(allocator: std.mem.Allocator, value: anytype, comptime 
     return list.toOwnedSlice();
 }
 
-/// Serialize the given value as a JSON string.
+/// Serializes a value as a JSON string.
 ///
-/// The serialized string is an owned slice. The caller is responsible for
-/// freeing the returned memory.
-pub fn toSlice(allocator: std.mem.Allocator, value: anytype) ![]const u8 {
+/// The returned string is an owned slice. The caller is responsible for
+/// freeing its memory.
+pub fn toSlice(
+    /// A memory allocator.
+    allocator: std.mem.Allocator,
+    /// A value to serialize.
+    value: anytype,
+) ![]const u8 {
     return toSliceWith(allocator, value, null);
 }
 
-/// Serialize the given value as a pretty-printed JSON string.
+/// Serializes a value as a pretty-printed JSON string.
 ///
-/// The serialized string is an owned slice. The caller is responsible for
-/// freeing the returned memory.
-pub fn toPrettySlice(allocator: std.mem.Allocator, value: anytype) ![]const u8 {
+/// The returned string is an owned slice. The caller is responsible for
+/// freeing its memory.
+pub fn toPrettySlice(
+    /// A memory allocator.
+    allocator: std.mem.Allocator,
+    /// A value to serialize.
+    value: anytype,
+) ![]const u8 {
     return toPrettySliceWith(allocator, value, null);
 }
 
