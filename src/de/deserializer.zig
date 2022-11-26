@@ -61,7 +61,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
 
         const De = Self.@"getty.Deserializer";
 
-        /// Hint that the type being deserialized into is expecting a `bool` value.
         fn deserializeBool(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .True or token == .False) {
@@ -72,8 +71,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        /// Hint that the type being deserialized into is expecting an `enum`
-        /// value.
         fn deserializeEnum(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .Number and token.Number.is_integer) {
@@ -102,8 +99,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        /// Hint that the type being deserialized into is expecting a
-        /// floating-point value.
         fn deserializeFloat(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .Number) {
@@ -123,15 +118,10 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        /// Hint that the type being deserialized into is expecting to
-        /// deserialize a value whose type does not matter because it is
-        /// ignored.
         fn deserializeIgnored(self: *Self, _: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             return try skip_value(&self.tokens);
         }
 
-        /// Hint that the type being deserialized into is expecting an
-        /// integer value.
         fn deserializeInt(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             const Visitor = @TypeOf(visitor);
             const visitor_info = @typeInfo(Visitor);
@@ -166,8 +156,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        /// Hint that the type being deserialized into is expecting a map of
-        /// key-value pairs.
         fn deserializeMap(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
@@ -179,8 +167,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        /// Hint that the type being deserialized into is expecting an optional
-        /// value.
         fn deserializeOptional(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             const tokens = self.tokens;
 
@@ -202,8 +188,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        /// Hint that the type being deserialized into is expecting a sequence of
-        /// values.
         fn deserializeSeq(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ArrayBegin) {
@@ -215,7 +199,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        /// Hint that the type being deserialized into is expecting a string value.
         fn deserializeString(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .String) {
@@ -236,7 +219,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        /// Hint that the type being deserialized into is expecting a struct value.
         fn deserializeStruct(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .ObjectBegin) {
@@ -248,7 +230,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        /// Hint that the type being deserialized into is expecting a union value.
         fn deserializeUnion(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             const backup = self.tokens;
 
@@ -266,7 +247,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        /// Hint that the type being deserialized into is expecting a `void` value.
         fn deserializeVoid(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
                 if (token == .Null) {
