@@ -103,7 +103,15 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             if (try self.tokens.next()) |token| {
                 if (token == .Number) {
                     const slice = token.Number.slice(self.tokens.slice, self.tokens.i - 1);
-                    return try visitor.visitFloat(allocator, De, try std.fmt.parseFloat(f128, slice));
+
+                    // std.fmt.parseFloat uses an optimized parsing algorithm
+                    // for f16, f32, and f64.
+                    const Float = switch (@TypeOf(visitor).Value) {
+                        f16, f32, f64 => |T| T,
+                        else => f128,
+                    };
+
+                    return try visitor.visitFloat(allocator, De, try std.fmt.parseFloat(Float, slice));
                 }
             }
 
