@@ -87,7 +87,7 @@ pub fn toSliceWith(
     errdefer list.deinit();
 
     try toWriterWith(value, list.writer(), user_sbt);
-    return list.toOwnedSlice();
+    return try list.toOwnedSlice();
 }
 
 /// Serializes a value as a pretty-printed JSON string using a serialization
@@ -107,7 +107,7 @@ pub fn toPrettySliceWith(
     errdefer list.deinit();
 
     try toPrettyWriterWith(value, list.writer(), user_sbt);
-    return list.toOwnedSlice();
+    return try list.toOwnedSlice();
 }
 
 /// Serializes a value as a JSON string.
