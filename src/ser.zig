@@ -120,7 +120,7 @@ pub fn toSlice(
     /// A value to serialize.
     value: anytype,
 ) ![]const u8 {
-    return toSliceWith(allocator, value, null);
+    return try toSliceWith(allocator, value, null);
 }
 
 /// Serializes a value as a pretty-printed JSON string.
@@ -133,7 +133,7 @@ pub fn toPrettySlice(
     /// A value to serialize.
     value: anytype,
 ) ![]const u8 {
-    return toPrettySliceWith(allocator, value, null);
+    return try toPrettySliceWith(allocator, value, null);
 }
 
 const concepts = struct {
