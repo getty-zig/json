@@ -58,7 +58,7 @@ pub fn toWriter(
     /// A `std.io.Writer` interface value.
     writer: anytype,
 ) !void {
-    return try toWriterWith(value, writer, null);
+    try toWriterWith(value, writer, null);
 }
 
 /// Serializes a value as pretty-printed JSON into an I/O stream.
@@ -68,7 +68,7 @@ pub fn toPrettyWriter(
     /// A `std.io.Writer` interface value.
     writer: anytype,
 ) !void {
-    return try toPrettyWriterWith(value, writer, null);
+    try toPrettyWriterWith(value, writer, null);
 }
 
 /// Serializes a value as a JSON string using a serialization block or tuple.
