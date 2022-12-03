@@ -29,7 +29,7 @@ pub fn formatInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
     var buf: [math.max(meta.bitCount(Int), 1) + 1]u8 = undefined;
     var start = switch (@typeInfo(Int).Int.signedness) {
         .signed => blk: {
-            var start = formatDecimal(abs(int), &buf);
+            var start = formatDecimal(std.math.absCast(int), &buf);
 
             if (value < 0) {
                 start -= 1;
@@ -64,53 +64,6 @@ fn formatDecimal(value: anytype, buf: []u8) usize {
     }
 
     return index;
-}
-
-/// Returns the absolute value of `x`.
-///
-/// The return type is the smallest, unsigned integer type that can store all
-/// possible absolute values of the type of `x` plus 1. For example, if the
-/// type of `x` is i8, then the greatest possible absolute value is 127. The
-/// smallest unsigned integer type that can store 127 + 1 = 128 is u7, so u7
-/// would be the return type.
-///
-/// For positive integers, `x` is simply casted to the return type and
-/// returned.
-///
-/// For negative integers, if `x` is greater than the smallest possible value
-/// of @TypeOf(x), then the negation of `x` is casted to the return type and is
-/// returned. For example, an i8 whose value is -127 will be returned as 127.
-/// Otherwise, the wrapped difference between `x` and 1 is casted to the return
-/// type and the sum between the difference and 1 is returned. For example, an
-/// i8 whose value is -128 will be returned as (-128 -% 1) + 1 = 127 + 1 = 128.
-fn abs(x: anytype) blk: {
-    std.debug.assert(@typeInfo(@TypeOf(x)) == .Int);
-    std.debug.assert(@typeInfo(@TypeOf(x)).Int.signedness == .signed);
-
-    break :blk SmallestUnsigned(@TypeOf(x));
-} {
-    const T = @TypeOf(x);
-    const Unsigned = SmallestUnsigned(T);
-
-    if (x > 0) {
-        return @intCast(Unsigned, x);
-    }
-
-    if (x > math.minInt(T)) {
-        return @intCast(Unsigned, -x);
-    }
-
-    return @intCast(Unsigned, x -% 1) + 1;
-}
-
-/// Returns the smallest unsigned integer type that can hold all positive
-/// values of T + 1.
-fn SmallestUnsigned(comptime T: type) type {
-    comptime std.debug.assert(@typeInfo(T) == .Int);
-
-    const max = math.maxInt(T);
-
-    return math.IntFittingRange(max, max + 1);
 }
 
 /// Converts values in the range [0, 100) to a string.
