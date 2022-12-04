@@ -198,7 +198,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 </details>
 
 <details>
-<summary><code>toPrettySliceWith</code> - Serializes a value as a JSON string using a Serialization BLock or Tuple.</summary>
+<summary><code>toPrettySliceWith</code> - Serializes a value as a JSON string using a Serialization Block or Tuple.</summary>
 
 - **Synopsis**
 
