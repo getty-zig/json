@@ -190,12 +190,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
 
             fn serializeKey(s: *Serialize, key: anytype) Error!void {
                 var mks = MapKeySerializer{ .ser = s.ser };
-
-                s.ser.formatter.beginObjectKey(s.ser.writer, s.state == .first) catch return error.Io;
-                try getty.serialize(key, mks.serializer());
-                s.ser.formatter.endObjectKey(s.ser.writer) catch return error.Io;
-
-                s.state = .rest;
+                try s._serializeKey(key, mks.serializer());
             }
 
             fn serializeValue(s: *Serialize, value: anytype) Error!void {
@@ -225,21 +220,26 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             );
 
             fn serializeField(s: *Serialize, comptime key: []const u8, value: anytype) Error!void {
-                // Serialize key.
                 if (comptime !std.unicode.utf8ValidateSlice(key)) {
                     return Error.Syntax;
                 }
 
                 var sks = StructKeySerializer{ .ser = s.ser };
+                try s._serializeKey(key, sks.serializer());
 
+                try s.serializeValue(value);
+            }
+
+            ////////////////////////////////////////////////////////////////////
+            // Private methods
+            ////////////////////////////////////////////////////////////////////
+
+            fn _serializeKey(s: *Serialize, key: anytype, serializer: anytype) Error!void {
                 s.ser.formatter.beginObjectKey(s.ser.writer, s.state == .first) catch return error.Io;
-                try getty.serialize(key, sks.serializer());
+                try getty.serialize(key, serializer);
                 s.ser.formatter.endObjectKey(s.ser.writer) catch return error.Io;
 
                 s.state = .rest;
-
-                // Serialize field.
-                try serializeValue(s, value);
             }
         };
 
