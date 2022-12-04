@@ -84,7 +84,7 @@ pub fn toSliceWith(
     comptime user_sbt: anytype,
 ) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
-    errdefer list.deinit();
+    defer list.deinit();
 
     try toWriterWith(value, list.writer(), user_sbt);
     return try list.toOwnedSlice();
@@ -104,7 +104,7 @@ pub fn toPrettySliceWith(
     comptime user_sbt: anytype,
 ) ![]const u8 {
     var list = try std.ArrayList(u8).initCapacity(allocator, 128);
-    errdefer list.deinit();
+    defer list.deinit();
 
     try toPrettyWriterWith(value, list.writer(), user_sbt);
     return try list.toOwnedSlice();
