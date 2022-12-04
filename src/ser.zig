@@ -23,12 +23,13 @@ pub fn toWriterWith(
 ) !void {
     comptime concepts.@"std.io.Writer"(@TypeOf(writer));
 
-    const F = ser.CompactFormatter(@TypeOf(writer));
-    var f = F{};
-    const S = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter()), user_sbt);
-    var s = S.init(writer, f.formatter());
+    var f = ser.CompactFormatter(@TypeOf(writer)){};
+    const formatter = f.formatter();
 
-    try getty.serialize(value, s.serializer());
+    var s = ser.Serializer(@TypeOf(writer), @TypeOf(formatter), user_sbt).init(writer, formatter);
+    var serializer = s.serializer();
+
+    try getty.serialize(value, serializer);
 }
 
 /// Serializes a value as pretty-printed JSON into an I/O stream using a
@@ -43,12 +44,13 @@ pub fn toPrettyWriterWith(
 ) !void {
     comptime concepts.@"std.io.Writer"(@TypeOf(writer));
 
-    const F = ser.PrettyFormatter(@TypeOf(writer));
-    var f = F.init();
-    const S = ser.Serializer(@TypeOf(writer), @TypeOf(f.formatter()), user_sbt);
-    var s = S.init(writer, f.formatter());
+    var f = ser.PrettyFormatter(@TypeOf(writer)).init();
+    const formatter = f.formatter();
 
-    try getty.serialize(value, s.serializer());
+    var s = ser.Serializer(@TypeOf(writer), @TypeOf(formatter), user_sbt).init(writer, formatter);
+    var serializer = s.serializer();
+
+    try getty.serialize(value, serializer);
 }
 
 /// Serializes a value as JSON into an I/O stream.
