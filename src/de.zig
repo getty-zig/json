@@ -68,6 +68,60 @@ test "array list" {
     }
 }
 
+test "std.AutoHashMap" {
+    // scalar
+    {
+        var got = try fromSlice(testing.allocator, std.AutoHashMap(i32, []u8),
+            \\{
+            \\  "1": "foo",
+            \\  "2": "bar",
+            \\  "3": "baz"
+            \\}
+        );
+        defer de.free(testing.allocator, got);
+
+        try expectEqual(std.AutoHashMap(i32, []u8), @TypeOf(got));
+        try expectEqual(@as(u32, 3), got.count());
+        try expectEqualSlices(u8, "foo", got.get(1).?);
+        try expectEqualSlices(u8, "bar", got.get(2).?);
+        try expectEqualSlices(u8, "baz", got.get(3).?);
+    }
+
+    // nested
+    {
+        var got = try fromSlice(testing.allocator, std.AutoHashMap(i32, std.AutoHashMap(i32, []const u8)),
+            \\{
+            \\  "1": { "4": "foo" },
+            \\  "2": { "5": "bar" },
+            \\  "3": { "6": "baz" }
+            \\}
+        );
+        defer de.free(testing.allocator, got);
+
+        var a = std.AutoHashMap(i32, []const u8).init(testing.allocator);
+        var b = std.AutoHashMap(i32, []const u8).init(testing.allocator);
+        var c = std.AutoHashMap(i32, []const u8).init(testing.allocator);
+        defer {
+            a.deinit();
+            b.deinit();
+            c.deinit();
+        }
+
+        try a.put(4, "foo");
+        try b.put(5, "bar");
+        try c.put(6, "baz");
+
+        try expectEqual(std.AutoHashMap(i32, std.AutoHashMap(i32, []const u8)), @TypeOf(got));
+        try expectEqual(@as(u32, 3), got.count());
+        try expectEqual(@TypeOf(a), @TypeOf(got.get(1).?));
+        try expectEqual(@TypeOf(b), @TypeOf(got.get(2).?));
+        try expectEqual(@TypeOf(c), @TypeOf(got.get(3).?));
+        try expectEqualSlices(u8, a.get(4).?, got.get(1).?.get(4).?);
+        try expectEqualSlices(u8, b.get(5).?, got.get(2).?.get(5).?);
+        try expectEqualSlices(u8, c.get(6).?, got.get(3).?.get(6).?);
+    }
+}
+
 test "std.StringHashMap" {
     // stack child
     {
