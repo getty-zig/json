@@ -27,7 +27,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         /// This method should always be called after a value has been fully
         /// deserialized.
         pub fn end(self: *Self) Error!void {
-            if (self.tokens.i < self.tokens.slice.len or !self.tokens.parser.complete) {
+            if (try self.tokens.next()) |_| {
                 return error.InvalidTopLevelTrailing;
             }
         }
