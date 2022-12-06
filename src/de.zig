@@ -140,23 +140,6 @@ test "std.StringHashMap" {
     }
 }
 
-test "string hash map" {
-    // scalar child
-    {
-        var got = try fromSlice(testing.allocator, std.StringHashMap(u8),
-            \\{
-            \\  "a": 1,
-            \\  "b": 2,
-            \\  "c": 3,
-            \\  "d": 4
-            \\}
-        );
-        defer de.free(testing.allocator, got);
-
-        try expectEqual(std.StringHashMap(u8), @TypeOf(got));
-    }
-}
-
 test "bool" {
     try expectEqual(true, try fromSlice(null, bool, "true"));
     try expectEqual(false, try fromSlice(null, bool, "false"));
