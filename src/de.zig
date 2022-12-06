@@ -68,6 +68,95 @@ test "array list" {
     }
 }
 
+test "std.StringHashMap" {
+    // stack child
+    {
+        var got = try fromSlice(testing.allocator, std.StringHashMap(u8),
+            \\{
+            \\  "a": 1,
+            \\  "b": 2,
+            \\  "c": 3
+            \\}
+        );
+        defer de.free(testing.allocator, got);
+
+        try expectEqual(std.StringHashMap(u8), @TypeOf(got));
+        try expectEqual(@as(u32, 3), got.count());
+        try expectEqual(@as(u8, 1), got.get("a").?);
+        try expectEqual(@as(u8, 2), got.get("b").?);
+        try expectEqual(@as(u8, 3), got.get("c").?);
+    }
+
+    // heap child
+    {
+        var got = try fromSlice(testing.allocator, std.StringHashMap([]u8),
+            \\{
+            \\  "a": "foo",
+            \\  "b": "bar",
+            \\  "c": "baz"
+            \\}
+        );
+        defer de.free(testing.allocator, got);
+
+        try expectEqual(std.StringHashMap([]u8), @TypeOf(got));
+        try expectEqual(@as(u32, 3), got.count());
+        try expectEqualSlices(u8, "foo", got.get("a").?);
+        try expectEqualSlices(u8, "bar", got.get("b").?);
+        try expectEqualSlices(u8, "baz", got.get("c").?);
+    }
+
+    // nested child
+    {
+        var got = try fromSlice(testing.allocator, std.StringHashMap(std.StringHashMap([]const u8)),
+            \\{
+            \\  "a": { "d": "foo" },
+            \\  "b": { "e": "bar" },
+            \\  "c": { "f": "baz" }
+            \\}
+        );
+        defer de.free(testing.allocator, got);
+
+        var a = std.StringHashMap([]const u8).init(testing.allocator);
+        var b = std.StringHashMap([]const u8).init(testing.allocator);
+        var c = std.StringHashMap([]const u8).init(testing.allocator);
+        defer {
+            a.deinit();
+            b.deinit();
+            c.deinit();
+        }
+
+        try a.put("d", "foo");
+        try b.put("e", "bar");
+        try c.put("f", "baz");
+
+        try expectEqual(std.StringHashMap(std.StringHashMap([]const u8)), @TypeOf(got));
+        try expectEqual(@as(u32, 3), got.count());
+        try expectEqual(@TypeOf(a), @TypeOf(got.get("a").?));
+        try expectEqual(@TypeOf(b), @TypeOf(got.get("b").?));
+        try expectEqual(@TypeOf(c), @TypeOf(got.get("c").?));
+        try expectEqualSlices(u8, a.get("d").?, got.get("a").?.get("d").?);
+        try expectEqualSlices(u8, b.get("e").?, got.get("b").?.get("e").?);
+        try expectEqualSlices(u8, c.get("f").?, got.get("c").?.get("f").?);
+    }
+}
+
+test "string hash map" {
+    // scalar child
+    {
+        var got = try fromSlice(testing.allocator, std.StringHashMap(u8),
+            \\{
+            \\  "a": 1,
+            \\  "b": 2,
+            \\  "c": 3,
+            \\  "d": 4
+            \\}
+        );
+        defer de.free(testing.allocator, got);
+
+        try expectEqual(std.StringHashMap(u8), @TypeOf(got));
+    }
+}
+
 test "bool" {
     try expectEqual(true, try fromSlice(null, bool, "true"));
     try expectEqual(false, try fromSlice(null, bool, "false"));
