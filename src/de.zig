@@ -127,7 +127,7 @@ test "std.StringHashMap" {
     {
         var got = try fromSlice(testing.allocator, std.StringHashMap(u8),
             \\{
-            \\  "a": 1,
+            \\  "\"a": 1,
             \\  "b": 2,
             \\  "c": 3
             \\}
@@ -136,7 +136,7 @@ test "std.StringHashMap" {
 
         try expectEqual(std.StringHashMap(u8), @TypeOf(got));
         try expectEqual(@as(u32, 3), got.count());
-        try expectEqual(@as(u8, 1), got.get("a").?);
+        try expectEqual(@as(u8, 1), got.get("\"a").?);
         try expectEqual(@as(u8, 2), got.get("b").?);
         try expectEqual(@as(u8, 3), got.get("c").?);
     }
@@ -145,7 +145,7 @@ test "std.StringHashMap" {
     {
         var got = try fromSlice(testing.allocator, std.StringHashMap([]u8),
             \\{
-            \\  "a": "foo",
+            \\  "\"a": "foo",
             \\  "b": "bar",
             \\  "c": "baz"
             \\}
@@ -154,7 +154,7 @@ test "std.StringHashMap" {
 
         try expectEqual(std.StringHashMap([]u8), @TypeOf(got));
         try expectEqual(@as(u32, 3), got.count());
-        try expectEqualSlices(u8, "foo", got.get("a").?);
+        try expectEqualSlices(u8, "foo", got.get("\"a").?);
         try expectEqualSlices(u8, "bar", got.get("b").?);
         try expectEqualSlices(u8, "baz", got.get("c").?);
     }
@@ -163,7 +163,7 @@ test "std.StringHashMap" {
     {
         var got = try fromSlice(testing.allocator, std.StringHashMap(std.StringHashMap([]const u8)),
             \\{
-            \\  "a": { "d": "foo" },
+            \\  "\"a": { "\"d": "foo" },
             \\  "b": { "e": "bar" },
             \\  "c": { "f": "baz" }
             \\}
@@ -179,16 +179,16 @@ test "std.StringHashMap" {
             c.deinit();
         }
 
-        try a.put("d", "foo");
+        try a.put("\"d", "foo");
         try b.put("e", "bar");
         try c.put("f", "baz");
 
         try expectEqual(std.StringHashMap(std.StringHashMap([]const u8)), @TypeOf(got));
         try expectEqual(@as(u32, 3), got.count());
-        try expectEqual(@TypeOf(a), @TypeOf(got.get("a").?));
+        try expectEqual(@TypeOf(a), @TypeOf(got.get("\"a").?));
         try expectEqual(@TypeOf(b), @TypeOf(got.get("b").?));
         try expectEqual(@TypeOf(c), @TypeOf(got.get("c").?));
-        try expectEqualSlices(u8, a.get("d").?, got.get("a").?.get("d").?);
+        try expectEqualSlices(u8, a.get("\"d").?, got.get("\"a").?.get("\"d").?);
         try expectEqualSlices(u8, b.get("e").?, got.get("b").?.get("e").?);
         try expectEqualSlices(u8, c.get("f").?, got.get("c").?.get("f").?);
     }

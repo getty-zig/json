@@ -257,68 +257,6 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        const MapKeyDeserializer = struct {
-            de: *Self,
-
-            pub usingnamespace getty.Deserializer(
-                *MapKeyDeserializer,
-                Error,
-                Self.@"getty.Deserializer".user_dt,
-                Self.@"getty.Deserializer".deserializer_dt,
-                .{
-                    .deserializeInt = _deserializeInt,
-                    .deserializeString = _deserializeString,
-                },
-            );
-
-            fn _deserializeString(mkd: *MapKeyDeserializer, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
-                return try mkd.de.deserializeString(allocator, visitor);
-            }
-
-            fn _deserializeInt(mkd: *MapKeyDeserializer, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
-                const Visitor = @TypeOf(visitor);
-
-                if (try mkd.de.tokens.next()) |token| {
-                    if (token == .String) {
-                        const slice = token.String.slice(mkd.de.tokens.slice, mkd.de.tokens.i - 1);
-
-                        return switch (token.String.escapes) {
-                            .None => blk: {
-                                const int = try std.fmt.parseInt(Visitor.Value, slice, 10);
-                                break :blk try visitor.visitInt(allocator, De, int);
-                            },
-                            .Some => blk: {
-                                const str = try unescapeString(allocator.?, token.String, slice);
-                                defer allocator.?.free(str);
-
-                                const int = try std.fmt.parseInt(Visitor.Value, slice, 10);
-                                break :blk try visitor.visitInt(allocator, De, int);
-                            },
-                        };
-                    }
-                }
-
-                return error.InvalidType;
-            }
-        };
-
-        /// Unescapes an escaped JSON string token.
-        ///
-        /// The passed-in string must be an escaped string.
-        fn unescapeString(
-            allocator: std.mem.Allocator,
-            str_token: std.meta.TagPayload(std.json.Token, std.json.Token.String),
-            slice: []const u8,
-        ) ![]u8 {
-            std.debug.assert(str_token.escapes == .Some);
-
-            const escaped = try allocator.alloc(u8, str_token.decodedLength());
-            errdefer allocator.free(escaped);
-
-            try std.json.unescapeValidString(escaped, slice);
-            return escaped;
-        }
-
         fn skip_value(tokens: *std.json.TokenStream) Error!void {
             const original_depth = stack_used(tokens);
 
@@ -338,40 +276,82 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
     };
 }
 
-fn MapAccess(comptime De: type) type {
+fn MapKeyDeserializer(comptime De: type) type {
     return struct {
-        de: *De,
+        key: []const u8,
+
+        const Self = @This();
+
+        pub usingnamespace getty.Deserializer(
+            *Self,
+            Error,
+            De.user_dt,
+            De.deserializer_dt,
+            .{
+                .deserializeInt = deserializeInt,
+                .deserializeString = deserializeString,
+            },
+        );
+
+        const Error = De.Error;
+
+        fn deserializeString(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+            return try visitor.visitString(allocator, De, self.key);
+        }
+
+        fn deserializeInt(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+            const int = try std.fmt.parseInt(@TypeOf(visitor).Value, self.key, 10);
+            return try visitor.visitInt(allocator, De, int);
+        }
+    };
+}
+
+fn MapAccess(comptime D: type) type {
+    return struct {
+        de: *D,
 
         const Self = @This();
 
         pub usingnamespace getty.de.MapAccess(
             *Self,
-            De.Error,
+            Error,
             .{
                 .nextKeySeed = nextKeySeed,
                 .nextValueSeed = nextValueSeed,
             },
         );
 
-        fn nextKeySeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) De.Error!?@TypeOf(seed).Value {
-            const backup = self.de.tokens;
+        const De = D.@"getty.Deserializer";
 
+        const Error = De.Error;
+
+        fn nextKeySeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
             if (try self.de.tokens.next()) |token| {
                 if (token == .ObjectEnd) {
                     return null;
                 }
 
                 if (token == .String) {
-                    self.de.tokens = backup;
-                    var mkd = De.MapKeyDeserializer{ .de = self.de };
-                    return try seed.deserialize(allocator, mkd.deserializer());
+                    const slice = token.String.slice(self.de.tokens.slice, self.de.tokens.i - 1);
+                    const string = switch (token.String.escapes) {
+                        .None => slice,
+                        .Some => try unescapeString(allocator.?, token.String, slice),
+                    };
+                    defer if (token.String.escapes == .Some) {
+                        allocator.?.free(string);
+                    };
+
+                    var mkd = MapKeyDeserializer(De){ .key = string };
+                    var result = try seed.deserialize(allocator, mkd.deserializer());
+
+                    return result;
                 }
             }
 
             return error.InvalidType;
         }
 
-        fn nextValueSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) De.Error!@TypeOf(seed).Value {
+        fn nextValueSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
             return try seed.deserialize(allocator, self.de.deserializer());
         }
     };
@@ -498,4 +478,21 @@ fn Union(comptime De: type) type {
             }
         }
     };
+}
+
+/// Unescapes an escaped JSON string token.
+///
+/// The passed-in string must be an escaped string.
+fn unescapeString(
+    allocator: std.mem.Allocator,
+    str_token: std.meta.TagPayload(std.json.Token, std.json.Token.String),
+    slice: []const u8,
+) ![]u8 {
+    std.debug.assert(str_token.escapes == .Some);
+
+    const escaped = try allocator.alloc(u8, str_token.decodedLength());
+    errdefer allocator.free(escaped);
+
+    try std.json.unescapeValidString(escaped, slice);
+    return escaped;
 }
