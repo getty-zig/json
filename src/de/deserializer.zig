@@ -257,6 +257,51 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
+        const MapKeyDeserializer = struct {
+            de: *Self,
+
+            pub usingnamespace getty.Deserializer(
+                *MapKeyDeserializer,
+                Error,
+                Self.@"getty.Deserializer".user_dt,
+                Self.@"getty.Deserializer".deserializer_dt,
+                .{
+                    .deserializeInt = _deserializeInt,
+                    .deserializeString = _deserializeString,
+                },
+            );
+
+            fn _deserializeString(mkd: *MapKeyDeserializer, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+                return try mkd.de.deserializeString(allocator, visitor);
+            }
+
+            fn _deserializeInt(mkd: *MapKeyDeserializer, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+                const Visitor = @TypeOf(visitor);
+
+                if (try mkd.de.tokens.next()) |token| {
+                    if (token == .String) {
+                        const slice = token.String.slice(mkd.de.tokens.slice, mkd.de.tokens.i - 1);
+
+                        return switch (token.String.escapes) {
+                            .None => blk: {
+                                const int = try std.fmt.parseInt(Visitor.Value, slice, 10);
+                                break :blk try visitor.visitInt(allocator, De, int);
+                            },
+                            .Some => blk: {
+                                const str = try unescapeString(allocator.?, token.String, slice);
+                                defer allocator.?.free(str);
+
+                                const int = try std.fmt.parseInt(Visitor.Value, slice, 10);
+                                break :blk try visitor.visitInt(allocator, De, int);
+                            },
+                        };
+                    }
+                }
+
+                return error.InvalidType;
+            }
+        };
+
         /// Unescapes an escaped JSON string token.
         ///
         /// The passed-in string must be an escaped string.
@@ -309,10 +354,6 @@ fn MapAccess(comptime De: type) type {
         );
 
         fn nextKeySeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) De.Error!?@TypeOf(seed).Value {
-            comptime concepts.Concept("StringKey", "expected key type to be `[]const u8`")(.{
-                concepts.traits.isSame(@TypeOf(seed).Value, []const u8),
-            });
-
             const backup = self.de.tokens;
 
             if (try self.de.tokens.next()) |token| {
@@ -322,7 +363,8 @@ fn MapAccess(comptime De: type) type {
 
                 if (token == .String) {
                     self.de.tokens = backup;
-                    return try seed.deserialize(allocator, self.de.deserializer());
+                    var mkd = De.MapKeyDeserializer{ .de = self.de };
+                    return try seed.deserialize(allocator, mkd.deserializer());
                 }
             }
 
