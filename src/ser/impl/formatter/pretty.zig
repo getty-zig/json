@@ -1,5 +1,4 @@
 const escape = @import("details/escape.zig");
-const fmt = @import("details/fmt.zig");
 const std = @import("std");
 
 const Formatter = @import("../../../json.zig").ser.Formatter;
@@ -74,7 +73,7 @@ pub fn PrettyFormatter(comptime Writer: type) type {
         }
 
         fn writeInt(_: *Self, writer: Writer, value: anytype) Writer.Error!void {
-            try fmt.formatInt(value, writer);
+            try std.fmt.formatInt(value, 10, .lower, .{}, writer);
         }
 
         fn writeFloat(_: *Self, writer: Writer, value: anytype) Writer.Error!void {

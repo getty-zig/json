@@ -1,7 +1,6 @@
 const getty = @import("getty");
 const std = @import("std");
 
-const fmt = @import("impl/formatter/details/fmt.zig");
 const writeEscaped = @import("impl/formatter/details/escape.zig").writeEscaped;
 
 pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user_sbt: anytype) type {
@@ -276,7 +275,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
                 // ourselves instead of using the serializer's formatter. The
                 // formatter's expecting the user's writer type, so we can't
                 // use it here.
-                fmt.formatInt(value, fbs.writer()) catch return error.Io;
+                std.fmt.formatInt(value, 10, .lower, .{}, fbs.writer()) catch return error.Io;
 
                 try getty.serialize(fbs.getWritten(), s.ser.serializer());
             }
