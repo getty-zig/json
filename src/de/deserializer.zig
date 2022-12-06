@@ -313,14 +313,16 @@ fn MapAccess(comptime De: type) type {
                 concepts.traits.isSame(@TypeOf(seed).Value, []const u8),
             });
 
+            const backup = self.de.tokens;
+
             if (try self.de.tokens.next()) |token| {
                 if (token == .ObjectEnd) {
                     return null;
                 }
 
                 if (token == .String) {
-                    const slice = token.String.slice(self.de.tokens.slice, self.de.tokens.i - 1);
-                    return try allocator.?.dupe(u8, slice);
+                    self.de.tokens = backup;
+                    return try seed.deserialize(allocator, self.de.deserializer());
                 }
             }
 
