@@ -38,6 +38,7 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             user_dbt,
             null,
             .{
+                .deserializeAny = deserializeAny,
                 .deserializeBool = deserializeBool,
                 .deserializeEnum = deserializeEnum,
                 .deserializeFloat = deserializeFloat,
@@ -60,6 +61,112 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             std.fmt.ParseFloatError;
 
         const De = Self.@"getty.Deserializer";
+
+        fn deserializeAny(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+            const Visitor = @TypeOf(visitor);
+            const visitor_info = @typeInfo(Visitor);
+
+            const tokens = self.tokens;
+
+            if (try self.tokens.next()) |token| {
+                switch (token) {
+                    .True, .False => {
+                        return try visitor.visitBool(allocator, De, token == .True);
+                    },
+                    .Number => |t| {
+                        const slice = t.slice(self.tokens.slice, self.tokens.i - 1);
+
+                        // Enum
+                        if (visitor_info == .Enum) {
+                            if (t.is_integer) {
+                                switch (slice[0]) {
+                                    '0'...'9' => return try visitor.visitInt(allocator, De, try std.fmt.parseInt(u128, slice, 10)),
+                                    else => return try visitor.visitInt(allocator, De, try std.fmt.parseInt(i128, slice, 10)),
+                                }
+                            }
+                        }
+
+                        // Float
+                        if (!t.is_integer) {
+                            const Float = switch (Visitor.Value) {
+                                f16, f32, f64 => |T| T,
+                                else => f128,
+                            };
+
+                            return try visitor.visitFloat(allocator, De, try std.fmt.parseFloat(Float, slice));
+                        }
+
+                        // Integer
+                        if (visitor_info == .Int) {
+                            const sign = visitor_info.Int.signedness;
+
+                            if (sign == .unsigned and slice[0] == '-') {
+                                return error.InvalidType;
+                            }
+
+                            return try visitor.visitInt(allocator, De, try std.fmt.parseInt(Visitor, slice, 10));
+                        }
+
+                        switch (slice[0]) {
+                            '0'...'9' => return try visitor.visitInt(allocator, De, try std.fmt.parseInt(u128, slice, 10)),
+                            else => return try visitor.visitInt(allocator, De, try std.fmt.parseInt(i128, slice, 10)),
+                        }
+                    },
+                    .Null => {
+                        // Void
+                        if (Visitor.Value == void) {
+                            return try visitor.visitVoid(allocator, De);
+                        }
+
+                        // Optional
+                        self.tokens = tokens;
+                        return try visitor.visitNull(allocator, De);
+                    },
+                    .ObjectBegin => {
+                        // Union
+                        if (visitor_info == .Union) {
+                            self.tokens = tokens;
+
+                            var u = Union(Self){ .d = self };
+                            return try visitor.visitUnion(allocator, De, u.unionAccess(), u.variantAccess());
+                        }
+
+                        // Map
+                        var map = MapAccess(Self){ .d = self };
+                        return try visitor.visitMap(allocator, De, map.mapAccess());
+                    },
+                    .ArrayBegin => {
+                        var sa = SeqAccess(Self){ .d = self };
+                        return try visitor.visitSeq(allocator, De, sa.seqAccess());
+                    },
+                    .String => |t| {
+                        // Union
+                        if (visitor_info == .Union) {
+                            self.tokens = tokens;
+
+                            var u = Union(Self){ .d = self };
+                            return try visitor.visitUnion(allocator, De, u.unionAccess(), u.variantAccess());
+                        }
+
+                        const slice = t.slice(self.tokens.slice, self.tokens.i - 1);
+
+                        // Enum, String
+                        return switch (t.escapes) {
+                            .None => try visitor.visitString(allocator, De, slice),
+                            .Some => blk: {
+                                const s = try unescapeString(allocator.?, t, slice);
+                                defer allocator.?.free(s);
+
+                                break :blk try visitor.visitString(allocator, De, s);
+                            },
+                        };
+                    },
+                    else => return error.InvalidType,
+                }
+            }
+
+            return error.InvalidType;
+        }
 
         fn deserializeBool(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             if (try self.tokens.next()) |token| {
