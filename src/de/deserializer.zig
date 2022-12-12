@@ -434,24 +434,38 @@ fn MapAccess(comptime D: type) type {
 
         fn nextKeySeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
             if (try self.d.tokens.next()) |token| {
-                if (token == .ObjectEnd) {
-                    return null;
-                }
+                switch (token) {
+                    .ObjectEnd => return null,
+                    .String => |t| {
+                        const slice = t.slice(self.d.tokens.slice, self.d.tokens.i - 1);
 
-                if (token == .String) {
-                    const slice = token.String.slice(self.d.tokens.slice, self.d.tokens.i - 1);
-                    const string = switch (token.String.escapes) {
-                        .None => slice,
-                        .Some => try unescapeString(allocator.?, token.String, slice),
-                    };
-                    defer if (token.String.escapes == .Some) {
-                        allocator.?.free(string);
-                    };
+                        // If the string does not require escaping, then it should
+                        // be on the stack. When we pass it to MapKeyDeserializer,
+                        // the string will either be turned into an integer (and
+                        // therefore no longer relevant) or  be forwarded to the
+                        // slice visitor, which'll create a copy for us on the
+                        // heap, hence why we don't need to allocate it here.
+                        const string = switch (t.escapes) {
+                            .None => slice,
+                            .Some => try unescapeString(allocator.?, token.String, slice),
+                        };
+                        errdefer if (t.escapes == .Some) {
+                            allocator.?.free(string);
+                        };
 
-                    var mkd = MapKeyDeserializer(De){ .key = string };
-                    var result = try seed.deserialize(allocator, mkd.deserializer());
+                        var mkd = MapKeyDeserializer(De){ .key = string };
+                        var result = try seed.deserialize(allocator, mkd.deserializer());
 
-                    return result;
+                        // At this point, the unescaped key has either been copied
+                        // by the slice visitor or used to make an integer. Either
+                        // way, it is no longer needed and should therefore be freed.
+                        if (t.escapes == .Some) {
+                            allocator.?.free(string);
+                        }
+
+                        return result;
+                    },
+                    else => {},
                 }
             }
 
@@ -502,6 +516,7 @@ fn SeqAccess(comptime D: type) type {
 fn StructAccess(comptime D: type) type {
     return struct {
         d: *D,
+        is_key_allocated: bool = false,
 
         const Self = @This();
 
@@ -511,6 +526,7 @@ fn StructAccess(comptime D: type) type {
             .{
                 .nextKeySeed = nextKeySeed,
                 .nextValueSeed = nextValueSeed,
+                .isKeyAllocated = isKeyAllocated,
             },
         );
 
@@ -518,18 +534,25 @@ fn StructAccess(comptime D: type) type {
 
         const Error = De.Error;
 
-        fn nextKeySeed(self: *Self, _: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
+        fn nextKeySeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
             comptime concepts.Concept("StringKey", "expected key type to be `[]const u8`")(.{
                 concepts.traits.isSame(@TypeOf(seed).Value, []const u8),
             });
 
             if (try self.d.tokens.next()) |token| {
-                if (token == .ObjectEnd) {
-                    return null;
-                }
+                switch (token) {
+                    .ObjectEnd => return null,
+                    .String => |t| {
+                        const slice = t.slice(self.d.tokens.slice, self.d.tokens.i - 1);
 
-                if (token == .String) {
-                    return token.String.slice(self.d.tokens.slice, self.d.tokens.i - 1);
+                        self.is_key_allocated = t.escapes == .Some;
+
+                        return switch (t.escapes) {
+                            .None => slice,
+                            .Some => try unescapeString(allocator.?, token.String, slice),
+                        };
+                    },
+                    else => {},
                 }
             }
 
@@ -538,6 +561,10 @@ fn StructAccess(comptime D: type) type {
 
         fn nextValueSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
             return try seed.deserialize(allocator, self.d.deserializer());
+        }
+
+        fn isKeyAllocated(self: *Self, comptime _: type) bool {
+            return self.is_key_allocated;
         }
     };
 }
