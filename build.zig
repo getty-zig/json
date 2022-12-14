@@ -74,18 +74,3 @@ fn addTest(
     step.dependOn(&t.step);
     all_step.dependOn(step);
 }
-
-//pub fn build(b: *std.build.Builder) void {
-//const mode = b.standardReleaseOptions();
-//const target = b.standardTargetOptions(.{});
-
-//// Tests
-//const step = b.step("test", "Run library tests");
-//const t = b.addTest(package_path);
-
-//t.setBuildMode(mode);
-//t.setTarget(target);
-//pkgs.addAllTo(t);
-//t.addPackage(json_pkg);
-//step.dependOn(&t.step);
-//}
