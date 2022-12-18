@@ -268,7 +268,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
 
             fn _serializeInt(s: MapKeySerializer, value: anytype) Error!Ok {
                 // TODO: Change to buffer size to digits10 + 1 for better space efficiency.
-                var buf: [std.math.max(std.meta.bitCount(@TypeOf(value)), 1) + 1]u8 = undefined;
+                var buf: [std.math.max(@bitSizeOf(@TypeOf(value)), 1) + 1]u8 = undefined;
                 var fbs = std.io.fixedBufferStream(&buf);
 
                 // We have to manually format the integer into a string
