@@ -88,8 +88,10 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             if (length) |l| {
                 if (l == 0) {
                     self.formatter.endObject(self.writer) catch return Error.Io;
-                    return Serialize{ .ser = self, .state = .empty };
+                    return Serialize{ .ser = self, .max = 0 };
                 }
+
+                return Serialize{ .ser = self, .state = .first, .max = l };
             }
 
             return Serialize{ .ser = self, .state = .first };
@@ -105,8 +107,10 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             if (length) |l| {
                 if (l == 0) {
                     self.formatter.endArray(self.writer) catch return Error.Io;
-                    return Serialize{ .ser = self, .state = .empty };
+                    return Serialize{ .ser = self, .max = 0 };
                 }
+
+                return Serialize{ .ser = self, .state = .first, .max = l };
             }
 
             return Serialize{ .ser = self, .state = .first };
@@ -133,16 +137,22 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
 
             if (length == 0) {
                 self.formatter.endObject(self.writer) catch return Error.Io;
-                return Serialize{ .ser = self, .state = .empty };
+                return Serialize{ .ser = self, .max = 0 };
             }
 
-            return Serialize{ .ser = self, .state = .first };
+            return Serialize{ .ser = self, .state = .first, .max = length };
         }
 
         // Implementation of Getty's aggregate serialization interfaces.
         const Serialize = struct {
             ser: *Self,
-            state: enum { empty, first, rest },
+            state: enum { empty, first, rest } = .empty,
+
+            // Maximum number of elements/entries to serialize.
+            max: ?usize = null,
+
+            // Number of elements/entries serialized.
+            count: usize = 0,
 
             ////////////////////////////////////////////////////////////////////
             // Sequence
@@ -159,11 +169,25 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             );
 
             fn serializeElement(s: *Serialize, value: anytype) Error!void {
-                s.ser.formatter.beginArrayValue(s.ser.writer, s.state == .first) catch return error.Io;
-                try getty.serialize(value, s.ser.serializer());
-                s.ser.formatter.endArrayValue(s.ser.writer) catch return error.Io;
+                // Number of elements in sequence is unknown, so just try to
+                // serialize an element and return an error if there are none.
+                if (s.max == null) {
+                    return try s._serializeElement(value);
+                }
 
-                s.state = .rest;
+                // Number of elements in sequence is known but we've already
+                // serialized all elements, so just return from the function.
+                if (s.count >= s.max.?) {
+                    return;
+                }
+
+                // Number of elements in sequence is known but we haven't
+                // serialized all of them yet, so serialize an element and
+                // increment the current count.
+                var v = try s._serializeElement(value);
+                s.count += 1;
+
+                return v;
             }
 
             fn seq_end(s: *Serialize) Error!Ok {
@@ -188,14 +212,46 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             );
 
             fn serializeKey(s: *Serialize, key: anytype) Error!void {
+                if (s.max) |max| {
+                    // Number of elements in map is known but we've already
+                    // serialized all entries, so just return from the function.
+                    if (s.count >= max) {
+                        return;
+                    }
+                }
+
+                // Number of entries in map is either:
+                //
+                //   1) Unknown, so try to serialize a key and return an error
+                //      if there are none.
+                //
+                //   2) Known, but we haven't serialized all of them yet so
+                //      start serializing an entry by serializing a key. The
+                //      count will be incremented in serializeValue.
                 var mks = MapKeySerializer{ .ser = s.ser };
                 try s._serializeKey(key, mks.serializer());
             }
 
             fn serializeValue(s: *Serialize, value: anytype) Error!void {
-                s.ser.formatter.beginObjectValue(s.ser.writer) catch return error.Io;
-                try getty.serialize(value, s.ser.serializer());
-                s.ser.formatter.endObjectValue(s.ser.writer) catch return error.Io;
+                // Number of entries in map is unknown, so just try to
+                // serialize an entry and return an error if there are none.
+                if (s.max == null) {
+                    return try s._serializeElement(value);
+                }
+
+                // Number of entries in map is known but we've already
+                // serialized all entries, so just return from the function.
+                if (s.count >= s.max.?) {
+                    return;
+                }
+
+                // Number of entries in map is known but we haven't serialized
+                // all of them yet, so serialize an entry and increment the
+                // current count.
+                var v = try s._serializeValue(value);
+                s.count += 1;
+
+                return v;
             }
 
             fn map_end(s: *Serialize) Error!Ok {
@@ -219,19 +275,37 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             );
 
             fn serializeField(s: *Serialize, comptime key: []const u8, value: anytype) Error!void {
-                if (comptime !std.unicode.utf8ValidateSlice(key)) {
-                    return Error.Syntax;
+                //std.debug.print("MAX: {}\n", .{s.max});
+                //std.debug.print("COUNT: {}\n", .{s.count});
+                // Number of fields in struct is unknown, so just try to
+                // serialize a field and return an error if there are none.
+                if (s.max == null) {
+                    return try s._serializeField(key, value);
                 }
 
-                var sks = StructKeySerializer{ .ser = s.ser };
-                try s._serializeKey(key, sks.serializer());
+                // Number of fields in struct is known but we've already
+                // serialized all fields, so just return from the function.
+                if (s.count >= s.max.?) {
+                    return;
+                }
 
-                try s.serializeValue(value);
+                var v = try s._serializeField(key, value);
+                s.count += 1;
+
+                return v;
             }
 
             ////////////////////////////////////////////////////////////////////
             // Private methods
             ////////////////////////////////////////////////////////////////////
+
+            fn _serializeElement(s: *Serialize, value: anytype) Error!void {
+                s.ser.formatter.beginArrayValue(s.ser.writer, s.state == .first) catch return error.Io;
+                try getty.serialize(value, s.ser.serializer());
+                s.ser.formatter.endArrayValue(s.ser.writer) catch return error.Io;
+
+                s.state = .rest;
+            }
 
             fn _serializeKey(s: *Serialize, key: anytype, serializer: anytype) Error!void {
                 s.ser.formatter.beginObjectKey(s.ser.writer, s.state == .first) catch return error.Io;
@@ -239,6 +313,22 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
                 s.ser.formatter.endObjectKey(s.ser.writer) catch return error.Io;
 
                 s.state = .rest;
+            }
+
+            fn _serializeValue(s: *Serialize, value: anytype) Error!void {
+                s.ser.formatter.beginObjectValue(s.ser.writer) catch return error.Io;
+                try getty.serialize(value, s.ser.serializer());
+                s.ser.formatter.endObjectValue(s.ser.writer) catch return error.Io;
+            }
+
+            fn _serializeField(s: *Serialize, comptime key: []const u8, value: anytype) Error!void {
+                if (comptime !std.unicode.utf8ValidateSlice(key)) {
+                    return Error.Syntax;
+                }
+
+                var sks = StructKeySerializer{ .ser = s.ser };
+                try s._serializeKey(key, sks.serializer());
+                try s._serializeValue(value);
             }
         };
 
