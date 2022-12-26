@@ -225,8 +225,9 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
             return error.InvalidType;
         }
 
-        fn deserializeIgnored(self: *Self, _: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
-            return try skip_value(&self.tokens);
+        fn deserializeIgnored(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+            try skip_value(&self.tokens);
+            return try visitor.visitVoid(allocator, De);
         }
 
         fn deserializeInt(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
