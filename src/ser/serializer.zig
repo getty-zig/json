@@ -275,8 +275,6 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             );
 
             fn serializeField(s: *Serialize, comptime key: []const u8, value: anytype) Error!void {
-                //std.debug.print("MAX: {}\n", .{s.max});
-                //std.debug.print("COUNT: {}\n", .{s.count});
                 // Number of fields in struct is unknown, so just try to
                 // serialize a field and return an error if there are none.
                 if (s.max == null) {
