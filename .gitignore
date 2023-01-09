@@ -4,7 +4,6 @@ docs/
 *.o
 
 # Packages
-lib/
 deps.zig
 
 # Gyro

@@ -3,31 +3,44 @@ const std = @import("std");
 const package_name = "json";
 const package_path = "src/json.zig";
 
-pub fn build(b: *std.build.Builder) !void {
+var cached_pkg: ?std.build.Pkg = null;
+
+pub fn pkg(b: *std.build.Builder) std.build.Pkg {
+    if (cached_pkg == null) {
+        const dependencies = b.allocator.create([2]std.build.Pkg) catch unreachable;
+        dependencies.* = .{
+            .{
+                .name = "getty",
+                .source = .{ .path = libPath(b, "/libs/getty/src/getty.zig") },
+                .dependencies = &[_]std.build.Pkg{},
+            },
+            .{
+                .name = "concepts",
+                .source = .{ .path = libPath(b, "/libs/concepts/src/lib.zig") },
+                .dependencies = &[_]std.build.Pkg{},
+            },
+        };
+
+        cached_pkg = .{
+            .name = "json",
+            .source = .{ .path = libPath(b, "/src/json.zig") },
+            .dependencies = dependencies,
+        };
+    }
+
+    return cached_pkg.?;
+}
+
+pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{});
 
-    try tests(b, mode, target);
+    tests(b, mode, target);
     docs(b);
     clean(b);
 }
 
-fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) !void {
-    // Packages
-    const getty = GitRepoStep.create(b, .{
-        .url = "https://github.com/getty-zig/getty",
-        .branch = "develop",
-        .sha = "8b2464c4ec7a9bd91cf57582aebe356b551555b9",
-        .fetch_enabled = true,
-    });
-
-    const concepts = GitRepoStep.create(b, .{
-        .url = "https://github.com/ibokuri/concepts",
-        .branch = "main",
-        .sha = "05c73681bc131a32f71b1f330dc5f4bdcea53675",
-        .fetch_enabled = true,
-    });
-
+fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) void {
     const test_all_step = b.step("test", "Run tests");
     const test_ser_step = b.step("test-ser", "Run serialization tests");
     const test_de_step = b.step("test-de", "Run deserialization tests");
@@ -36,18 +49,12 @@ fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTar
     const t_ser = b.addTest("src/ser.zig");
     t_ser.setTarget(target);
     t_ser.setBuildMode(mode);
-    t_ser.step.dependOn(&getty.step);
-    t_ser.step.dependOn(&concepts.step);
-    t_ser.addPackagePath("getty", try std.fs.path.join(b.allocator, &[_][]const u8{ getty.getPath(&t_ser.step), "src/getty.zig" }));
-    t_ser.addPackagePath("concepts", try std.fs.path.join(b.allocator, &[_][]const u8{ concepts.getPath(&t_ser.step), "src/lib.zig" }));
+    for (pkg(b).dependencies.?) |d| t_ser.addPackage(d);
 
     const t_de = b.addTest("src/de.zig");
     t_de.setTarget(target);
     t_de.setBuildMode(mode);
-    t_de.step.dependOn(&getty.step);
-    t_de.step.dependOn(&concepts.step);
-    t_de.addPackagePath("getty", try std.fs.path.join(b.allocator, &[_][]const u8{ getty.getPath(&t_ser.step), "src/getty.zig" }));
-    t_de.addPackagePath("concepts", try std.fs.path.join(b.allocator, &[_][]const u8{ concepts.getPath(&t_ser.step), "src/lib.zig" }));
+    for (pkg(b).dependencies.?) |d| t_de.addPackage(d);
 
     // Configure module-level test steps.
     test_ser_step.dependOn(&t_ser.step);
@@ -287,3 +294,51 @@ const GitRepoStep = struct {
         return self.path;
     }
 };
+
+const unresolved_dir = (struct {
+    inline fn unresolvedDir() []const u8 {
+        return comptime std.fs.path.dirname(@src().file) orelse ".";
+    }
+}).unresolvedDir();
+
+fn thisDir(allocator: std.mem.Allocator) []const u8 {
+    if (comptime unresolved_dir[0] == '/') {
+        return unresolved_dir;
+    }
+
+    const cached_dir = &(struct {
+        var cached_dir: ?[]const u8 = null;
+    }).cached_dir;
+
+    if (cached_dir.* == null) {
+        cached_dir.* = std.fs.cwd().realpathAlloc(allocator, unresolved_dir) catch unreachable;
+    }
+
+    return cached_dir.*.?;
+}
+
+inline fn libPath(b: *std.build.Builder, comptime suffix: []const u8) []const u8 {
+    return libPathAllocator(b.allocator, suffix);
+}
+
+inline fn libPathAllocator(allocator: std.mem.Allocator, comptime suffix: []const u8) []const u8 {
+    return libPathInternal(allocator, suffix.len, suffix[0..suffix.len].*);
+}
+
+fn libPathInternal(allocator: std.mem.Allocator, comptime len: usize, comptime suffix: [len]u8) []const u8 {
+    if (suffix[0] != '/') @compileError("suffix must be an absolute path");
+
+    if (comptime unresolved_dir[0] == '/') {
+        return unresolved_dir ++ @as([]const u8, &suffix);
+    }
+
+    const cached_dir = &(struct {
+        var cached_dir: ?[]const u8 = null;
+    }).cached_dir;
+
+    if (cached_dir.* == null) {
+        cached_dir.* = std.fs.path.resolve(allocator, &.{ thisDir(allocator), suffix[1..] }) catch unreachable;
+    }
+
+    return cached_dir.*.?;
+}

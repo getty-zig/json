@@ -1,0 +1,7 @@
+[submodule "libs/getty"]
+	path = libs/getty
+	url = https://github.com/getty-zig/getty.git
+	branch = develop
+[submodule "libs/concepts"]
+	path = libs/concepts
+	url = https://github.com/ibokuri/concepts.git
