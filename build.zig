@@ -22,7 +22,7 @@ pub fn pkg(b: *std.build.Builder) std.build.Pkg {
         };
 
         cached_pkg = .{
-            .name = "json",
+            .name = package_name,
             .source = .{ .path = libPath(b, "/src/json.zig") },
             .dependencies = dependencies,
         };
