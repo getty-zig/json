@@ -16,16 +16,43 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 
 ## Installation
 
+### Manual
+
+1. Add Getty JSON to your project:
+
+    ```
+    git clone --recursive https://github.com/getty-zig/json libs/json
+    ```
+
+2. Make the following changes in `build.zig`:
+
+    ```diff
+    const std = @import("std");
+    +const json = @import("libs/json/build.zig");
+
+    pub fn build(b: *std.build.Builder) void {
+        ...
+
+        const exe = b.addExecutable("my-project", "src/main.zig");
+        exe.setTarget(target);
+        exe.setBuildMode(mode);
+    +   exe.addPackage(json.pkg(b));
+        exe.install();
+
+        ...
+    }
+    ```
+
 ### Gyro
 
-1. Add Getty to your project:
+1. Add Getty JSON to your project:
 
     ```
     gyro add -s github getty-zig/json
     gyro fetch
     ```
 
-2. Add the following to `build.zig`:
+2. Make the following changes in `build.zig`:
 
     ```diff
     const std = @import("std");
@@ -46,7 +73,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 
 ### Zigmod
 
-1. Add the following to `zigmod.yml`:
+1. Make the following change in `zigmod.yml`:
 
     ```diff
     ...
@@ -61,7 +88,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     zigmod fetch
     ```
 
-3. Add the following to `build.zig`:
+3. Make the following changes in `build.zig`:
 
     ```diff
     const std = @import("std");
