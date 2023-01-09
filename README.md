@@ -82,7 +82,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     +  - src: git https://github.com/getty-zig/json
     ```
 
-2. Fetch project dependencies:
+2. Add Getty JSON to your project:
 
     ```
     zigmod fetch
