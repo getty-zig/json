@@ -31,15 +31,13 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     +const json = @import("libs/json/build.zig");
 
     pub fn build(b: *std.build.Builder) void {
-        ...
+        // ...
 
         const exe = b.addExecutable("my-project", "src/main.zig");
         exe.setTarget(target);
         exe.setBuildMode(mode);
     +   exe.addPackage(json.pkg(b));
         exe.install();
-
-        ...
     }
     ```
 
@@ -59,15 +57,13 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     +const pkgs = @import("deps.zig").pkgs;
 
     pub fn build(b: *std.build.Builder) void {
-        ...
+        // ...
 
         const exe = b.addExecutable("my-project", "src/main.zig");
         exe.setTarget(target);
         exe.setBuildMode(mode);
     +   pkgs.addAllTo(exe);
         exe.install();
-
-        ...
     }
     ```
 
@@ -76,7 +72,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 1. Make the following change in `zigmod.yml`:
 
     ```diff
-    ...
+    # ...
 
     root_dependencies:
     +  - src: git https://github.com/getty-zig/json
@@ -95,15 +91,13 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     +const deps = @import("deps.zig");
 
     pub fn build(b: *std.build.Builder) void {
-        ...
+        // ...
 
         const exe = b.addExecutable("my-project", "src/main.zig");
         exe.setTarget(target);
         exe.setBuildMode(mode);
     +   deps.addAllTo(exe);
         exe.install();
-
-        ...
     }
     ```
 
