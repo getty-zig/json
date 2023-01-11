@@ -66,15 +66,24 @@ fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTar
 }
 
 fn docs(b: *std.build.Builder) void {
+    // Remove cache.
     const cmd = b.addSystemCommand(&[_][]const u8{
-        "zig",
-        "build-obj",
-        "-femit-docs",
-        package_path,
+        "rm",
+        "-rf",
+        "zig-cache",
     });
 
+    const clean_step = b.step("clean", "Remove project artifacts");
+    clean_step.dependOn(&cmd.step);
+
+    // Build docs.
+    const docs_obj = b.addObject("docs", package_path);
+    docs_obj.emit_docs = .emit;
+    for (pkg(b).dependencies.?) |d| docs_obj.addPackage(d);
+
     const docs_step = b.step("docs", "Generate project documentation");
-    docs_step.dependOn(&cmd.step);
+    docs_step.dependOn(clean_step);
+    docs_step.dependOn(&docs_obj.step);
 }
 
 fn clean(b: *std.build.Builder) void {
