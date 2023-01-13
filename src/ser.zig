@@ -1,7 +1,7 @@
 const getty = @import("getty");
 const std = @import("std");
 
-/// A namespace for serialization-specific types and functions.
+/// Serialization-specific types and functions.
 pub const ser = struct {
     pub usingnamespace @import("ser/serializer.zig");
 

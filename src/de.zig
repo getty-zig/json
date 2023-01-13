@@ -9,14 +9,17 @@ const expectEqual = testing.expectEqual;
 const expectEqualSlices = testing.expectEqualSlices;
 const expectError = testing.expectError;
 
+/// A JSON deserializer.
 pub const Deserializer = @import("de/deserializer.zig").Deserializer;
 
+/// Deserialization-specific types and functions.
 pub const de = struct {
     pub fn free(allocator: std.mem.Allocator, value: anytype) void {
         return getty.de.free(allocator, value);
     }
 };
 
+/// Deserializes into a value of type `T` from the deserializer `d`.
 pub fn fromDeserializer(comptime T: type, d: anytype) !T {
     const value = try getty.deserialize(d.allocator, T, d.deserializer());
     errdefer if (d.allocator) |alloc| de.free(alloc, value);
@@ -25,6 +28,7 @@ pub fn fromDeserializer(comptime T: type, d: anytype) !T {
     return value;
 }
 
+/// Deserializes into a value of type `T` from a slice of JSON using a deserialization block or tuple.
 pub fn fromSliceWith(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8, comptime user_dbt: anytype) !T {
     const D = Deserializer(user_dbt);
     var d = if (allocator) |alloc| D.withAllocator(alloc, slice) else D.init(slice);
@@ -32,6 +36,7 @@ pub fn fromSliceWith(allocator: ?std.mem.Allocator, comptime T: type, slice: []c
     return fromDeserializer(T, &d);
 }
 
+/// Deserializes into a value of type `T` from a slice of JSON.
 pub fn fromSlice(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8) !T {
     return try fromSliceWith(allocator, T, slice, null);
 }
