@@ -14,6 +14,11 @@ pub const Deserializer = @import("de/deserializer.zig").Deserializer;
 
 /// Deserialization-specific types and functions.
 pub const de = struct {
+    /// Frees resources allocated by Getty during deserialization.
+    ///
+    /// `free` assumes that all pointers passed to it are heap-allocated and
+    /// will therefore attempt to free them. So be sure not to pass in any
+    /// pointers pointing to values on the stack.
     pub fn free(allocator: std.mem.Allocator, value: anytype) void {
         return getty.de.free(allocator, value);
     }
