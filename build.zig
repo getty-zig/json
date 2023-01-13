@@ -1,4 +1,5 @@
 const std = @import("std");
+const getty_build = @import("libs/getty/build.zig");
 
 const package_name = "json";
 const package_path = "src/json.zig";
@@ -9,15 +10,10 @@ pub fn pkg(b: *std.build.Builder) std.build.Pkg {
     if (cached_pkg == null) {
         const dependencies = b.allocator.create([2]std.build.Pkg) catch unreachable;
         dependencies.* = .{
-            .{
-                .name = "getty",
-                .source = .{ .path = libPath(b, "/libs/getty/src/getty.zig") },
-                .dependencies = &[_]std.build.Pkg{},
-            },
+            getty_build.pkg(b),
             .{
                 .name = "concepts",
                 .source = .{ .path = libPath(b, "/libs/concepts/src/lib.zig") },
-                .dependencies = &[_]std.build.Pkg{},
             },
         };
 
