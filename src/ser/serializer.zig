@@ -42,7 +42,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
         );
 
         const Ok = void;
-        const Error = std.mem.Allocator.Error || error{
+        const Error = getty.ser.Error || std.mem.Allocator.Error || error{
             /// Failure to read or write bytes on an IO stream.
             Io,
 
