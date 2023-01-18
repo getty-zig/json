@@ -1,14 +1,23 @@
 const getty = @import("getty");
 const std = @import("std");
 
+/// A JSON serializer.
+pub const Serializer = @import("ser/serializer.zig").Serializer;
+
 /// Serialization-specific types and functions.
 pub const ser = struct {
-    pub usingnamespace @import("ser/serializer.zig");
-
+    // TODO: Cannot import Formatter like we do with the other decls in here.
+    //
+    //       It looks like there's some index out of bound bug in Autodoc that
+    //       crashes everything when `zig build docs` is run. So, Formatter
+    //       won't show up in the API docs for now.
     pub usingnamespace @import("ser/interface/formatter.zig");
 
-    pub usingnamespace @import("ser/impl/formatter/compact.zig");
-    pub usingnamespace @import("ser/impl/formatter/pretty.zig");
+    /// A compact formatter implementation.
+    pub const CompactFormatter = @import("ser/impl/formatter/compact.zig").CompactFormatter;
+
+    /// A pretty formatter implementation.
+    pub const PrettyFormatter = @import("ser/impl/formatter/pretty.zig").PrettyFormatter;
 };
 
 /// Serializes a value as JSON into an I/O stream using a serialization block
@@ -26,7 +35,7 @@ pub fn toWriterWith(
     var f = ser.CompactFormatter(@TypeOf(writer)){};
     const formatter = f.formatter();
 
-    var s = ser.Serializer(@TypeOf(writer), @TypeOf(formatter), user_sbt).init(writer, formatter);
+    var s = Serializer(@TypeOf(writer), @TypeOf(formatter), user_sbt).init(writer, formatter);
     var serializer = s.serializer();
 
     try getty.serialize(value, serializer);
@@ -47,7 +56,7 @@ pub fn toPrettyWriterWith(
     var f = ser.PrettyFormatter(@TypeOf(writer)).init();
     const formatter = f.formatter();
 
-    var s = ser.Serializer(@TypeOf(writer), @TypeOf(formatter), user_sbt).init(writer, formatter);
+    var s = Serializer(@TypeOf(writer), @TypeOf(formatter), user_sbt).init(writer, formatter);
     var serializer = s.serializer();
 
     try getty.serialize(value, serializer);

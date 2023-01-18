@@ -1,20 +1,18 @@
 //! A (de)serialization library for the JSON data format.
 
-const s = @import("ser.zig");
-const d = @import("de.zig");
-
 ////////////////////////////////////////////////////////////////////////////////
 // Types
 ////////////////////////////////////////////////////////////////////////////////
 
+pub const Serializer = @import("ser.zig").Serializer;
 pub const Deserializer = @import("de.zig").Deserializer;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Namespaces
 ////////////////////////////////////////////////////////////////////////////////
 
-pub const ser = s.ser;
-pub const de = d.de;
+pub const ser = @import("ser.zig").ser;
+pub const de = @import("de.zig").de;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Functions
@@ -67,6 +65,3 @@ pub const toSlice = @import("ser.zig").toSlice;
 /// The returned string is an owned slice. The caller is responsible for
 /// freeing its memory.
 pub const toPrettySlice = @import("ser.zig").toPrettySlice;
-
-//pub usingnamespace @import("ser.zig");
-//pub usingnamespace @import("de.zig");
