@@ -19,7 +19,7 @@ pub fn pkg(b: *std.build.Builder) std.build.Pkg {
 
         cached_pkg = .{
             .name = package_name,
-            .source = .{ .path = libPath(b, "/src/json.zig") },
+            .source = .{ .path = libPath(b, "/" ++ package_path) },
             .dependencies = dependencies,
         };
     }
@@ -45,12 +45,16 @@ fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTar
     const t_ser = b.addTest("src/ser.zig");
     t_ser.setTarget(target);
     t_ser.setBuildMode(mode);
-    for (pkg(b).dependencies.?) |d| t_ser.addPackage(d);
+    if (pkg(b).dependencies) |deps| {
+        for (deps) |d| t_ser.addPackage(d);
+    }
 
     const t_de = b.addTest("src/de.zig");
     t_de.setTarget(target);
     t_de.setBuildMode(mode);
-    for (pkg(b).dependencies.?) |d| t_de.addPackage(d);
+    if (pkg(b).dependencies) |deps| {
+        for (deps) |d| t_de.addPackage(d);
+    }
 
     // Configure module-level test steps.
     test_ser_step.dependOn(&t_ser.step);
@@ -75,7 +79,9 @@ fn docs(b: *std.build.Builder) void {
     // Build docs.
     const docs_obj = b.addObject("docs", package_path);
     docs_obj.emit_docs = .emit;
-    for (pkg(b).dependencies.?) |d| docs_obj.addPackage(d);
+    if (pkg(b).dependencies) |deps| {
+        for (deps) |d| docs_obj.addPackage(d);
+    }
 
     const docs_step = b.step("docs", "Generate project documentation");
     docs_step.dependOn(clean_step);
