@@ -1,6 +1,6 @@
 pkgs:
   json:
-    version: 0.0.0
+    version: 0.3.0
     description: A serialization library for JSON
     license: MIT
     source_url: "https://github.com/getty-zig/json"
@@ -9,7 +9,7 @@ deps:
   getty:
     git:
       url: "https://github.com/getty-zig/getty.git"
-      ref: d6c8dbf05b6964a9ab96cf8aebe0721b124a7bb3
+      ref: d1336e6ff01a9e571d1faef133649633bc557ada
       root: src/getty.zig
   concepts:
     git:
