@@ -5,13 +5,16 @@ const writeEscaped = @import("impl/formatter/details/escape.zig").writeEscaped;
 
 pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user_sbt: anytype) type {
     return struct {
+        allocator: ?std.mem.Allocator = null,
+
         writer: Writer,
         formatter: Formatter,
 
         const Self = @This();
 
-        pub fn init(writer: Writer, formatter: Formatter) Self {
+        pub fn init(allocator: ?std.mem.Allocator, writer: Writer, formatter: Formatter) Self {
             return .{
+                .allocator = allocator,
                 .writer = writer,
                 .formatter = formatter,
             };
@@ -117,7 +120,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
         }
 
         fn serializeSome(self: *Self, value: anytype) Error!Ok {
-            try getty.serialize(value, self.serializer());
+            try getty.serialize(self.allocator, value, self.serializer());
         }
 
         fn serializeString(self: *Self, value: anytype) Error!Ok {
@@ -299,7 +302,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
 
             fn _serializeElement(s: *Serialize, value: anytype) Error!void {
                 s.ser.formatter.beginArrayValue(s.ser.writer, s.state == .first) catch return error.Io;
-                try getty.serialize(value, s.ser.serializer());
+                try getty.serialize(s.ser.allocator, value, s.ser.serializer());
                 s.ser.formatter.endArrayValue(s.ser.writer) catch return error.Io;
 
                 s.state = .rest;
@@ -307,7 +310,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
 
             fn _serializeKey(s: *Serialize, key: anytype, serializer: anytype) Error!void {
                 s.ser.formatter.beginObjectKey(s.ser.writer, s.state == .first) catch return error.Io;
-                try getty.serialize(key, serializer);
+                try getty.serialize(s.ser.allocator, key, serializer);
                 s.ser.formatter.endObjectKey(s.ser.writer) catch return error.Io;
 
                 s.state = .rest;
@@ -315,7 +318,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
 
             fn _serializeValue(s: *Serialize, value: anytype) Error!void {
                 s.ser.formatter.beginObjectValue(s.ser.writer) catch return error.Io;
-                try getty.serialize(value, s.ser.serializer());
+                try getty.serialize(s.ser.allocator, value, s.ser.serializer());
                 s.ser.formatter.endObjectValue(s.ser.writer) catch return error.Io;
             }
 
@@ -351,7 +354,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             );
 
             fn _serializeBool(s: MapKeySerializer, value: bool) Error!Ok {
-                try getty.serialize(if (value) "true" else "false", s.ser.serializer());
+                try getty.serialize(s.ser.allocator, if (value) "true" else "false", s.ser.serializer());
             }
 
             fn _serializeInt(s: MapKeySerializer, value: anytype) Error!Ok {
@@ -365,11 +368,11 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
                 // use it here.
                 std.fmt.formatInt(value, 10, .lower, .{}, fbs.writer()) catch return error.Io;
 
-                try getty.serialize(fbs.getWritten(), s.ser.serializer());
+                try getty.serialize(s.ser.allocator, fbs.getWritten(), s.ser.serializer());
             }
 
             fn _serializeString(s: MapKeySerializer, value: anytype) Error!Ok {
-                try getty.serialize(value, s.ser.serializer());
+                try getty.serialize(s.ser.allocator, value, s.ser.serializer());
             }
         };
 
