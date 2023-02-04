@@ -18,26 +18,67 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 
 ### Manual
 
-1. Add Getty JSON to your project:
+1. Declare Getty JSON as a dependency in `build.zig.zon`. Be sure to replace `<COMMIT>` with a commit SHA.
 
-    ```
-    git clone --recursive https://github.com/getty-zig/json libs/json
+    ```diff
+    .{
+        .name = "my-project",
+        .version = "1.0.0",
+        .dependencies = .{
+    +       .json = .{
+    +           .url = "https://github.com/getty-zig/json/archive/<COMMIT>.tar.gz",
+    +       },
+        },
+    }
     ```
 
-2. Make the following changes in `build.zig`:
+2. Expose Getty JSON as a module by adding the following lines to `build.zig`:
 
     ```diff
     const std = @import("std");
-    +const json = @import("libs/json/build.zig");
 
-    pub fn build(b: *std.build.Builder) void {
-        // ...
+    pub fn build(b: *std.Build) void {
+        const target = b.standardTargetOptions(.{});
+        const optimize = b.standardOptimizeOption(.{});
 
-        const exe = b.addExecutable("my-project", "src/main.zig");
-        exe.setTarget(target);
-        exe.setBuildMode(mode);
-    +   exe.addPackage(json.pkg(b));
+    +   const dep_opts = .{ .target = target, .optimize = optimize };
+    +   const json_module = b.dependency("json", dep_opts).module("json");
+
+        const exe = b.addExecutable(.{
+            .name = "test",
+            .root_source_file = .{ .path = "src/main.zig" },
+            .target = target,
+            .optimize = optimize,
+        });
+    +   exe.addModule("json", json_module);
         exe.install();
+
+        ...
+    }
+    ```
+
+3. Obtain a package hash for Getty JSON (denoted below as `<HASH>`):
+
+    ```
+    $ zig build
+    my-project/build.zig.zon:6:20: error: url field is missing corresponding hash field
+            .url = "https://github.com/getty-zig/json/archive/<COMMIT>.tar.gz",
+                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    note: expected .hash = "<HASH>",
+    ```
+
+4. Update `build.zig.zon` with the package hash:
+
+    ```diff
+    .{
+        .name = "my-project",
+        .version = "1.0.0",
+        .dependencies = .{
+            .json = .{
+                .url = "https://github.com/getty-zig/json/archive/<COMMIT>.tar.gz",
+    +           .hash = "<HASH>",
+            },
+        },
     }
     ```
 

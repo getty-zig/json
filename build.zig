@@ -1,164 +1,109 @@
 const std = @import("std");
-const getty_build = @import("libs/getty/build.zig");
 
 const package_name = "json";
 const package_path = "src/json.zig";
 
-var cached_pkg: ?std.build.Pkg = null;
-
-pub fn pkg(b: *std.build.Builder) std.build.Pkg {
-    if (cached_pkg == null) {
-        const dependencies = b.allocator.create([2]std.build.Pkg) catch unreachable;
-        dependencies.* = .{
-            getty_build.pkg(b),
-            .{
-                .name = "concepts",
-                .source = .{ .path = libPath(b, "/libs/concepts/src/lib.zig") },
-            },
-        };
-
-        cached_pkg = .{
-            .name = package_name,
-            .source = .{ .path = libPath(b, "/" ++ package_path) },
-            .dependencies = dependencies,
-        };
-    }
-
-    return cached_pkg.?;
-}
-
 pub fn build(b: *std.build.Builder) void {
     const target = b.standardTargetOptions(.{});
-    const mode = b.standardOptimizeOption(.{});
+    const optimize = b.standardOptimizeOption(.{});
 
-    tests(b, target, mode);
-    docs(b, target, mode);
-    clean(b);
-}
+    // Dependencies.
+    const dep_opts = .{ .target = target, .optimize = optimize };
 
-fn tests(b: *std.build.Builder, target: std.zig.CrossTarget, mode: std.builtin.Mode) void {
-    const test_all_step = b.step("test", "Run tests");
-    const test_ser_step = b.step("test-ser", "Run serialization tests");
-    const test_de_step = b.step("test-de", "Run deserialization tests");
+    const getty_module = b.dependency("getty", dep_opts).module("getty");
+    const concepts_module = b.dependency("concepts", dep_opts).module("concepts");
 
-    // Configure tests.
-    const t_ser = b.addTest(.{
-        .name = "serialization test",
-        .root_source_file = .{ .path = "src/ser.zig" },
-        .target = target,
-        .optimize = mode,
-    });
-    if (pkg(b).dependencies) |deps| {
-        for (deps) |d| t_ser.addPackage(d);
-    }
-
-    const t_de = b.addTest(.{
-        .name = "deserialization test",
-        .root_source_file = .{ .path = "src/de.zig" },
-        .target = target,
-        .optimize = mode,
-    });
-    if (pkg(b).dependencies) |deps| {
-        for (deps) |d| t_de.addPackage(d);
-    }
-
-    // Configure module-level test steps.
-    test_ser_step.dependOn(&t_ser.step);
-    test_de_step.dependOn(&t_de.step);
-
-    // Configure top-level test step.
-    test_all_step.dependOn(test_ser_step);
-    test_all_step.dependOn(test_de_step);
-}
-
-fn docs(b: *std.build.Builder, target: std.zig.CrossTarget, mode: std.builtin.Mode) void {
-    // Remove cache.
-    const cmd = b.addSystemCommand(&[_][]const u8{
-        "rm",
-        "-rf",
-        "zig-cache",
+    // Module
+    b.addModule(.{
+        .name = package_name,
+        .source_file = .{ .path = package_path },
+        .dependencies = &.{
+            .{ .name = "getty", .module = getty_module },
+            .{ .name = "concepts", .module = concepts_module },
+        },
     });
 
-    const clean_step = b.step("clean", "Remove project artifacts");
-    clean_step.dependOn(&cmd.step);
+    // Tests.
+    {
+        const test_all_step = b.step("test", "Run tests");
+        const test_ser_step = b.step("test-ser", "Run serialization tests");
+        const test_de_step = b.step("test-de", "Run deserialization tests");
 
-    // Build docs.
-    const docs_obj = b.addObject(.{
-        .name = "docs",
-        .root_source_file = .{ .path = libPath(b, "/" ++ package_path) },
-        .target = target,
-        .optimize = mode,
-    });
-    docs_obj.emit_docs = .emit;
-    if (pkg(b).dependencies) |deps| {
-        for (deps) |d| docs_obj.addPackage(d);
+        // Serialization tests.
+        const t_ser = b.addTest(.{
+            .name = "serialization test",
+            .root_source_file = .{ .path = "src/ser.zig" },
+            .target = target,
+            .optimize = optimize,
+        });
+
+        t_ser.addModule("getty", getty_module);
+        t_ser.addModule("concepts", concepts_module);
+
+        test_ser_step.dependOn(&t_ser.step);
+        test_all_step.dependOn(test_ser_step);
+
+        // Deserialization tests.
+        const t_de = b.addTest(.{
+            .name = "deserialization test",
+            .root_source_file = .{ .path = "src/de.zig" },
+            .target = target,
+            .optimize = optimize,
+        });
+
+        t_de.addModule("getty", getty_module);
+        t_de.addModule("concepts", concepts_module);
+
+        test_de_step.dependOn(&t_de.step);
+        test_all_step.dependOn(test_de_step);
     }
 
-    const docs_step = b.step("docs", "Generate project documentation");
-    docs_step.dependOn(clean_step);
-    docs_step.dependOn(&docs_obj.step);
-}
+    // Documentation.
+    {
+        const docs_step = b.step("docs", "Generate project documentation");
 
-fn clean(b: *std.build.Builder) void {
-    const cmd = b.addSystemCommand(&[_][]const u8{
-        "rm",
-        "-rf",
-        "zig-cache",
-        "docs",
-        "json.o",
-        "json.o.o",
-        "gyro.lock",
-        ".gyro",
-    });
+        // Remove cache.
+        const cmd = b.addSystemCommand(&[_][]const u8{
+            "rm",
+            "-rf",
+            "zig-cache",
+        });
 
-    const clean_step = b.step("clean", "Remove project artifacts");
-    clean_step.dependOn(&cmd.step);
-}
+        const clean_step = b.step("clean", "Remove project artifacts");
 
-const unresolved_dir = (struct {
-    inline fn unresolvedDir() []const u8 {
-        return comptime std.fs.path.dirname(@src().file) orelse ".";
-    }
-}).unresolvedDir();
+        clean_step.dependOn(&cmd.step);
+        docs_step.dependOn(clean_step);
 
-fn thisDir(allocator: std.mem.Allocator) []const u8 {
-    if (comptime unresolved_dir[0] == '/') {
-        return unresolved_dir;
-    }
+        // Build and emit documentation.
+        const docs_obj = b.addObject(.{
+            .name = "docs",
+            .root_source_file = .{ .path = package_path },
+            .target = target,
+            .optimize = optimize,
+        });
 
-    const cached_dir = &(struct {
-        var cached_dir: ?[]const u8 = null;
-    }).cached_dir;
+        docs_obj.emit_docs = .emit;
+        docs_obj.addModule("getty", getty_module);
+        docs_obj.addModule("concepts", concepts_module);
 
-    if (cached_dir.* == null) {
-        cached_dir.* = std.fs.cwd().realpathAlloc(allocator, unresolved_dir) catch unreachable;
+        docs_step.dependOn(&docs_obj.step);
     }
 
-    return cached_dir.*.?;
-}
+    // Artifact clean up
+    {
+        const cmd = b.addSystemCommand(&[_][]const u8{
+            "rm",
+            "-rf",
+            "zig-cache",
+            "docs",
+            "json.o",
+            "json.o.o",
+            "gyro.lock",
+            ".gyro",
+        });
 
-inline fn libPath(b: *std.build.Builder, comptime suffix: []const u8) []const u8 {
-    return libPathAllocator(b.allocator, suffix);
-}
+        const clean_step = b.step("clean", "Remove project artifacts");
 
-inline fn libPathAllocator(allocator: std.mem.Allocator, comptime suffix: []const u8) []const u8 {
-    return libPathInternal(allocator, suffix.len, suffix[0..suffix.len].*);
-}
-
-fn libPathInternal(allocator: std.mem.Allocator, comptime len: usize, comptime suffix: [len]u8) []const u8 {
-    if (suffix[0] != '/') @compileError("suffix must be an absolute path");
-
-    if (comptime unresolved_dir[0] == '/') {
-        return unresolved_dir ++ @as([]const u8, &suffix);
+        clean_step.dependOn(&cmd.step);
     }
-
-    const cached_dir = &(struct {
-        var cached_dir: ?[]const u8 = null;
-    }).cached_dir;
-
-    if (cached_dir.* == null) {
-        cached_dir.* = std.fs.path.resolve(allocator, &.{ thisDir(allocator), suffix[1..] }) catch unreachable;
-    }
-
-    return cached_dir.*.?;
 }

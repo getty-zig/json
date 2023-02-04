@@ -451,8 +451,8 @@ fn t(format: Format, value: anytype, expected: []const u8) !void {
     var w = ValidationWriter.init(expected);
 
     try switch (format) {
-        .compact => toWriter(value, w.writer()),
-        .pretty => toPrettyWriter(value, w.writer()),
+        .compact => toWriter(null, value, w.writer()),
+        .pretty => toPrettyWriter(null, value, w.writer()),
     };
 
     if (w.remaining.len > 0) {
