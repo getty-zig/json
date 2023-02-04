@@ -396,6 +396,7 @@ fn MapKeyDeserializer(comptime De: type) type {
             De.user_dt,
             De.deserializer_dt,
             .{
+                .deserializeIgnored = deserializeIgnored,
                 .deserializeInt = deserializeInt,
                 .deserializeString = deserializeString,
             },
@@ -403,13 +404,18 @@ fn MapKeyDeserializer(comptime De: type) type {
 
         const Error = De.Error;
 
-        fn deserializeString(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
-            return try visitor.visitString(allocator, De, self.key);
+        fn deserializeIgnored(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+            _ = self;
+            return try visitor.visitVoid(allocator, De);
         }
 
         fn deserializeInt(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             const int = try std.fmt.parseInt(@TypeOf(visitor).Value, self.key, 10);
             return try visitor.visitInt(allocator, De, int);
+        }
+
+        fn deserializeString(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+            return try visitor.visitString(allocator, De, self.key);
         }
     };
 }
