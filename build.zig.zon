@@ -1,10 +1,10 @@
 .{
     .name = "json",
-    .version = "0.3.1",
+    .version = "0.4.0",
     .dependencies = .{
         .getty = .{
-            .url = "https://github.com/getty-zig/getty/archive/c8c3fc016732d60ab00c38b8afc80f41ccb6b6f7.tar.gz",
-            .hash = "12201bd3d0f853b3b5ef1c277d3501234f7418d7b08ab08216f9a5bcd8191f0bbb26",
+            .url = "https://github.com/getty-zig/getty/archive/3992aaab8e723f5be865ef9b3dcd3c3dbfa549c3.tar.gz",
+            .hash = "1220217cb1ac2a076241d762c8d2b7507712fb2712b05c39c16b6306a798de9695fb",
         },
         .concepts = .{
             .url = "https://github.com/ibokuri/concepts/archive/0e3f47a3f6c740ce0361bad66a62ee9cf77fe447.tar.gz",
