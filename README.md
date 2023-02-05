@@ -82,66 +82,6 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     }
     ```
 
-### Gyro
-
-1. Add Getty JSON to your project:
-
-    ```
-    gyro add -s github getty-zig/json
-    gyro fetch
-    ```
-
-2. Make the following changes in `build.zig`:
-
-    ```diff
-    const std = @import("std");
-    +const pkgs = @import("deps.zig").pkgs;
-
-    pub fn build(b: *std.build.Builder) void {
-        // ...
-
-        const exe = b.addExecutable("my-project", "src/main.zig");
-        exe.setTarget(target);
-        exe.setBuildMode(mode);
-    +   pkgs.addAllTo(exe);
-        exe.install();
-    }
-    ```
-
-### Zigmod
-
-1. Make the following change in `zigmod.yml`:
-
-    ```diff
-    # ...
-
-    root_dependencies:
-    +  - src: git https://github.com/getty-zig/json
-    ```
-
-2. Add Getty JSON to your project:
-
-    ```
-    zigmod fetch
-    ```
-
-3. Make the following changes in `build.zig`:
-
-    ```diff
-    const std = @import("std");
-    +const deps = @import("deps.zig");
-
-    pub fn build(b: *std.build.Builder) void {
-        // ...
-
-        const exe = b.addExecutable("my-project", "src/main.zig");
-        exe.setTarget(target);
-        exe.setBuildMode(mode);
-    +   deps.addAllTo(exe);
-        exe.install();
-    }
-    ```
-
 ## API Reference
 
 ### Serialization
