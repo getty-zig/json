@@ -18,7 +18,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 
 ### Manual
 
-1. Declare Getty JSON as a dependency in `build.zig.zon`. Be sure to replace `<COMMIT>` with a commit SHA.
+1. Declare Getty JSON as a dependency in `build.zig.zon`:
 
     ```diff
     .{
@@ -32,7 +32,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     }
     ```
 
-2. Expose Getty JSON as a module by adding the following lines to `build.zig`:
+2. Expose Getty JSON as a module in `build.zig`:
 
     ```diff
     const std = @import("std");
@@ -41,8 +41,8 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
         const target = b.standardTargetOptions(.{});
         const optimize = b.standardOptimizeOption(.{});
 
-    +   const dep_opts = .{ .target = target, .optimize = optimize };
-    +   const json_module = b.dependency("json", dep_opts).module("json");
+    +   const opts = .{ .target = target, .optimize = optimize };
+    +   const json_module = b.dependency("json", opts).module("json");
 
         const exe = b.addExecutable(.{
             .name = "test",
@@ -57,7 +57,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     }
     ```
 
-3. Obtain a package hash for Getty JSON (denoted below as `<HASH>`):
+3. Obtain Getty JSON's package hash:
 
     ```
     $ zig build
@@ -67,7 +67,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     note: expected .hash = "<HASH>",
     ```
 
-4. Update `build.zig.zon` with the package hash:
+4. Update `build.zig.zon` with hash value:
 
     ```diff
     .{
@@ -256,7 +256,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 - **Synopsis**
 
     ```zig
-    fn toWriter(value: anytype, writer: anytype) !void
+    fn toWriter(allocator: ?std.mem.Allocator, value: anytype, writer: anytype) !void
     ```
 
 - **Example**
@@ -273,7 +273,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
         const stdout = std.io.getStdOut().writer();
 
         // {"x":1,"y":2}
-        try json.toWriter(point, stdout);
+        try json.toWriter(null, point, stdout);
     }
     ```
 </details>
@@ -284,7 +284,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 - **Synopsis**
 
     ```zig
-    fn toPrettyWriter(value: anytype, writer: anytype) !void
+    fn toPrettyWriter(allocator: ?std.mem.Allocator, value: anytype, writer: anytype) !void
     ```
 
 - **Example**
@@ -304,7 +304,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
         //   "x": 1,
         //   "y": 2
         // }
-        try json.toPrettyWriter(point, stdout);
+        try json.toPrettyWriter(null, point, stdout);
     }
     ```
 </details>
@@ -315,7 +315,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 - **Synopsis**
 
     ```zig
-    fn toWriterWith(value: anytype, writer: anytype, ser: anytype) !void
+    fn toWriterWith(allocator: ?std.mem.Allocator, value: anytype, writer: anytype, ser: anytype) !void
     ```
 
 - **Example**
@@ -348,7 +348,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
         const stdout = std.io.getStdOut().writer();
 
         // [1,2]
-        try json.toWriterWith(point, stdout, block);
+        try json.toWriterWith(null, point, stdout, block);
     }
     ```
 </details>
@@ -359,7 +359,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 - **Synopsis**
 
     ```zig
-    fn toPrettyWriterWith(value: anytype, writer: anytype, ser: anytype) !void
+    fn toPrettyWriterWith(allocator: ?std.mem.Allocator, value: anytype, writer: anytype, ser: anytype) !void
     ```
 
 - **Example**
@@ -395,7 +395,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
         //   1,
         //   2
         // ]
-        try json.toPrettyWriterWith(point, stdout, block);
+        try json.toPrettyWriterWith(null, point, stdout, block);
     }
     ```
 </details>
