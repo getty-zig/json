@@ -13,7 +13,7 @@ pub fn build(b: *std.build.Builder) void {
     const getty_module = b.dependency("getty", dep_opts).module("getty");
     const concepts_module = b.dependency("concepts", dep_opts).module("concepts");
 
-    // Module
+    // Export Getty JSON as a module.
     b.addModule(.{
         .name = package_name,
         .source_file = .{ .path = package_path },
@@ -89,7 +89,7 @@ pub fn build(b: *std.build.Builder) void {
         docs_step.dependOn(&docs_obj.step);
     }
 
-    // Artifact clean up
+    // Clean up.
     {
         const cmd = b.addSystemCommand(&[_][]const u8{
             "rm",
