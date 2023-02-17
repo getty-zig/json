@@ -337,7 +337,7 @@ test "toWriter - StringHashMap" {
 
 test "toWriter - Struct" {
     try t(.compact, struct {}{}, "{}");
-    try t(.compact, struct { x: void }{ .x = {} }, "{}");
+    try t(.compact, struct { x: void }{ .x = {} }, "{\"x\":null}");
     try t(
         .compact,
         struct { x: i32, y: i32, z: struct { x: bool, y: [3]i8 } }{
