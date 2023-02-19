@@ -385,7 +385,7 @@ test "slice (non-string)" {
         defer de.free(testing.allocator, got);
 
         try expectEqual([][3]u32, @TypeOf(got));
-        inline for (wants) |want, i| try expect(eql(u32, &want, &got[i]));
+        inline for (wants, got) |w, g| try expect(eql(u32, &w, &g));
     }
 
     // slice child
@@ -402,7 +402,7 @@ test "slice (non-string)" {
         defer de.free(testing.allocator, got);
 
         try expectEqual([][]i8, @TypeOf(got));
-        inline for (wants) |want, i| try expect(eql(i8, &want, got[i]));
+        inline for (wants, got) |w, g| try expect(eql(i8, &w, g));
     }
 
     // string child
@@ -418,9 +418,7 @@ test "slice (non-string)" {
         defer de.free(testing.allocator, got);
 
         try expectEqual([][]const u8, @TypeOf(got));
-        inline for (wants) |want, i| {
-            try expect(eql(u8, want, got[i]));
-        }
+        inline for (wants, got) |w, g| try expect(eql(u8, w, g));
     }
 }
 
