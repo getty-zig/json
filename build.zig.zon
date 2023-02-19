@@ -3,8 +3,8 @@
     .version = "0.4.0",
     .dependencies = .{
         .getty = .{
-            .url = "https://github.com/getty-zig/getty/archive/b168060e1b2183ac5729622d5b7974e3a06782d7.tar.gz",
-            .hash = "122004423d98a3a4b39056bdf7f8233322cfe3b998f8d3f5b4045ff2395e834bd0f7",
+            .url = "https://github.com/getty-zig/getty/archive/3f47f4af0426f154945075deb41dba5c967617b8.tar.gz",
+            .hash = "12202fd9178c08ffe4f741af170c8817da1833d58769f4f62f601b52638abe5f8b5f",
         },
         .concepts = .{
             .url = "https://github.com/ibokuri/concepts/archive/0e3f47a3f6c740ce0361bad66a62ee9cf77fe447.tar.gz",
