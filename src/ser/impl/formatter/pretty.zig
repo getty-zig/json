@@ -28,9 +28,7 @@ pub fn PrettyFormatter(comptime Writer: type) type {
         }
 
         fn doIndent(self: *Self, writer: anytype) Writer.Error!void {
-            var i: usize = 0;
-
-            while (i < self.current) : (i += 1) {
+            for (0..self.current) |_| {
                 try writer.writeAll(self.indent);
             }
         }
