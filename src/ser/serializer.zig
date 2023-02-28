@@ -69,8 +69,8 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             self.formatter.writeBool(self.writer, value) catch return Error.Io;
         }
 
-        fn serializeEnum(self: *Self, value: anytype) Error!Ok {
-            serializeString(self, @tagName(value)) catch return Error.Io;
+        fn serializeEnum(self: *Self, _: anytype, name: []const u8) Error!Ok {
+            serializeString(self, name) catch return Error.Io;
         }
 
         fn serializeFloat(self: *Self, value: anytype) Error!Ok {
@@ -133,9 +133,7 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
             self.formatter.endString(self.writer) catch return Error.Io;
         }
 
-        fn serializeStruct(self: *Self, comptime name: []const u8, length: usize) Error!Serialize {
-            _ = name;
-
+        fn serializeStruct(self: *Self, comptime _: []const u8, length: usize) Error!Serialize {
             self.formatter.beginObject(self.writer) catch return Error.Io;
 
             if (length == 0) {
