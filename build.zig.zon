@@ -3,12 +3,12 @@
     .version = "0.4.0",
     .dependencies = .{
         .getty = .{
-            .url = "https://github.com/getty-zig/getty/archive/21134aac61e54823a150b0cecb7416ef9d3f4ac4.tar.gz",
-            .hash = "122054359cb91a29ab5b91ee8c3b347a110cdc3aa93fc4a60f28e0236d6d729bb343",
+            .url = "https://github.com/getty-zig/getty/archive/78e4ee535bd8dd8672b3bb80d9a269bb97cc478c.tar.gz",
+            .hash = "1220a47f3c3215c57fd0f5d2843e2f7ea67a6e91d332ec8b5329ed48ca10ad02c0a2",
         },
         .concepts = .{
-            .url = "https://github.com/ibokuri/concepts/archive/0e3f47a3f6c740ce0361bad66a62ee9cf77fe447.tar.gz",
-            .hash = "12209a285775bafb43745b0528e960dac2624debac5a8a3791c898cc69998f7cd97a",
+            .url = "https://github.com/ibokuri/concepts/archive/fc952a054389d3aeade915b5760c96c762651124.tar.gz",
+            .hash = "12204cbd628c6436be2c90d1e4b782a00be121133de83b0cdd800a2777dc1e1aee84",
         },
     },
 }

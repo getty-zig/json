@@ -14,8 +14,7 @@ pub fn build(b: *std.build.Builder) void {
     const concepts_module = b.dependency("concepts", dep_opts).module("concepts");
 
     // Export Getty JSON as a module.
-    b.addModule(.{
-        .name = package_name,
+    _ = b.addModule(package_name, .{
         .source_file = .{ .path = package_path },
         .dependencies = &.{
             .{ .name = "getty", .module = getty_module },
