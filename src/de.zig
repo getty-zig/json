@@ -15,19 +15,22 @@ pub const Deserializer = @import("de/deserializer.zig").Deserializer;
 /// Deserialization-specific types and functions.
 pub const de = struct {
     /// Frees resources allocated by Getty during deserialization.
-    ///
-    /// `free` assumes that all pointers passed to it are heap-allocated and
-    /// will therefore attempt to free them. So be sure not to pass in any
-    /// pointers pointing to values on the stack.
-    pub fn free(allocator: std.mem.Allocator, value: anytype) void {
-        return getty.de.free(allocator, value);
+    pub fn free(
+        /// A memory allocator.
+        allocator: std.mem.Allocator,
+        /// A value to deallocate.
+        value: anytype,
+        /// A deserialization block.
+        comptime user_dbt: anytype,
+    ) void {
+        return getty.de.free(allocator, Deserializer(user_dbt).@"getty.Deserializer", value);
     }
 };
 
 /// Deserializes into a value of type `T` from the deserializer `d`.
 pub fn fromDeserializer(comptime T: type, d: anytype) !T {
     const value = try getty.deserialize(d.allocator, T, d.deserializer());
-    errdefer if (d.allocator) |alloc| de.free(alloc, value);
+    errdefer if (d.allocator) |alloc| de.free(alloc, value, null);
     try d.end();
 
     return value;
@@ -68,7 +71,7 @@ test "array list" {
     // array list child
     {
         const got = try fromSlice(testing.allocator, std.ArrayList(std.ArrayList(u8)), "[[1, 2],[3,4]]");
-        defer de.free(testing.allocator, got);
+        defer de.free(testing.allocator, got, null);
 
         try expectEqual(std.ArrayList(std.ArrayList(u8)), @TypeOf(got));
         try expectEqual(std.ArrayList(u8), @TypeOf(got.items[0]));
@@ -88,7 +91,7 @@ test "std.AutoHashMap" {
             \\  "3": "baz"
             \\}
         );
-        defer de.free(testing.allocator, got);
+        defer de.free(testing.allocator, got, null);
 
         try expectEqual(std.AutoHashMap(i32, []u8), @TypeOf(got));
         try expectEqual(@as(u32, 3), got.count());
@@ -106,7 +109,7 @@ test "std.AutoHashMap" {
             \\  "3": { "6": "baz" }
             \\}
         );
-        defer de.free(testing.allocator, got);
+        defer de.free(testing.allocator, got, null);
 
         var a = std.AutoHashMap(i32, []const u8).init(testing.allocator);
         var b = std.AutoHashMap(i32, []const u8).init(testing.allocator);
@@ -142,7 +145,7 @@ test "std.StringHashMap" {
             \\  "c": 3
             \\}
         );
-        defer de.free(testing.allocator, got);
+        defer de.free(testing.allocator, got, null);
 
         try expectEqual(std.StringHashMap(u8), @TypeOf(got));
         try expectEqual(@as(u32, 3), got.count());
@@ -160,7 +163,7 @@ test "std.StringHashMap" {
             \\  "c": "baz"
             \\}
         );
-        defer de.free(testing.allocator, got);
+        defer de.free(testing.allocator, got, null);
 
         try expectEqual(std.StringHashMap([]u8), @TypeOf(got));
         try expectEqual(@as(u32, 3), got.count());
@@ -178,7 +181,7 @@ test "std.StringHashMap" {
             \\  "c": { "f": "baz" }
             \\}
         );
-        defer de.free(testing.allocator, got);
+        defer de.free(testing.allocator, got, null);
 
         var a = std.StringHashMap([]const u8).init(testing.allocator);
         var b = std.StringHashMap([]const u8).init(testing.allocator);
@@ -250,7 +253,7 @@ test "pointer" {
     // one level of indirection
     {
         const value = try fromSlice(testing.allocator, *bool, "true");
-        defer de.free(testing.allocator, value);
+        defer de.free(testing.allocator, value, null);
 
         try expectEqual(true, value.*);
     }
@@ -258,7 +261,7 @@ test "pointer" {
     // two levels of indirection
     {
         const value = try fromSlice(testing.allocator, **[]const u8, "\"Hello, World!\"");
-        defer de.free(testing.allocator, value);
+        defer de.free(testing.allocator, value, null);
 
         try expectEqualSlices(u8, "Hello, World!", value.*.*);
     }
@@ -270,7 +273,7 @@ test "pointer" {
         // Tag value
         {
             const value = try fromSlice(testing.allocator, *T, "0");
-            defer de.free(testing.allocator, value);
+            defer de.free(testing.allocator, value, null);
 
             try expectEqual(T.foo, value.*);
         }
@@ -278,7 +281,7 @@ test "pointer" {
         // Tag name
         {
             const value = try fromSlice(testing.allocator, *T, "\"bar\"");
-            defer de.free(testing.allocator, value);
+            defer de.free(testing.allocator, value, null);
 
             try expectEqual(T.bar, value.*);
         }
@@ -289,7 +292,7 @@ test "pointer" {
         // some
         {
             const value = try fromSlice(testing.allocator, *?bool, "true");
-            defer de.free(testing.allocator, value);
+            defer de.free(testing.allocator, value, null);
 
             try expectEqual(true, value.*.?);
         }
@@ -297,7 +300,7 @@ test "pointer" {
         // none
         {
             const value = try fromSlice(testing.allocator, *?bool, "null");
-            defer de.free(testing.allocator, value);
+            defer de.free(testing.allocator, value, null);
 
             try expectEqual(false, value.* orelse false);
         }
@@ -306,7 +309,7 @@ test "pointer" {
     // sequence
     {
         const value = try fromSlice(testing.allocator, *[3]i8, "[1,2,3]");
-        defer de.free(testing.allocator, value);
+        defer de.free(testing.allocator, value, null);
 
         try expectEqual([_]i8{ 1, 2, 3 }, value.*);
     }
@@ -317,7 +320,7 @@ test "pointer" {
         const value = try fromSlice(testing.allocator, *T,
             \\{"x":1,"y":"hello","z":"world"}
         );
-        defer de.free(testing.allocator, value);
+        defer de.free(testing.allocator, value, null);
 
         try expectEqual(@as(i32, 1), value.*.x);
         try expectEqualSlices(u8, "hello", value.*.y);
@@ -327,7 +330,7 @@ test "pointer" {
     // void
     {
         const value = try fromSlice(testing.allocator, *void, "null");
-        defer de.free(testing.allocator, value);
+        defer de.free(testing.allocator, value, null);
 
         try expectEqual({}, value.*);
     }
@@ -339,21 +342,21 @@ test "slice (string)" {
         // Not escaped
         {
             const got = try fromSlice(testing.allocator, []u8, "\"Hello, World!\"");
-            defer de.free(testing.allocator, got);
+            defer de.free(testing.allocator, got, null);
             try expect(eql(u8, "Hello, World!", got));
         }
 
         // Escaped
         {
             const got = try fromSlice(testing.allocator, []u8, "\"Hello\\nWorld!\"");
-            defer de.free(testing.allocator, got);
+            defer de.free(testing.allocator, got, null);
             try expect(eql(u8, "Hello\nWorld!", got));
         }
 
         // Sentinel-terminated
         {
             const got = try fromSlice(testing.allocator, [:0]u8, "\"Hello\\nWorld!\"");
-            defer de.free(testing.allocator, got);
+            defer de.free(testing.allocator, got, null);
             try expect(eql(u8, "Hello\nWorld!", got));
         }
     }
@@ -366,7 +369,7 @@ test "slice (non-string)" {
     // scalar child
     {
         const got = try fromSlice(testing.allocator, []i32, "[1,2,3,4,5]");
-        defer de.free(testing.allocator, got);
+        defer de.free(testing.allocator, got, null);
 
         try expectEqual([]i32, @TypeOf(got));
         try expect(eql(i32, &[_]i32{ 1, 2, 3, 4, 5 }, got));
@@ -382,7 +385,7 @@ test "slice (non-string)" {
         const got = try fromSlice(testing.allocator, [][3]u32,
             \\[[1,2,3],[4,5,6],[7,8,9]]
         );
-        defer de.free(testing.allocator, got);
+        defer de.free(testing.allocator, got, null);
 
         try expectEqual([][3]u32, @TypeOf(got));
         inline for (wants, got) |w, g| try expect(eql(u32, &w, &g));
@@ -399,7 +402,7 @@ test "slice (non-string)" {
         const got = try fromSlice(testing.allocator, [][]i8,
             \\[[1,2,3],[4,5],[6],[7,8,9,10]]
         );
-        defer de.free(testing.allocator, got);
+        defer de.free(testing.allocator, got, null);
 
         try expectEqual([][]i8, @TypeOf(got));
         inline for (wants, got) |w, g| try expect(eql(i8, &w, g));
@@ -415,7 +418,7 @@ test "slice (non-string)" {
         const got = try fromSlice(testing.allocator, [][]const u8,
             \\["Foo","Bar","Foobar"]
         );
-        defer de.free(testing.allocator, got);
+        defer de.free(testing.allocator, got, null);
 
         try expectEqual([][]const u8, @TypeOf(got));
         inline for (wants, got) |w, g| try expect(eql(u8, w, g));
@@ -426,7 +429,7 @@ test "struct" {
     const got = try fromSlice(testing.allocator, struct { x: i32, y: []const u8 },
         \\{"x":1,"y":"Hello"}
     );
-    defer de.free(testing.allocator, got);
+    defer de.free(testing.allocator, got, null);
 
     try expectEqual(@as(i32, 1), got.x);
     try expect(eql(u8, "Hello", got.y));

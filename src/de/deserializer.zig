@@ -616,7 +616,7 @@ fn Union(comptime D: type) type {
             if (@TypeOf(seed).Value != void) {
                 // Deserialize payload.
                 const payload = try seed.deserialize(allocator, self.d.deserializer());
-                errdefer getty.de.free(allocator.?, payload);
+                errdefer getty.de.free(allocator.?, De, payload);
 
                 // Eat trailing '}'.
                 if (try self.d.tokens.next()) |t| {
