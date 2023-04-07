@@ -3,7 +3,11 @@ const std = @import("std");
 
 const writeEscaped = @import("impl/formatter/details/escape.zig").writeEscaped;
 
-pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user_sbt: anytype) type {
+pub fn Serializer(
+    comptime Writer: type,
+    comptime Formatter: type,
+    comptime user_sbt: anytype,
+) type {
     return struct {
         allocator: ?std.mem.Allocator = null,
 
@@ -12,7 +16,11 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
 
         const Self = @This();
 
-        pub fn init(allocator: ?std.mem.Allocator, writer: Writer, formatter: Formatter) Self {
+        pub fn init(
+            allocator: ?std.mem.Allocator,
+            writer: Writer,
+            formatter: Formatter,
+        ) Self {
             return .{
                 .allocator = allocator,
                 .writer = writer,
@@ -275,7 +283,11 @@ pub fn Serializer(comptime Writer: type, comptime Formatter: type, comptime user
                 },
             );
 
-            fn serializeField(s: *Serialize, comptime key: []const u8, value: anytype) Error!void {
+            fn serializeField(
+                s: *Serialize,
+                comptime key: []const u8,
+                value: anytype,
+            ) Error!void {
                 // Number of fields in struct is unknown, so just try to
                 // serialize a field and return an error if there are none.
                 if (s.max == null) {

@@ -14,10 +14,10 @@ pub const ser = struct {
     pub usingnamespace @import("ser/interface/formatter.zig");
 
     /// A compact formatter implementation.
-    pub const CompactFormatter = @import("ser/impl/formatter/compact.zig").CompactFormatter;
+    pub const CompactFormatter = @import("ser/impl/formatter/compact.zig").Formatter;
 
     /// A pretty formatter implementation.
-    pub const PrettyFormatter = @import("ser/impl/formatter/pretty.zig").PrettyFormatter;
+    pub const PrettyFormatter = @import("ser/impl/formatter/pretty.zig").Formatter;
 };
 
 /// Serializes a value as JSON into an I/O stream using a serialization block

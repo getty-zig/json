@@ -1,9 +1,9 @@
 const escape = @import("details/escape.zig");
 const std = @import("std");
 
-const Formatter = @import("../../../json.zig").ser.Formatter;
+const FormatterInterface = @import("../../../json.zig").ser.Formatter;
 
-pub fn PrettyFormatter(comptime Writer: type) type {
+pub fn Formatter(comptime Writer: type) type {
     return struct {
         current: usize,
         has_value: bool,
@@ -33,7 +33,7 @@ pub fn PrettyFormatter(comptime Writer: type) type {
             }
         }
 
-        pub usingnamespace Formatter(
+        pub usingnamespace FormatterInterface(
             *Self,
             Writer,
             .{
