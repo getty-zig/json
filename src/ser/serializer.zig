@@ -1,7 +1,37 @@
 const getty = @import("getty");
 const std = @import("std");
 
+const CompactFormatter = @import("impl/formatter/compact.zig").Formatter;
+const PrettyFormatter = @import("impl/formatter/pretty.zig").Formatter;
 const writeEscaped = @import("impl/formatter/details/escape.zig").writeEscaped;
+
+pub fn serializer(
+    allocator: ?std.mem.Allocator,
+    writer: anytype,
+    user_sbt: anytype,
+) blk: {
+    var f = CompactFormatter(@TypeOf(writer)){};
+    const formatter = f.formatter();
+
+    break :blk Serializer(
+        @TypeOf(writer),
+        @TypeOf(formatter),
+        user_sbt,
+    );
+} {
+    var f = CompactFormatter(@TypeOf(writer)){};
+    const formatter = f.formatter();
+
+    return Serializer(
+        @TypeOf(writer),
+        @TypeOf(formatter),
+        user_sbt,
+    ).init(
+        allocator,
+        writer,
+        formatter,
+    );
+}
 
 pub fn Serializer(
     comptime Writer: type,
@@ -318,9 +348,9 @@ pub fn Serializer(
                 s.state = .rest;
             }
 
-            fn _serializeKey(s: *Serialize, key: anytype, serializer: anytype) Error!void {
+            fn _serializeKey(s: *Serialize, key: anytype, ser: anytype) Error!void {
                 s.ser.formatter.beginObjectKey(s.ser.writer, s.state == .first) catch return error.Io;
-                try getty.serialize(s.ser.allocator, key, serializer);
+                try getty.serialize(s.ser.allocator, key, ser);
                 s.ser.formatter.endObjectKey(s.ser.writer) catch return error.Io;
 
                 s.state = .rest;

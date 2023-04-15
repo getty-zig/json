@@ -1,6 +1,9 @@
 const getty = @import("getty");
 const std = @import("std");
 
+/// A compact JSON serializer instance.
+pub const serializer = @import("ser/serializer.zig").serializer;
+
 /// A JSON serializer.
 pub const Serializer = @import("ser/serializer.zig").Serializer;
 
@@ -34,13 +37,10 @@ pub fn toWriterWith(
 ) !void {
     comptime concepts.@"std.io.Writer"(@TypeOf(writer));
 
-    var f = ser.CompactFormatter(@TypeOf(writer)){};
-    const formatter = f.formatter();
+    var cs = serializer(allocator, writer, user_sbt);
+    const s = cs.serializer();
 
-    var s = Serializer(@TypeOf(writer), @TypeOf(formatter), user_sbt).init(allocator, writer, formatter);
-    var serializer = s.serializer();
-
-    try getty.serialize(allocator, value, serializer);
+    try getty.serialize(allocator, value, s);
 }
 
 /// Serializes a value as pretty-printed JSON into an I/O stream using a
@@ -60,10 +60,18 @@ pub fn toPrettyWriterWith(
     var f = ser.PrettyFormatter(@TypeOf(writer)).init();
     const formatter = f.formatter();
 
-    var s = Serializer(@TypeOf(writer), @TypeOf(formatter), user_sbt).init(allocator, writer, formatter);
-    var serializer = s.serializer();
+    var ps = Serializer(
+        @TypeOf(writer),
+        @TypeOf(formatter),
+        user_sbt,
+    ).init(
+        allocator,
+        writer,
+        formatter,
+    );
+    var s = ps.serializer();
 
-    try getty.serialize(allocator, value, serializer);
+    try getty.serialize(allocator, value, s);
 }
 
 /// Serializes a value as JSON into an I/O stream.
