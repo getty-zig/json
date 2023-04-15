@@ -39,7 +39,7 @@ pub fn build(b: *std.build.Builder) void {
         t_ser.addModule("getty", getty_module);
         t_ser.addModule("concepts", concepts_module);
 
-        test_ser_step.dependOn(&t_ser.step);
+        test_ser_step.dependOn(&b.addRunArtifact(t_ser).step);
         test_all_step.dependOn(test_ser_step);
 
         // Deserialization tests.
@@ -53,7 +53,7 @@ pub fn build(b: *std.build.Builder) void {
         t_de.addModule("getty", getty_module);
         t_de.addModule("concepts", concepts_module);
 
-        test_de_step.dependOn(&t_de.step);
+        test_de_step.dependOn(&b.addRunArtifact(t_de).step);
         test_all_step.dependOn(test_de_step);
     }
 
