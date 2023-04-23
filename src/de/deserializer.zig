@@ -231,29 +231,29 @@ pub fn Deserializer(comptime user_dbt: anytype) type {
         }
 
         fn deserializeInt(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
-            const Visitor = @TypeOf(visitor);
-            const visitor_info = @typeInfo(Visitor);
+            const Value = @TypeOf(visitor).Value;
+            const value_info = @typeInfo(Value);
 
             if (try self.tokens.next()) |token| {
                 if (token == .Number and token.Number.is_integer) {
                     const slice = token.Number.slice(self.tokens.slice, self.tokens.i - 1);
 
-                    // We know what type the visitor will produce, so we can
-                    // pass it along to std.fmt.ParseInt.
-                    if (visitor_info == .Int) {
-                        const sign = visitor_info.Int.signedness;
+                    // If we know that the visitor will produce an integer, we
+                    // can pass that information along to std.fmt.ParseInt.
+                    if (value_info == .Int) {
+                        const sign = value_info.Int.signedness;
 
-                        // Return an error if the parsed number is negative,
-                        // but the visitor's value type is unsigned.
+                        // Return an early error if the visitor's value type is
+                        // unsigned but the parsed number is negative.
                         if (sign == .unsigned and slice[0] == '-') {
                             return error.InvalidType;
                         }
 
-                        return try visitor.visitInt(allocator, De, try std.fmt.parseInt(Visitor, slice, 10));
+                        return try visitor.visitInt(allocator, De, try std.fmt.parseInt(Value, slice, 10));
                     }
 
-                    // We don't know what type the visitor will produce, so we
-                    // default to deserializing a 128-bit integer.
+                    // If the visitor is not producing an integer, default to
+                    // deserializing a 128-bit integer.
                     switch (slice[0]) {
                         '0'...'9' => return try visitor.visitInt(allocator, De, try std.fmt.parseInt(u128, slice, 10)),
                         else => return try visitor.visitInt(allocator, De, try std.fmt.parseInt(i128, slice, 10)),
