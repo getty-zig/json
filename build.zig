@@ -87,22 +87,4 @@ pub fn build(b: *std.build.Builder) void {
 
         docs_step.dependOn(&docs_obj.step);
     }
-
-    // Clean up.
-    {
-        const cmd = b.addSystemCommand(&[_][]const u8{
-            "rm",
-            "-rf",
-            "zig-cache",
-            "docs",
-            "json.o",
-            "json.o.o",
-            "gyro.lock",
-            ".gyro",
-        });
-
-        const clean_step = b.step("clean", "Remove project artifacts");
-
-        clean_step.dependOn(&cmd.step);
-    }
 }
