@@ -75,28 +75,6 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
                     return try visitor.visitBool(allocator, De, token == .true);
                 },
                 inline .number, .allocated_number => |slice| {
-                    const is_integer = std.json.isNumberFormattedLikeAnInteger(slice);
-
-                    // Enum
-                    if (visitor_info == .Enum) {
-                        if (is_integer) {
-                            switch (slice[0]) {
-                                '0'...'9' => return try visitor.visitInt(allocator, De, try parseInt(u128, slice, 10)),
-                                else => return try visitor.visitInt(allocator, De, try parseInt(i128, slice, 10)),
-                            }
-                        }
-                    }
-
-                    // Float
-                    if (!is_integer) {
-                        const Float = switch (Visitor.Value) {
-                            f16, f32, f64 => |T| T,
-                            else => f128,
-                        };
-
-                        return try visitor.visitFloat(allocator, De, try std.fmt.parseFloat(Float, slice));
-                    }
-
                     // Integer
                     if (visitor_info == .Int) {
                         const sign = visitor_info.Int.signedness;
@@ -106,6 +84,24 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
                         }
 
                         return try visitor.visitInt(allocator, De, try parseInt(Visitor, slice, 10));
+                    }
+
+                    // Enum
+                    if (visitor_info == .Enum) {
+                        switch (slice[0]) {
+                            '0'...'9' => return try visitor.visitInt(allocator, De, try parseInt(u128, slice, 10)),
+                            else => return try visitor.visitInt(allocator, De, try parseInt(i128, slice, 10)),
+                        }
+                    }
+
+                    // Float
+                    if (!std.json.isNumberFormattedLikeAnInteger(slice)) {
+                        const Float = switch (Visitor.Value) {
+                            f16, f32, f64 => |T| T,
+                            else => f128,
+                        };
+
+                        return try visitor.visitFloat(allocator, De, try std.fmt.parseFloat(Float, slice));
                     }
 
                     switch (slice[0]) {
@@ -338,9 +334,7 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
         /// Frees a Token if it is an allocated variant.
         fn freeToken(self: Self, tok: std.json.Token) void {
             switch (tok) {
-                inline .allocated_number,
-                .allocated_string,
-                => |slice| self.allocator.free(slice),
+                inline .allocated_number, .allocated_string => |slice| self.allocator.free(slice),
                 else => {},
             }
         }
@@ -420,6 +414,7 @@ fn MapAccess(comptime D: type) type {
         fn nextKeySeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
             const token = try self.d.tokens.nextAlloc(allocator orelse return error.MissingAllocator, .alloc_if_needed);
             defer self.d.freeToken(token);
+
             switch (token) {
                 .object_end => return null,
                 inline .string, .allocated_string => |string| {
@@ -489,9 +484,7 @@ fn StructAccess(comptime D: type) type {
                 concepts.traits.isSame(@TypeOf(seed).Value, []const u8),
             });
 
-            // We use the allocator passed here rather than the allocator in the
-            // deserializer since we may need to return allocated strings.
-            const token = try self.d.tokens.nextAlloc(allocator.?, .alloc_if_needed);
+            const token = try self.d.tokens.nextAlloc(allocator orelse return error.MissingAllocator, .alloc_if_needed);
             defer switch (token) {
                 // On the incredibly tiny chance that we got a number here which is
                 // on a buffer boundary, still free that =D
@@ -569,17 +562,15 @@ fn Union(comptime D: type) type {
         }
 
         fn payloadSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
-            if (comptime @TypeOf(seed).Value != void) {
+            if (@TypeOf(seed).Value != void) {
                 // Deserialize payload.
                 const payload = try seed.deserialize(allocator, self.d.deserializer());
-                errdefer getty.de.free(allocator.?, De, payload);
+                errdefer if (allocator) |ally| getty.de.free(ally, De, payload);
 
-                switch (try self.d.tokens.next()) {
-                    .object_end => {},
-                    else => return error.SyntaxError,
-                }
-
-                return payload;
+                return switch (try self.d.tokens.next()) {
+                    .object_end => payload,
+                    else => error.SyntaxError,
+                };
             }
         }
     };
@@ -587,8 +578,8 @@ fn Union(comptime D: type) type {
 
 /// Like std.fmt.parseInt, but does some error conversions to better fit getty's API
 fn parseInt(comptime T: type, slice: []const u8, radix: u8) !T {
-    return std.fmt.parseInt(T, slice, radix) catch |e| switch (e) {
+    return std.fmt.parseInt(T, slice, radix) catch |err| switch (err) {
         error.InvalidCharacter => error.InvalidType,
-        error.Overflow => error.Overflow,
+        error.Overflow => err,
     };
 }

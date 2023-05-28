@@ -44,6 +44,16 @@ pub fn fromDeserializer(comptime T: type, d: anytype) !T {
     return value;
 }
 
+pub fn fromReaderWith(allocator: std.mem.Allocator, comptime T: type, reader: anytype, comptime user_dbt: anytype) !T {
+    var d = Deserializer(user_dbt, @TypeOf(reader)).init(allocator, reader);
+    defer d.deinit();
+    return fromDeserializer(T, &d);
+}
+
+pub fn fromReader(allocator: std.mem.Allocator, comptime T: type, reader: anytype) !T {
+    return try fromReaderWith(allocator, T, reader, null);
+}
+
 /// Deserializes into a value of type `T` from a slice of JSON using a deserialization block or tuple.
 pub fn fromSliceWith(allocator: std.mem.Allocator, comptime T: type, slice: []const u8, comptime user_dbt: anytype) !T {
     var fbs = std.io.fixedBufferStream(slice);
@@ -53,16 +63,6 @@ pub fn fromSliceWith(allocator: std.mem.Allocator, comptime T: type, slice: []co
 /// Deserializes into a value of type `T` from a slice of JSON.
 pub fn fromSlice(allocator: std.mem.Allocator, comptime T: type, slice: []const u8) !T {
     return try fromSliceWith(allocator, T, slice, null);
-}
-
-pub fn fromReader(allocator: std.mem.Allocator, comptime T: type, reader: anytype) !T {
-    return try fromReaderWith(allocator, T, reader, null);
-}
-
-pub fn fromReaderWith(allocator: std.mem.Allocator, comptime T: type, reader: anytype, comptime user_dbt: anytype) !T {
-    var d = Deserializer(user_dbt, @TypeOf(reader)).init(allocator, reader);
-    defer d.deinit();
-    return fromDeserializer(T, &d);
 }
 
 test "array" {
