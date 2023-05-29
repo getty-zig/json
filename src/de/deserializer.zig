@@ -496,7 +496,6 @@ fn StructAccess(comptime D: type) type {
                 .object_end => return null,
                 inline .string, .allocated_string => |slice| {
                     self.is_key_allocated = token == .allocated_string;
-
                     return slice;
                 },
                 else => return error.InvalidType,
@@ -516,17 +515,17 @@ fn StructAccess(comptime D: type) type {
 fn Union(comptime D: type) type {
     return struct {
         d: *D,
-
-        // TODO: allow returning allocated variants from variantSeed
-        /// A place to temporarily store heap-allocated variants.
-        variant_buf: [512]u8 = undefined,
+        is_variant_allocated: bool = false,
 
         const Self = @This();
 
         pub usingnamespace getty.de.UnionAccess(
             *Self,
             Error,
-            .{ .variantSeed = variantSeed },
+            .{
+                .variantSeed = variantSeed,
+                .isVariantAllocated = isVariantAllocated,
+            },
         );
 
         pub usingnamespace getty.de.VariantAccess(
@@ -547,18 +546,14 @@ fn Union(comptime D: type) type {
             const token = try self.d.tokens.nextAlloc(allocator orelse return error.MissingAllocator, .alloc_if_needed);
             defer self.d.freeToken(token);
 
-            switch (token) {
-                .end_of_document => return error.MissingVariant,
-                .string => |s| return s,
-                .allocated_string => |s| {
-                    if (s.len > self.variant_buf.len)
-                        return error.OutOfMemory;
-                    @memcpy(&self.variant_buf, s);
-                    return self.variant_buf[0..s.len];
+            return switch (token) {
+                inline .string, .allocated_string => |s| blk: {
+                    self.is_variant_allocated = token == .allocated_string;
+                    break :blk s;
                 },
-
-                else => return error.InvalidType,
-            }
+                .end_of_document => error.MissingVariant,
+                else => error.InvalidType,
+            };
         }
 
         fn payloadSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
@@ -572,6 +567,10 @@ fn Union(comptime D: type) type {
                     else => error.SyntaxError,
                 };
             }
+        }
+
+        fn isVariantAllocated(self: *Self, comptime _: type) bool {
+            return self.is_variant_allocated;
         }
     };
 }
