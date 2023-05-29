@@ -408,7 +408,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 - **Synopsis**
 
     ```zig
-    fn fromSlice(allocator: ?std.mem.Allocator, comptime T: type, slice: []const u8) !T
+    fn fromSlice(allocator: std.mem.Allocator, comptime T: type, slice: []const u8) !T
     ```
 
 - **Example**
@@ -416,6 +416,8 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     ```zig
     const std = @import("std");
     const json = @import("json");
+
+    const allocator = std.heap.page_allocator;
 
     const Point = struct { x: i32, y: i32 };
     const string =
@@ -426,7 +428,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     ;
 
     pub fn main() anyerror!void {
-        const point = try json.fromSlice(null, Point, string);
+        const point = try json.fromSlice(allocator, Point, string);
 
         // Point{ .x = 1, .y = 2 }
         std.debug.print("{any}\n", .{point});
@@ -441,7 +443,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 
     ```zig
     fn fromSliceWith(
-        allocator: ?std.mem.Allocator,
+        allocator: std.mem.Allocator,
         comptime T: type,
         slice: []const u8,
         de: anytype,
@@ -454,6 +456,8 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     const std = @import("std");
     const getty = @import("getty");
     const json = @import("json");
+
+    const allocator = std.heap.page_allocator;
 
     const Point = struct { x: i32, y: i32 };
 
@@ -494,7 +498,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     };
 
     pub fn main() anyerror!void {
-        const point = try json.fromSliceWith(null, Point, "[1,2]", block);
+        const point = try json.fromSliceWith(allocator, Point, "[1,2]", block);
 
         // Point{ .x = 1, .y = 2 }
         std.debug.print("{any}\n", .{point});
