@@ -209,7 +209,8 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeIgnored(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
-            try self.skipToken();
+            try self.tokens.skipValue();
+
             return try visitor.visitVoid(allocator, De);
         }
 
