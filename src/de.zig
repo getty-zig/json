@@ -47,7 +47,8 @@ pub fn fromDeserializer(comptime T: type, d: anytype) !T {
 pub fn fromReaderWith(allocator: std.mem.Allocator, comptime T: type, reader: anytype, comptime user_dbt: anytype) !T {
     var d = Deserializer(user_dbt, @TypeOf(reader)).init(allocator, reader);
     defer d.deinit();
-    return fromDeserializer(T, &d);
+
+    return try fromDeserializer(T, &d);
 }
 
 pub fn fromReader(allocator: std.mem.Allocator, comptime T: type, reader: anytype) !T {
