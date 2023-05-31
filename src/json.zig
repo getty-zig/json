@@ -21,13 +21,15 @@ pub const de = @import("de.zig").de;
 /// Deserializes into a value of type `T` from the deserializer `d`.
 pub const fromDeserializer = @import("de.zig").fromDeserializer;
 
+/// Deserializes into a value of type `T` from a reader of JSON data using a
+/// deserialization block or tuple.
+pub const fromReaderWith = @import("de.zig").fromReaderWith;
+
 /// Deserializes into a value of type `T` from a reader of JSON data.
 pub const fromReader = @import("de.zig").fromReader;
 
-/// Deserializes into a value of type `T` from a reader of JSON data using a deserialization block or tuple.
-pub const fromReaderWith = @import("de.zig").fromReaderWith;
-
-/// Deserializes into a value of type `T` from a slice of JSON using a deserialization block or tuple.
+/// Deserializes into a value of type `T` from a slice of JSON using a
+/// deserialization block or tuple.
 pub const fromSliceWith = @import("de.zig").fromSliceWith;
 
 /// Deserializes into a value of type `T` from a slice of JSON.
