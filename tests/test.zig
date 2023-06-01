@@ -5,7 +5,7 @@ const expectEqualDeep = std.testing.expectEqualDeep;
 const expectEqualStrings = std.testing.expectEqualStrings;
 const test_allocator = std.testing.allocator;
 
-test "array" {
+test "parse - array" {
     try testParseEqual([0]void, &.{
         .{ [0]void{}, "[]" },
         .{ [0]void{}, "[ ]" },
@@ -37,7 +37,7 @@ test "array" {
     });
 }
 
-test "bool" {
+test "parse - bool" {
     try testParseEqual(bool, &.{
         .{ true, "true" },
         .{ true, " true " },
@@ -46,7 +46,7 @@ test "bool" {
     });
 }
 
-test "enum" {
+test "parse - enum" {
     const Enum = enum { foo, @"bar\n" };
 
     try testParseEqual(Enum, &.{
@@ -57,7 +57,7 @@ test "enum" {
     });
 }
 
-test "float" {
+test "parse - float" {
     try testParseEqual(f64, &.{
         .{ 0.0, "0.0" },
         .{ 3.0, "3.0" },
@@ -125,7 +125,7 @@ test "float" {
     });
 }
 
-test "int" {
+test "parse - int" {
     try testParseEqual(i64, &.{
         .{ 0, "-0" },
         .{ -1, "-1" },
@@ -144,7 +144,7 @@ test "int" {
     });
 }
 
-test "list (std.ArrayList)" {
+test "parse - list (std.ArrayList)" {
     {
         var want = std.ArrayList(u8).init(test_allocator);
         defer want.deinit();
@@ -176,7 +176,7 @@ test "list (std.ArrayList)" {
     }
 }
 
-test "object (std.AutoHashMap)" {
+test "parse - object (std.AutoHashMap)" {
     {
         var got = try json.fromSlice(test_allocator, std.AutoHashMap(i32, []const u8),
             \\{
@@ -228,7 +228,7 @@ test "object (std.AutoHashMap)" {
     }
 }
 
-test "object (std.StringHashMap)" {
+test "parse - object (std.StringHashMap)" {
     {
         var got = try json.fromSlice(test_allocator, std.StringHashMap(u8),
             \\{
@@ -297,14 +297,14 @@ test "object (std.StringHashMap)" {
     }
 }
 
-test "optional" {
+test "parse - optional" {
     try testParseEqual(?bool, &.{
         .{ null, "null" },
         .{ true, "true" },
     });
 }
 
-test "pointer" {
+test "parse - pointer" {
     try testParseEqual(*const bool, &.{
         .{ &true, "true" },
     });
@@ -314,7 +314,7 @@ test "pointer" {
     });
 }
 
-test "slice" {
+test "parse - slice" {
     // Strings.
     try testParseEqual([]const u8, &.{
         .{ "", "\"\"" },
@@ -384,7 +384,7 @@ test "slice" {
     });
 }
 
-test "struct" {
+test "parse - struct" {
     const Inner = struct {
         a: void,
         b: usize,
@@ -431,7 +431,7 @@ test "struct" {
     });
 }
 
-test "union" {
+test "parse - union" {
     const Tagged = union(enum) { foo: bool, bar: void };
 
     try testParseEqual(Tagged, &.{
@@ -452,7 +452,7 @@ test "union" {
     }
 }
 
-test "void" {
+test "parse - void" {
     try testParseEqual(void, &.{
         .{ {}, "null" },
     });
