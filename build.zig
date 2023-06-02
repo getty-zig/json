@@ -33,15 +33,13 @@ pub fn build(b: *std.build.Builder) void {
         // Serialization tests.
         const t_ser = b.addTest(.{
             .name = "serialization test",
-            .root_source_file = .{ .path = "src/ser.zig" },
+            .root_source_file = .{ .path = "tests/test.zig" },
             .target = target,
             .optimize = optimize,
+            .filter = "encode",
         });
 
         t_ser.addModule("json", json_module);
-        t_ser.addModule("getty", getty_module);
-        t_ser.addModule("concepts", concepts_module);
-
         test_ser_step.dependOn(&b.addRunArtifact(t_ser).step);
         test_all_step.dependOn(test_ser_step);
 
@@ -51,10 +49,10 @@ pub fn build(b: *std.build.Builder) void {
             .root_source_file = .{ .path = "tests/test.zig" },
             .target = target,
             .optimize = optimize,
+            .filter = "parse",
         });
 
         t_de.addModule("json", json_module);
-
         test_de_step.dependOn(&b.addRunArtifact(t_de).step);
         test_all_step.dependOn(test_de_step);
     }

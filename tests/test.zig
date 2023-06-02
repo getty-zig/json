@@ -5,6 +5,560 @@ const expectEqualDeep = std.testing.expectEqualDeep;
 const expectEqualStrings = std.testing.expectEqualStrings;
 const test_allocator = std.testing.allocator;
 
+test "encode - array" {
+    try testEncodeEqual([0]bool, &.{
+        .{ "[]", .{} },
+    });
+    try testEncodeEqual([1]bool, &.{
+        .{ "[true]", .{true} },
+    });
+    try testEncodeEqual([2]bool, &.{
+        .{ "[true,false]", .{ true, false } },
+    });
+    try testEncodeEqual([3][0]i32, &.{
+        .{ "[[],[],[]]", .{ .{}, .{}, .{} } },
+    });
+    try testEncodeEqual([2][3]i32, &.{
+        .{ "[[1,2,3],[4,5,6]]", .{ .{ 1, 2, 3 }, .{ 4, 5, 6 } } },
+    });
+    try testEncodeEqual([2][1][3]i32, &.{
+        .{ "[[[1,2,3]],[[4,5,6]]]", .{ .{.{ 1, 2, 3 }}, .{.{ 4, 5, 6 }} } },
+    });
+
+    try testPrettyEncodeEqual([0]bool, &.{
+        .{ "[]", .{} },
+    });
+    try testPrettyEncodeEqual([1]bool, &.{
+        .{
+            \\[
+            \\  true
+            \\]
+            ,
+            .{true},
+        },
+    });
+    try testPrettyEncodeEqual([3][0]i32, &.{
+        .{
+            \\[
+            \\  [],
+            \\  [],
+            \\  []
+            \\]
+            ,
+            .{ .{}, .{}, .{} },
+        },
+    });
+    try testPrettyEncodeEqual([2][3]i32, &.{
+        .{
+            \\[
+            \\  [
+            \\    1,
+            \\    2,
+            \\    3
+            \\  ],
+            \\  [
+            \\    4,
+            \\    5,
+            \\    6
+            \\  ]
+            \\]
+            ,
+            .{ .{ 1, 2, 3 }, .{ 4, 5, 6 } },
+        },
+    });
+    try testPrettyEncodeEqual([2][1][3]i32, &.{
+        .{
+            \\[
+            \\  [
+            \\    [
+            \\      1,
+            \\      2,
+            \\      3
+            \\    ]
+            \\  ],
+            \\  [
+            \\    [
+            \\      4,
+            \\      5,
+            \\      6
+            \\    ]
+            \\  ]
+            \\]
+            ,
+            .{ .{.{ 1, 2, 3 }}, .{.{ 4, 5, 6 }} },
+        },
+    });
+}
+
+test "encode - bool" {
+    const T = bool;
+    const tests: EncodeTest(T) = &.{
+        .{ "true", true },
+        .{ "false", false },
+    };
+
+    try testEncodeEqual(T, tests);
+    try testPrettyEncodeEqual(T, tests);
+}
+
+test "encode - int" {
+    // Signed.
+    {
+        const T = i64;
+        const tests: EncodeTest(T) = &.{
+            .{ "3", 3 },
+            .{ "-2", -2 },
+            .{ "-1234", -1234 },
+            .{ "-9223372036854775808", std.math.minInt(T) },
+        };
+
+        try testEncodeEqual(T, tests);
+        try testPrettyEncodeEqual(T, tests);
+    }
+
+    // Unsigned.
+    {
+        const T = u64;
+        const tests: EncodeTest(T) = &.{
+            .{ "3", 3 },
+            .{ "18446744073709551615", std.math.maxInt(T) },
+        };
+
+        try testEncodeEqual(T, tests);
+        try testPrettyEncodeEqual(T, tests);
+    }
+}
+
+test "encode - enum" {
+    const T = enum { foo, bar };
+    const tests: EncodeTest(T) = &.{
+        .{ "\"foo\"", T.foo },
+        .{ "\"bar\"", T.bar },
+        .{ "\"foo\"", .foo },
+        .{ "\"bar\"", .bar },
+    };
+
+    try testEncodeEqual(T, tests);
+    try testPrettyEncodeEqual(T, tests);
+}
+
+test "encode - error" {
+    const T = error{ foo, bar };
+    const tests: EncodeTest(T) = &.{
+        .{ "\"foo\"", T.foo },
+        .{ "\"bar\"", T.bar },
+        .{ "\"foo\"", error.foo },
+        .{ "\"bar\"", error.bar },
+    };
+
+    try testEncodeEqual(T, tests);
+    try testPrettyEncodeEqual(T, tests);
+}
+
+test "encode - float" {
+    const T = f64;
+    const tests: EncodeTest(T) = &.{
+        .{ "3.0e+00", 3.0 },
+        .{ "3.1e+00", 3.1 },
+        .{ "-1.5e+00", -1.5 },
+        .{ "2.2250738585072014e-308", std.math.f64_min },
+        .{ "1.7976931348623157e+308", std.math.f64_max },
+        .{ "2.220446049250313e-16", std.math.f64_epsilon },
+        .{ "null", std.math.nan_f64 },
+        .{ "null", std.math.inf_f64 },
+    };
+
+    try testEncodeEqual(T, tests);
+    try testPrettyEncodeEqual(T, tests);
+}
+
+test "encode - list (std.ArrayList)" {
+    {
+        const T = std.ArrayList(u8);
+
+        var want = T.init(test_allocator);
+        defer want.deinit();
+        try want.appendSlice(&.{ 1, 2, 3, 4 });
+
+        try testEncodeEqual(T, &.{
+            .{ "[1,2,3,4]", want },
+        });
+    }
+
+    {
+        const T = std.ArrayList(std.ArrayList(u8));
+
+        var want = T.init(test_allocator);
+        var one = std.ArrayList(u8).init(test_allocator);
+        var two = std.ArrayList(u8).init(test_allocator);
+        defer {
+            one.deinit();
+            two.deinit();
+            want.deinit();
+        }
+        try one.appendSlice(&.{ 1, 2 });
+        try two.appendSlice(&.{ 3, 4 });
+        try want.appendSlice(&.{ one, two });
+
+        try testEncodeEqual(T, &.{
+            .{ "[[1,2],[3,4]]", want },
+        });
+    }
+}
+
+test "encode - object (std.AutoHashMap)" {
+    {
+        const T = std.AutoHashMap(i32, []const u8);
+
+        var value = T.init(test_allocator);
+        defer value.deinit();
+        try value.put(1, "foo");
+        try value.put(2, "bar");
+
+        try testEncodeEqual(T, &.{
+            .{ "{\"1\":\"foo\",\"2\":\"bar\"}", value },
+        });
+        try testPrettyEncodeEqual(T, &.{
+            .{
+                \\{
+                \\  "1": "foo",
+                \\  "2": "bar"
+                \\}
+                ,
+                value,
+            },
+        });
+    }
+
+    {
+        const Child = std.AutoHashMap(i32, []const u8);
+        const T = std.AutoHashMap(i32, Child);
+
+        var value = T.init(test_allocator);
+        var a = Child.init(test_allocator);
+        var b = Child.init(test_allocator);
+        defer {
+            a.deinit();
+            b.deinit();
+            value.deinit();
+        }
+
+        try a.put(3, "foo");
+        try b.put(4, "bar");
+        try value.put(1, a);
+        try value.put(2, b);
+
+        try testEncodeEqual(T, &.{
+            .{
+                "{\"1\":{\"3\":\"foo\"},\"2\":{\"4\":\"bar\"}}",
+                value,
+            },
+        });
+        try testPrettyEncodeEqual(T, &.{
+            .{
+                \\{
+                \\  "1": {
+                \\    "3": "foo"
+                \\  },
+                \\  "2": {
+                \\    "4": "bar"
+                \\  }
+                \\}
+                ,
+                value,
+            },
+        });
+    }
+}
+
+test "encode - object (std.StringHashMap)" {
+    {
+        const T = std.StringHashMap(i32);
+
+        var value = T.init(test_allocator);
+        defer value.deinit();
+        try value.put("foo", 1);
+        try value.put("bar", 2);
+
+        try testEncodeEqual(T, &.{
+            .{ "{\"foo\":1,\"bar\":2}", value },
+        });
+        try testPrettyEncodeEqual(T, &.{
+            .{
+                \\{
+                \\  "foo": 1,
+                \\  "bar": 2
+                \\}
+                ,
+                value,
+            },
+        });
+    }
+
+    {
+        const Child = std.StringHashMap(i32);
+        const T = std.StringHashMap(Child);
+
+        var value = T.init(test_allocator);
+        var a = Child.init(test_allocator);
+        var b = Child.init(test_allocator);
+        defer {
+            a.deinit();
+            b.deinit();
+            value.deinit();
+        }
+
+        try a.put("foo", 1);
+        try b.put("bar", 2);
+        try value.put("foo", a);
+        try value.put("bar", b);
+
+        try testEncodeEqual(T, &.{
+            .{
+                "{\"foo\":{\"foo\":1},\"bar\":{\"bar\":2}}",
+                value,
+            },
+        });
+        try testPrettyEncodeEqual(T, &.{
+            .{
+                \\{
+                \\  "foo": {
+                \\    "foo": 1
+                \\  },
+                \\  "bar": {
+                \\    "bar": 2
+                \\  }
+                \\}
+                ,
+                value,
+            },
+        });
+    }
+}
+
+test "encode - optional" {
+    const T = ?bool;
+    const tests: EncodeTest(T) = &.{
+        .{ "null", null },
+        .{ "true", true },
+    };
+
+    try testEncodeEqual(T, tests);
+    try testPrettyEncodeEqual(T, tests);
+}
+
+test "encode - string" {
+    const Strings = .{
+        []const u8,
+        [:0]const u8,
+    };
+
+    inline for (Strings) |T| {
+        const tests: EncodeTest(T) = &.{
+            // Basic
+            .{ "\"\"", "" },
+            .{ "\"foo\"", "foo" },
+
+            // Control characters
+            .{ "\"\\\"\"", "\"" },
+            .{ "\"\\\\\"", "\\" },
+            .{ "\"\\b\"", "\x08" },
+            .{ "\"\\t\"", "\t" },
+            .{ "\"\\n\"", "\n" },
+            .{ "\"\\f\"", "\x0C" },
+            .{ "\"\\r\"", "\r" },
+            //.{ "\"\\u0000\"", "\u{0}" }, // TODO: This case fails when T is sentinel-terminated.
+            .{ "\"\\u001f\"", "\u{1F}" },
+            .{ "\"\\u007f\"", "\u{7F}" },
+            .{ "\"\\u2028\"", "\u{2028}" },
+            .{ "\"\\u2029\"", "\u{2029}" },
+
+            // Basic Multilingual Plane
+            .{ "\"\u{FF}\"", "\u{FF}" },
+            .{ "\"\u{100}\"", "\u{100}" },
+            .{ "\"\u{800}\"", "\u{800}" },
+            .{ "\"\u{8000}\"", "\u{8000}" },
+            .{ "\"\u{D799}\"", "\u{D799}" },
+
+            // Non-Basic Multilingual Plane
+            .{ "\"\\ud800\\udc00\"", "\u{10000}" },
+            .{ "\"\\udbff\\udfff\"", "\u{10FFFF}" },
+            .{ "\"\\ud83d\\ude01\"", "😁" },
+            .{ "\"\\ud83d\\ude02\"", "😂" },
+
+            .{ "\"hello\\ud83d\\ude01\"", "hello😁" },
+            .{ "\"hello\\ud83d\\ude01world\\ud83d\\ude02\"", "hello😁world😂" },
+        };
+
+        try testEncodeEqual(T, tests);
+        try testPrettyEncodeEqual(T, tests);
+    }
+}
+
+test "encode - struct" {
+    try testEncodeEqual(struct {}, &.{
+        .{ "{}", .{} },
+    });
+    try testEncodeEqual(struct { x: void }, &.{
+        .{ "{\"x\":null}", .{ .x = {} } },
+    });
+
+    const Inner = struct {
+        a: void,
+        b: usize,
+        c: []const []const u8,
+    };
+    const Outer = struct {
+        inner: []const Inner,
+    };
+    try testEncodeEqual(Outer, &.{
+        .{
+            "{\"inner\":[]}",
+            .{ .inner = &.{} },
+        },
+        .{
+            "{\"inner\":[{\"a\":null,\"b\":1,\"c\":[\"abc\",\"xyz\"]}]}",
+            .{
+                .inner = &.{
+                    .{ .a = {}, .b = 1, .c = &.{ "abc", "xyz" } },
+                },
+            },
+        },
+        .{
+            "{\"inner\":[{\"a\":null,\"b\":1,\"c\":[\"abc\",\"xyz\"]},{\"a\":null,\"b\":2,\"c\":[\"abc\",\"def\",\"xyz\"]}]}",
+            .{
+                .inner = &.{
+                    .{ .a = {}, .b = 1, .c = &.{ "abc", "xyz" } },
+                    .{ .a = {}, .b = 2, .c = &.{ "abc", "def", "xyz" } },
+                },
+            },
+        },
+    });
+    try testPrettyEncodeEqual(Outer, &.{
+        .{
+            \\{
+            \\  "inner": []
+            \\}
+            ,
+            .{ .inner = &.{} },
+        },
+        .{
+            \\{
+            \\  "inner": [
+            \\    {
+            \\      "a": null,
+            \\      "b": 1,
+            \\      "c": [
+            \\        "abc",
+            \\        "xyz"
+            \\      ]
+            \\    }
+            \\  ]
+            \\}
+            ,
+            .{
+                .inner = &.{
+                    .{ .a = {}, .b = 1, .c = &.{ "abc", "xyz" } },
+                },
+            },
+        },
+        .{
+            \\{
+            \\  "inner": [
+            \\    {
+            \\      "a": null,
+            \\      "b": 1,
+            \\      "c": [
+            \\        "abc",
+            \\        "xyz"
+            \\      ]
+            \\    },
+            \\    {
+            \\      "a": null,
+            \\      "b": 2,
+            \\      "c": [
+            \\        "abc",
+            \\        "def",
+            \\        "xyz"
+            \\      ]
+            \\    }
+            \\  ]
+            \\}
+            ,
+            .{
+                .inner = &.{
+                    .{ .a = {}, .b = 1, .c = &.{ "abc", "xyz" } },
+                    .{ .a = {}, .b = 2, .c = &.{ "abc", "def", "xyz" } },
+                },
+            },
+        },
+    });
+}
+
+test "encode - tuple" {
+    const T = std.meta.Tuple(&.{ i32, bool, []const u8 });
+
+    try testEncodeEqual(T, &.{
+        .{ "[1,true,\"ring\"]", .{ 1, true, "ring" } },
+    });
+    try testPrettyEncodeEqual(T, &.{
+        .{
+            \\[
+            \\  1,
+            \\  true,
+            \\  "ring"
+            \\]
+            ,
+            .{ 1, true, "ring" },
+        },
+    });
+}
+
+test "encode - union" {
+    const T = union(enum) { Foo: i32, Bar: bool, Baz: void };
+
+    try testEncodeEqual(T, &.{
+        .{ "{\"Foo\":123}", .{ .Foo = 123 } },
+        .{ "{\"Bar\":true}", .{ .Bar = true } },
+        .{ "{\"Baz\":null}", .{ .Baz = {} } },
+    });
+}
+
+test "encode - vector" {
+    const T = @Vector(2, i32);
+
+    try testEncodeEqual(T, &.{
+        .{ "[0,0]", @splat(2, @as(u32, 0)) },
+        .{ "[1,1]", @splat(2, @as(u32, 1)) },
+    });
+    try testPrettyEncodeEqual(T, &.{
+        .{
+            \\[
+            \\  0,
+            \\  0
+            \\]
+            ,
+            @splat(2, @as(u32, 0)),
+        },
+        .{
+            \\[
+            \\  1,
+            \\  1
+            \\]
+            ,
+            @splat(2, @as(u32, 1)),
+        },
+    });
+}
+
+test "encode - void" {
+    const T = void;
+    const tests: EncodeTest(T) = &.{.{ "null", {} }};
+
+    try testEncodeEqual(T, tests);
+    try testPrettyEncodeEqual(T, tests);
+}
+
 test "parse - array" {
     try testParseEqual([0]bool, &.{
         .{ .{}, "[]" },
@@ -453,18 +1007,46 @@ test "parse - void" {
     });
 }
 
-fn Test(comptime T: type) type {
-    return []const std.meta.Tuple(&.{ T, []const u8 });
+fn testEncodeEqual(comptime T: type, tests: EncodeTest(T)) !void {
+    for (tests) |t| {
+        const want = t[0];
+        const value = t[1];
+
+        var got = try json.toSlice(test_allocator, value);
+        defer json.de.free(test_allocator, got, null);
+
+        try expectEqualStrings(want, got);
+    }
 }
 
-fn testParseEqual(comptime T: type, tests: Test(T)) !void {
+fn testPrettyEncodeEqual(comptime T: type, tests: EncodeTest(T)) !void {
+    for (tests) |t| {
+        const want = t[0];
+        const value = t[1];
+
+        var got = try json.toPrettySlice(test_allocator, value);
+        defer json.de.free(test_allocator, got, null);
+
+        try expectEqualStrings(want, got);
+    }
+}
+
+fn testParseEqual(comptime T: type, tests: ParseTest(T)) !void {
     for (tests) |t| {
         const want = t[0];
         const input = t[1];
 
-        var got: T = try json.fromSlice(test_allocator, T, input);
+        var got = try json.fromSlice(test_allocator, T, input);
         defer json.de.free(test_allocator, got, null);
 
         try expectEqualDeep(want, got);
     }
+}
+
+fn EncodeTest(comptime T: type) type {
+    return []const std.meta.Tuple(&.{ []const u8, T });
+}
+
+fn ParseTest(comptime T: type) type {
+    return []const std.meta.Tuple(&.{ T, []const u8 });
 }
