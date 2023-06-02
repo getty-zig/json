@@ -6,34 +6,34 @@ const expectEqualStrings = std.testing.expectEqualStrings;
 const test_allocator = std.testing.allocator;
 
 test "parse - array" {
-    try testParseEqual([0]void, &.{
-        .{ [0]void{}, "[]" },
-        .{ [0]void{}, "[ ]" },
+    try testParseEqual([0]bool, &.{
+        .{ .{}, "[]" },
+        .{ .{}, "[ ]" },
     });
 
-    try testParseEqual([1]void, &.{
-        .{ [1]void{{}}, "[null]" },
-        .{ [1]void{{}}, "[ null ]" },
+    try testParseEqual([1]bool, &.{
+        .{ .{true}, "[true]" },
+        .{ .{false}, "[ false ]" },
     });
 
     try testParseEqual([2]bool, &.{
-        .{ [2]bool{ true, false }, "[true,false]" },
-        .{ [2]bool{ true, false }, "[ true , false ]" },
+        .{ .{ true, false }, "[true,false]" },
+        .{ .{ true, false }, "[ true , false ]" },
     });
 
     try testParseEqual([4]u64, &.{
-        .{ [4]u64{ 1, 2, 3, 4 }, "[1,2,3,4]" },
-        .{ [4]u64{ 1, 2, 3, 4 }, "[ 1 , 2 , 3 , 4 ]" },
+        .{ .{ 1, 2, 3, 4 }, "[1,2,3,4]" },
+        .{ .{ 1, 2, 3, 4 }, "[ 1 , 2 , 3 , 4 ]" },
     });
 
     try testParseEqual([2][2]u64, &.{
-        .{ [2][2]u64{ .{ 1, 2 }, .{ 3, 4 } }, "[[1,2],[3,4]]" },
-        .{ [2][2]u64{ .{ 1, 2 }, .{ 3, 4 } }, "[ [ 1 , 2 ] , [ 3 , 4 ] ]" },
+        .{ .{ .{ 1, 2 }, .{ 3, 4 } }, "[[1,2],[3,4]]" },
+        .{ .{ .{ 1, 2 }, .{ 3, 4 } }, "[ [ 1 , 2 ] , [ 3 , 4 ] ]" },
     });
 
     try testParseEqual([2][1][2]u64, &.{
-        .{ [2][1][2]u64{ .{.{ 1, 2 }}, .{.{ 3, 4 }} }, "[[[1,2]],[[3,4]]]" },
-        .{ [2][1][2]u64{ .{.{ 1, 2 }}, .{.{ 3, 4 }} }, "[ [ [ 1 , 2 ] ] , [ [ 3 , 4 ] ] ]" },
+        .{ .{ .{.{ 1, 2 }}, .{.{ 3, 4 }} }, "[[[1,2]],[[3,4]]]" },
+        .{ .{ .{.{ 1, 2 }}, .{.{ 3, 4 }} }, "[ [ [ 1 , 2 ] ] , [ [ 3 , 4 ] ] ]" },
     });
 }
 
