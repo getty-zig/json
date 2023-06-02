@@ -433,23 +433,18 @@ test "parse - struct" {
 
 test "parse - union" {
     const Tagged = union(enum) { foo: bool, bar: void };
-
     try testParseEqual(Tagged, &.{
         .{ .{ .foo = true }, "{\"foo\":true}" },
-        .{ .{ .bar = {} }, "\"bar\"" },
+        .{ .{ .bar = {} }, "{\"bar\":null}" },
     });
 
-    {
-        const Untagged = union { foo: bool, bar: void };
-
-        const want_foo = Untagged{ .foo = false };
-        const want_bar = Untagged{ .bar = {} };
-        const got_foo = try json.fromSlice(test_allocator, Untagged, "{\"foo\":false}");
-        const got_bar = try json.fromSlice(test_allocator, Untagged, "\"bar\"");
-
-        try expectEqualDeep(want_foo.foo, got_foo.foo);
-        try expectEqualDeep(want_bar.bar, got_bar.bar);
-    }
+    const Untagged = union { foo: bool, bar: void };
+    const want_foo = Untagged{ .foo = false };
+    const want_bar = Untagged{ .bar = {} };
+    const got_foo = try json.fromSlice(test_allocator, Untagged, "{\"foo\":false}");
+    const got_bar = try json.fromSlice(test_allocator, Untagged, "{\"bar\":null}");
+    try expectEqualDeep(want_foo.foo, got_foo.foo);
+    try expectEqualDeep(want_bar.bar, got_bar.bar);
 }
 
 test "parse - void" {

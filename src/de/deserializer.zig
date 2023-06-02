@@ -715,16 +715,14 @@ fn Union(comptime D: type) type {
         }
 
         fn payloadSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
-            if (@TypeOf(seed).Value != void) {
-                const payload = try seed.deserialize(allocator, self.d.deserializer());
-                errdefer if (allocator) |ally| getty.de.free(ally, De, payload);
+            const payload = try seed.deserialize(allocator, self.d.deserializer());
+            errdefer if (allocator) |ally| getty.de.free(ally, De, payload);
 
-                return switch (try self.d.tokens.peekNextTokenType()) {
-                    .object_end => payload,
-                    .end_of_document => error.UnexpectedEndOfInput,
-                    else => error.SyntaxError,
-                };
-            }
+            return switch (try self.d.tokens.peekNextTokenType()) {
+                .object_end => payload,
+                .end_of_document => error.UnexpectedEndOfInput,
+                else => error.SyntaxError,
+            };
         }
 
         fn isVariantAllocated(self: *Self, comptime _: type) bool {
