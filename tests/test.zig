@@ -271,9 +271,9 @@ test "encode - object (std.AutoHashMap)" {
     }
 }
 
-test "encode - object (std.StringHashMap)" {
+test "encode - object (std.StringArrayHashMap)" {
     {
-        const T = std.StringHashMap(i32);
+        const T = std.StringArrayHashMap(i32);
 
         var value = T.init(test_allocator);
         defer value.deinit();
@@ -296,8 +296,8 @@ test "encode - object (std.StringHashMap)" {
     }
 
     {
-        const Child = std.StringHashMap(i32);
-        const T = std.StringHashMap(Child);
+        const Child = std.StringArrayHashMap(i32);
+        const T = std.StringArrayHashMap(Child);
 
         var value = T.init(test_allocator);
         var a = Child.init(test_allocator);
