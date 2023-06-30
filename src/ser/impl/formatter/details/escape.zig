@@ -110,8 +110,8 @@ pub fn escapeChar(codepoint: u21, writer: anytype) !void {
             else => if (codepoint > 0xFFFF) {
                 std.debug.assert(codepoint <= 0x10FFFF);
 
-                const high = @intCast(u16, (codepoint - 0x10000) >> 10) + 0xD800;
-                const low = @intCast(u16, codepoint & 0x3FF) + 0xDC00;
+                const high = @as(u16, @intCast((codepoint - 0x10000) >> 10)) + 0xD800;
+                const low = @as(u16, @intCast(codepoint & 0x3FF)) + 0xDC00;
 
                 try writer.writeAll(&[_]u8{
                     '\\',
