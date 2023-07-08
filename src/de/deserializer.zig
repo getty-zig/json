@@ -80,13 +80,9 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
 
             switch (token) {
                 .true, .false => {
-                    try self.skipToken();
-
                     return try visitor.visitBool(allocator, De, token == .true);
                 },
                 inline .number, .allocated_number => |slice| {
-                    try self.skipToken();
-
                     // Integer (with hint)
                     if (visitor_info == .Int) {
                         const sign = visitor_info.Int.signedness;
@@ -122,23 +118,17 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
                         else => return try visitor.visitInt(allocator, De, try parseInt(i128, slice, 10)),
                     }
                 },
-                inline .string, .allocated_string => |t| {
-                    try self.skipToken();
-
+                inline .string, .allocated_string => |slice| {
                     // Union
                     if (visitor_info == .Union) {
                         var u = Union(Self){ .d = self };
                         return try visitor.visitUnion(allocator, De, u.unionAccess(), u.variantAccess());
                     }
 
-                    const slice = t.slice(self.tokens.slice, self.tokens.i - 1);
-
                     // Enum, String
                     return try visitor.visitString(allocator, De, slice);
                 },
                 .null => {
-                    try self.skipToken();
-
                     // Void
                     if (Visitor.Value == void) {
                         return try visitor.visitVoid(allocator, De);
@@ -148,8 +138,6 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
                     return try visitor.visitNull(allocator, De);
                 },
                 .array_begin => {
-                    try self.skipToken();
-
                     var s = SeqAccess(Self){ .d = self };
                     const result = try visitor.visitSeq(allocator.?, De, s.seqAccess());
                     errdefer getty.de.free(allocator.?, De, result);
@@ -159,8 +147,6 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
                     return result;
                 },
                 .object_begin => {
-                    try self.skipToken();
-
                     // Union
                     if (visitor_info == .Union) {
                         var u = Union(Self){ .d = self };
