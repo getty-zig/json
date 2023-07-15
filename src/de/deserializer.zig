@@ -647,7 +647,6 @@ fn StructAccess(comptime D: type) type {
 fn Union(comptime D: type) type {
     return struct {
         d: *D,
-        is_variant_allocated: bool = false,
 
         const Self = @This();
 
@@ -656,14 +655,15 @@ fn Union(comptime D: type) type {
             Error,
             .{
                 .variantSeed = variantSeed,
-                .isVariantAllocated = isVariantAllocated,
             },
         );
 
         pub usingnamespace getty.de.VariantAccess(
             *Self,
             Error,
-            .{ .payloadSeed = payloadSeed },
+            .{
+                .payloadSeed = payloadSeed,
+            },
         );
 
         const De = D.@"getty.Deserializer";
@@ -671,33 +671,11 @@ fn Union(comptime D: type) type {
         const Error = De.Error;
 
         fn variantSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
-            comptime concepts.Concept("StringVariant", "expected variant type to be a string")(.{
-                concepts.traits.isString(@TypeOf(seed).Value),
-            });
-
-            switch (try self.d.tokens.peekNextTokenType()) {
-                .string => {},
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
-            }
-
-            if (allocator == null) {
-                return error.MissingAllocator;
-            }
-
-            const token = try self.d.tokens.nextAlloc(allocator.?, .alloc_if_needed);
-            defer freeToken(allocator.?, token);
-
-            switch (token) {
-                inline .string, .allocated_string => |slice| {
-                    self.is_variant_allocated = token == .allocated_string;
-                    return slice;
-                },
-
-                // UNREACHABLE: The peek switch guarantees that only .string
-                // and .allocated_string tokens reach here.
-                else => unreachable,
-            }
+            return switch (try self.d.tokens.peekNextTokenType()) {
+                .string => try seed.deserialize(allocator, self.d.deserializer()),
+                .end_of_document => error.UnexpectedEndOfInput,
+                else => error.InvalidType,
+            };
         }
 
         fn payloadSeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
@@ -709,10 +687,6 @@ fn Union(comptime D: type) type {
                 .end_of_document => error.UnexpectedEndOfInput,
                 else => error.SyntaxError,
             };
-        }
-
-        fn isVariantAllocated(self: *Self, comptime _: type) bool {
-            return self.is_variant_allocated;
         }
     };
 }
