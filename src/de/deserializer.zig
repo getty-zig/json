@@ -502,6 +502,8 @@ fn MapKeyDeserializer(comptime De: type) type {
             if (std.meta.trait.isZigString(Value)) {
                 return try self.deserializeString(allocator, visitor);
             }
+
+            return error.InvalidType;
         }
 
         fn deserializeIgnored(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
