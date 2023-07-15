@@ -483,6 +483,7 @@ fn MapKeyDeserializer(comptime De: type) type {
             De.user_dt,
             De.deserializer_dt,
             .{
+                .deserializeAny = deserializeAny,
                 .deserializeIgnored = deserializeIgnored,
                 .deserializeInt = deserializeInt,
                 .deserializeString = deserializeString,
@@ -490,6 +491,18 @@ fn MapKeyDeserializer(comptime De: type) type {
         );
 
         const Error = De.Error;
+
+        fn deserializeAny(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+            const Value = @TypeOf(visitor).Value;
+
+            if (@typeInfo(Value) == .Int) {
+                return try self.deserializeInt(allocator, visitor);
+            }
+
+            if (std.meta.trait.isZigString(Value)) {
+                return try self.deserializeString(allocator, visitor);
+            }
+        }
 
         fn deserializeIgnored(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
             _ = self;
