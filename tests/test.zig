@@ -528,8 +528,8 @@ test "encode - vector" {
     const T = @Vector(2, i32);
 
     try testEncodeEqual(T, &.{
-        .{ "[0,0]", @splat(2, @as(u32, 0)) },
-        .{ "[1,1]", @splat(2, @as(u32, 1)) },
+        .{ "[0,0]", @as(T, @splat(@as(u32, 0))) },
+        .{ "[1,1]", @as(T, @splat(@as(u32, 1))) },
     });
     try testPrettyEncodeEqual(T, &.{
         .{
@@ -538,7 +538,7 @@ test "encode - vector" {
             \\  0
             \\]
             ,
-            @splat(2, @as(u32, 0)),
+            @as(T, @splat(@as(u32, 0))),
         },
         .{
             \\[
@@ -546,7 +546,7 @@ test "encode - vector" {
             \\  1
             \\]
             ,
-            @splat(2, @as(u32, 1)),
+            @as(T, @splat(@as(u32, 1))),
         },
     });
 }
