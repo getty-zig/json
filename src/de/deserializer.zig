@@ -91,14 +91,14 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
                             return error.InvalidType;
                         }
 
-                        return try visitor.visitInt(allocator, De, try parseInt(Visitor, slice, 10));
+                        return try visitor.visitInt(allocator, De, try parseInt(Visitor, slice));
                     }
 
                     // Enum
                     if (visitor_info == .Enum) {
                         switch (slice[0]) {
-                            '0'...'9' => return try visitor.visitInt(allocator, De, try parseInt(u128, slice, 10)),
-                            else => return try visitor.visitInt(allocator, De, try parseInt(i128, slice, 10)),
+                            '0'...'9' => return try visitor.visitInt(allocator, De, try parseInt(u128, slice)),
+                            else => return try visitor.visitInt(allocator, De, try parseInt(i128, slice)),
                         }
                     }
 
@@ -114,8 +114,8 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
 
                     // Integer (without hint)
                     switch (slice[0]) {
-                        '0'...'9' => return try visitor.visitInt(allocator, De, try parseInt(u128, slice, 10)),
-                        else => return try visitor.visitInt(allocator, De, try parseInt(i128, slice, 10)),
+                        '0'...'9' => return try visitor.visitInt(allocator, De, try parseInt(u128, slice)),
+                        else => return try visitor.visitInt(allocator, De, try parseInt(i128, slice)),
                     }
                 },
                 inline .string, .allocated_string => |slice| {
@@ -207,8 +207,8 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
             return try switch (token) {
                 inline .string, .allocated_string => |slice| visitor.visitString(allocator, De, slice),
                 inline .number, .allocated_number => |slice| switch (slice[0]) {
-                    '0'...'9' => visitor.visitInt(allocator, De, try parseInt(u128, slice, 10)),
-                    else => visitor.visitInt(allocator, De, try parseInt(i128, slice, 10)),
+                    '0'...'9' => visitor.visitInt(allocator, De, try parseInt(u128, slice)),
+                    else => visitor.visitInt(allocator, De, try parseInt(i128, slice)),
                 },
 
                 // UNREACHABLE: The peek switch guarantees that only .number,
@@ -287,14 +287,14 @@ pub fn Deserializer(comptime user_dbt: anytype, comptime Reader: type) type {
                             return error.InvalidType;
                         }
 
-                        break :blk try parseInt(Value, slice, 10);
+                        break :blk try parseInt(Value, slice);
                     }
 
                     // If the visitor is not producing an integer, default to
                     // deserializing a 128-bit integer.
                     break :blk try switch (slice[0]) {
-                        '0'...'9' => parseInt(u128, slice, 10),
-                        else => parseInt(i128, slice, 10),
+                        '0'...'9' => parseInt(u128, slice),
+                        else => parseInt(i128, slice),
                     };
                 },
 
@@ -512,7 +512,7 @@ fn MapKeyDeserializer(comptime De: type) type {
         }
 
         fn deserializeInt(self: *Self, allocator: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
-            const int = try parseInt(@TypeOf(visitor).Value, self.key, 10);
+            const int = try parseInt(@TypeOf(visitor).Value, self.key);
             return try visitor.visitInt(allocator, De, int);
         }
 
@@ -706,10 +706,10 @@ fn Union(comptime D: type) type {
     };
 }
 
-inline fn parseInt(comptime T: type, slice: []const u8, radix: u8) !T {
-    return std.fmt.parseInt(T, slice, radix) catch |err| switch (err) {
-        error.InvalidCharacter => error.InvalidType,
-        error.Overflow => err,
+inline fn parseInt(comptime T: type, slice: []const u8) !T {
+    return std.fmt.parseInt(T, slice, 10) catch |err| switch (err) {
+        error.InvalidCharacter => return error.InvalidType,
+        error.Overflow => return err,
     };
 }
 
