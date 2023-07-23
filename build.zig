@@ -59,32 +59,23 @@ pub fn build(b: *std.build.Builder) void {
 
     // Documentation.
     {
-        const docs_step = b.step("docs", "Generate project documentation");
+        const docs_step = b.step("json-docs", "Build the project documentation");
 
-        // Remove cache.
-        const cmd = b.addSystemCommand(&[_][]const u8{
-            "rm",
-            "-rf",
-            "zig-cache",
-        });
-
-        const clean_step = b.step("clean", "Remove project artifacts");
-
-        clean_step.dependOn(&cmd.step);
-        docs_step.dependOn(clean_step);
-
-        // Build and emit documentation.
-        const docs_obj = b.addObject(.{
-            .name = "docs",
+        const doc_obj = b.addObject(.{
+            .name = "json-docs",
             .root_source_file = .{ .path = package_path },
             .target = target,
             .optimize = optimize,
         });
+        doc_obj.emit_bin = .no_emit;
+        doc_obj.addModule("getty", getty_module);
+        doc_obj.addModule("concepts", concepts_module);
 
-        docs_obj.emit_docs = .emit;
-        docs_obj.addModule("getty", getty_module);
-        docs_obj.addModule("concepts", concepts_module);
-
-        docs_step.dependOn(&docs_obj.step);
+        const install_docs = b.addInstallDirectory(.{
+            .source_dir = doc_obj.getOutputDocs(),
+            .install_dir = .prefix,
+            .install_subdir = "doc/json",
+        });
+        docs_step.dependOn(&install_docs.step);
     }
 }
