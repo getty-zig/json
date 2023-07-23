@@ -27,71 +27,63 @@ pub const ser = struct {
 /// or tuple.
 pub fn toWriterWith(
     /// An optional memory allocator.
-    allocator: ?std.mem.Allocator,
+    ally: ?std.mem.Allocator,
     /// A value to serialize.
-    value: anytype,
+    v: anytype,
     /// A `std.io.Writer` interface value.
-    writer: anytype,
+    w: anytype,
     /// A serialization block or tuple.
-    comptime user_sbt: anytype,
+    comptime sbt: anytype,
 ) !void {
-    var cs = serializer(allocator, writer, user_sbt);
-    const s = cs.serializer();
+    var s = serializer(ally, w, sbt);
+    const ss = s.serializer();
 
-    try getty.serialize(allocator, value, s);
+    try getty.serialize(ally, v, ss);
 }
 
 /// Serializes a value as pretty-printed JSON into an I/O stream using a
 /// serialization block or tuple.
 pub fn toPrettyWriterWith(
     /// An optional memory allocator.
-    allocator: ?std.mem.Allocator,
+    ally: ?std.mem.Allocator,
     /// A value to serialize.
-    value: anytype,
+    v: anytype,
     /// A `std.io.Writer` interface value.
-    writer: anytype,
+    w: anytype,
     /// A serialization block or tuple.
-    comptime user_sbt: anytype,
+    comptime sbt: anytype,
 ) !void {
-    var f = ser.PrettyFormatter(@TypeOf(writer)).init();
-    const formatter = f.formatter();
+    var f = ser.PrettyFormatter(@TypeOf(w)).init();
+    const ff = f.formatter();
 
-    var ps = Serializer(
-        @TypeOf(writer),
-        @TypeOf(formatter),
-        user_sbt,
-    ).init(
-        allocator,
-        writer,
-        formatter,
-    );
-    var s = ps.serializer();
+    var s = Serializer(@TypeOf(w), @TypeOf(ff), sbt).init(ally, w, ff);
+    var ss = s.serializer();
 
-    try getty.serialize(allocator, value, s);
+    try getty.serialize(ally, v, ss);
 }
 
 /// Serializes a value as JSON into an I/O stream.
 pub fn toWriter(
     /// An optional memory allocator.
-    allocator: ?std.mem.Allocator,
+    ally: ?std.mem.Allocator,
     /// A value to serialize.
-    value: anytype,
+    v: anytype,
     /// A `std.io.Writer` interface value.
-    writer: anytype,
+    w: anytype,
 ) !void {
-    try toWriterWith(allocator, value, writer, null);
+    try toWriterWith(ally, v, w, null);
 }
 
 /// Serializes a value as pretty-printed JSON into an I/O stream.
 pub fn toPrettyWriter(
     /// An optional memory allocator.
-    allocator: ?std.mem.Allocator,
+    ally: ?std.mem.Allocator,
     /// A value to serialize.
-    value: anytype,
+    v: anytype,
     /// A `std.io.Writer` interface value.
-    writer: anytype,
+    w: anytype,
 ) !void {
-    try toPrettyWriterWith(allocator, value, writer, null);
+    try toPrettyWriterWith(ally, v, w, null);
 }
 
 /// Serializes a value as a JSON string using a serialization block or tuple.
@@ -100,16 +92,17 @@ pub fn toPrettyWriter(
 /// freeing its memory.
 pub fn toSliceWith(
     /// A memory allocator.
-    allocator: std.mem.Allocator,
+    ally: std.mem.Allocator,
     /// A value to serialize.
-    value: anytype,
+    v: anytype,
     /// A serialization block or tuple.
-    comptime user_sbt: anytype,
+    comptime sbt: anytype,
 ) ![]const u8 {
-    var list = try std.ArrayList(u8).initCapacity(allocator, 128);
+    var list = try std.ArrayList(u8).initCapacity(ally, 128);
     defer list.deinit();
 
-    try toWriterWith(allocator, value, list.writer(), user_sbt);
+    try toWriterWith(ally, v, list.writer(), sbt);
+
     return try list.toOwnedSlice();
 }
 
@@ -120,16 +113,17 @@ pub fn toSliceWith(
 /// freeing its memory.
 pub fn toPrettySliceWith(
     /// A memory allocator.
-    allocator: std.mem.Allocator,
+    ally: std.mem.Allocator,
     /// A value to serialize.
-    value: anytype,
+    v: anytype,
     /// A serialization block or tuple.
-    comptime user_sbt: anytype,
+    comptime sbt: anytype,
 ) ![]const u8 {
-    var list = try std.ArrayList(u8).initCapacity(allocator, 128);
+    var list = try std.ArrayList(u8).initCapacity(ally, 128);
     defer list.deinit();
 
-    try toPrettyWriterWith(allocator, value, list.writer(), user_sbt);
+    try toPrettyWriterWith(ally, v, list.writer(), sbt);
+
     return try list.toOwnedSlice();
 }
 
@@ -139,11 +133,11 @@ pub fn toPrettySliceWith(
 /// freeing its memory.
 pub fn toSlice(
     /// A memory allocator.
-    allocator: std.mem.Allocator,
+    ally: std.mem.Allocator,
     /// A value to serialize.
-    value: anytype,
+    v: anytype,
 ) ![]const u8 {
-    return try toSliceWith(allocator, value, null);
+    return try toSliceWith(ally, v, null);
 }
 
 /// Serializes a value as a pretty-printed JSON string.
@@ -152,9 +146,9 @@ pub fn toSlice(
 /// freeing its memory.
 pub fn toPrettySlice(
     /// A memory allocator.
-    allocator: std.mem.Allocator,
+    ally: std.mem.Allocator,
     /// A value to serialize.
-    value: anytype,
+    v: anytype,
 ) ![]const u8 {
-    return try toPrettySliceWith(allocator, value, null);
+    return try toPrettySliceWith(ally, v, null);
 }

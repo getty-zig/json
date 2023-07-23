@@ -9,21 +9,18 @@ pub const de = struct {
     /// Frees resources allocated by Getty during deserialization.
     pub fn free(
         /// A memory allocator.
-        allocator: std.mem.Allocator,
+        ally: std.mem.Allocator,
         /// A value to deallocate.
-        value: anytype,
+        v: anytype,
         /// A deserialization block.
-        comptime user_dbt: anytype,
+        comptime dbt: anytype,
     ) void {
-        return getty.de.free(
-            allocator,
-            Deserializer(
-                user_dbt,
-                // TODO: wonk
-                std.io.FixedBufferStream([]u8).Reader,
-            ).@"getty.Deserializer",
-            value,
+        const D = Deserializer(
+            dbt,
+            std.io.FixedBufferStream([]u8).Reader, // TODO: wonk
         );
+
+        return getty.de.free(ally, D.@"getty.Deserializer", v);
     }
 };
 
@@ -36,24 +33,24 @@ pub fn fromDeserializer(comptime T: type, d: anytype) !T {
     return value;
 }
 
-pub fn fromReaderWith(allocator: std.mem.Allocator, comptime T: type, reader: anytype, comptime user_dbt: anytype) !T {
-    var d = Deserializer(user_dbt, @TypeOf(reader)).init(allocator, reader);
+pub fn fromReaderWith(ally: std.mem.Allocator, comptime T: type, r: anytype, comptime dbt: anytype) !T {
+    var d = Deserializer(dbt, @TypeOf(r)).init(ally, r);
     defer d.deinit();
 
     return try fromDeserializer(T, &d);
 }
 
-pub fn fromReader(allocator: std.mem.Allocator, comptime T: type, reader: anytype) !T {
-    return try fromReaderWith(allocator, T, reader, null);
+pub fn fromReader(ally: std.mem.Allocator, comptime T: type, r: anytype) !T {
+    return try fromReaderWith(ally, T, r, null);
 }
 
 /// Deserializes into a value of type `T` from a slice of JSON using a deserialization block or tuple.
-pub fn fromSliceWith(allocator: std.mem.Allocator, comptime T: type, slice: []const u8, comptime user_dbt: anytype) !T {
-    var fbs = std.io.fixedBufferStream(slice);
-    return try fromReaderWith(allocator, T, fbs.reader(), user_dbt);
+pub fn fromSliceWith(ally: std.mem.Allocator, comptime T: type, s: []const u8, comptime dbt: anytype) !T {
+    var fbs = std.io.fixedBufferStream(s);
+    return try fromReaderWith(ally, T, fbs.reader(), dbt);
 }
 
 /// Deserializes into a value of type `T` from a slice of JSON.
-pub fn fromSlice(allocator: std.mem.Allocator, comptime T: type, slice: []const u8) !T {
-    return try fromSliceWith(allocator, T, slice, null);
+pub fn fromSlice(ally: std.mem.Allocator, comptime T: type, s: []const u8) !T {
+    return try fromSliceWith(ally, T, s, null);
 }
