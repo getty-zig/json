@@ -6,9 +6,5 @@
             .url = "https://github.com/getty-zig/getty/archive/8bdbc8e7a8a72933a4cda21347ae0a33c35cf382.tar.gz",
             .hash = "1220a81155387309802bfc85a4585fec29d56e9633d7bec361c248aaf8b59508ec44",
         },
-        .concepts = .{
-            .url = "https://github.com/ibokuri/concepts/archive/fc952a054389d3aeade915b5760c96c762651124.tar.gz",
-            .hash = "12204cbd628c6436be2c90d1e4b782a00be121133de83b0cdd800a2777dc1e1aee84",
-        },
     },
 }

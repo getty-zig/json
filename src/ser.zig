@@ -35,8 +35,6 @@ pub fn toWriterWith(
     /// A serialization block or tuple.
     comptime user_sbt: anytype,
 ) !void {
-    comptime concepts.@"std.io.Writer"(@TypeOf(writer));
-
     var cs = serializer(allocator, writer, user_sbt);
     const s = cs.serializer();
 
@@ -55,8 +53,6 @@ pub fn toPrettyWriterWith(
     /// A serialization block or tuple.
     comptime user_sbt: anytype,
 ) !void {
-    comptime concepts.@"std.io.Writer"(@TypeOf(writer));
-
     var f = ser.PrettyFormatter(@TypeOf(writer)).init();
     const formatter = f.formatter();
 
@@ -162,38 +158,3 @@ pub fn toPrettySlice(
 ) ![]const u8 {
     return try toPrettySliceWith(allocator, value, null);
 }
-
-const concepts = struct {
-    fn @"std.io.Writer"(comptime T: type) void {
-        const err = "expected `std.io.Writer` interface value, found `" ++ @typeName(T) ++ "`";
-
-        comptime {
-            // Invariants
-            if (!std.meta.trait.isContainer(T)) {
-                @compileError(err);
-            }
-
-            // Constraints
-            const has_name = std.mem.startsWith(u8, @typeName(T), "io.writer.Writer");
-            const has_field = std.meta.trait.hasField("context")(T);
-            const has_decl = @hasDecl(T, "Error");
-            const has_funcs = std.meta.trait.hasFunctions(T, .{
-                "write",
-                "writeAll",
-                "print",
-                "writeByte",
-                "writeByteNTimes",
-                "writeIntNative",
-                "writeIntForeign",
-                "writeIntLittle",
-                "writeIntBig",
-                "writeInt",
-                "writeStruct",
-            });
-
-            if (!(has_name and has_field and has_decl and has_funcs)) {
-                @compileError(err);
-            }
-        }
-    }
-};

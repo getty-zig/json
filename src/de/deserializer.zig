@@ -1,4 +1,3 @@
-const concepts = @import("concepts");
 const getty = @import("getty");
 const std = @import("std");
 
@@ -620,9 +619,9 @@ fn StructAccess(comptime D: type) type {
         const Error = De.Error;
 
         fn nextKeySeed(self: *Self, allocator: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
-            comptime concepts.Concept("StringKey", "expected key type to be `[]const u8`")(.{
-                concepts.traits.isSame(@TypeOf(seed).Value, []const u8),
-            });
+            if (@TypeOf(seed).Value != []const u8) {
+                @compileError("expected key type to be `[]const u8`");
+            }
 
             switch (try self.d.tokens.peekNextTokenType()) {
                 .string => {},

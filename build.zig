@@ -13,14 +13,12 @@ pub fn build(b: *std.build.Builder) void {
     const dep_opts = .{ .target = target, .optimize = optimize };
 
     const getty_module = b.dependency("getty", dep_opts).module("getty");
-    const concepts_module = b.dependency("concepts", dep_opts).module("concepts");
 
     // Export Getty JSON as a module.
     const json_module = b.addModule(package_name, .{
         .source_file = .{ .path = package_path },
         .dependencies = &.{
             .{ .name = "getty", .module = getty_module },
-            .{ .name = "concepts", .module = concepts_module },
         },
     });
 
@@ -69,7 +67,6 @@ pub fn build(b: *std.build.Builder) void {
         });
         doc_obj.emit_bin = .no_emit;
         doc_obj.addModule("getty", getty_module);
-        doc_obj.addModule("concepts", concepts_module);
 
         const install_docs = b.addInstallDirectory(.{
             .source_dir = doc_obj.getOutputDocs(),
