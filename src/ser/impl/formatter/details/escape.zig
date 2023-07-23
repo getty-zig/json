@@ -87,33 +87,33 @@ const escape_characters_ascii = [_]bool{
 };
 
 /// Escapes a UTF-8 encoded code point using JSON escape sequences.
-pub fn escapeChar(codepoint: u21, writer: anytype) !void {
-    switch (codepoint) {
-        DOUBLE_QUOTE => try writer.writeAll("\\\""),
-        BACKSLASH => try writer.writeAll("\\\\"),
-        BACKSPACE => try writer.writeAll("\\b"),
-        TAB => try writer.writeAll("\\t"),
-        NEWLINE => try writer.writeAll("\\n"),
-        FORM_FEED => try writer.writeAll("\\f"),
-        CARRIAGE_RETURN => try writer.writeAll("\\r"),
-        else => switch (codepoint) {
+pub fn escapeChar(rune: u21, w: anytype) !void {
+    switch (rune) {
+        DOUBLE_QUOTE => try w.writeAll("\\\""),
+        BACKSLASH => try w.writeAll("\\\\"),
+        BACKSPACE => try w.writeAll("\\b"),
+        TAB => try w.writeAll("\\t"),
+        NEWLINE => try w.writeAll("\\n"),
+        FORM_FEED => try w.writeAll("\\f"),
+        CARRIAGE_RETURN => try w.writeAll("\\r"),
+        else => switch (rune) {
             0x00...0x1F, 0x7F, 0x2028, 0x2029 => {
-                try writer.writeAll(&[_]u8{
+                try w.writeAll(&[_]u8{
                     '\\',
                     'u',
-                    HEX_DIGITS[codepoint >> 12 & 0xF],
-                    HEX_DIGITS[codepoint >> 8 & 0xF],
-                    HEX_DIGITS[codepoint >> 4 & 0xF],
-                    HEX_DIGITS[codepoint & 0xF],
+                    HEX_DIGITS[rune >> 12 & 0xF],
+                    HEX_DIGITS[rune >> 8 & 0xF],
+                    HEX_DIGITS[rune >> 4 & 0xF],
+                    HEX_DIGITS[rune & 0xF],
                 });
             },
-            else => if (codepoint > 0xFFFF) {
-                std.debug.assert(codepoint <= 0x10FFFF);
+            else => if (rune > 0xFFFF) {
+                std.debug.assert(rune <= 0x10FFFF);
 
-                const high = @as(u16, @intCast((codepoint - 0x10000) >> 10)) + 0xD800;
-                const low = @as(u16, @intCast(codepoint & 0x3FF)) + 0xDC00;
+                const high = @as(u16, @intCast((rune - 0x10000) >> 10)) + 0xD800;
+                const low = @as(u16, @intCast(rune & 0x3FF)) + 0xDC00;
 
-                try writer.writeAll(&[_]u8{
+                try w.writeAll(&[_]u8{
                     '\\',
                     'u',
                     HEX_DIGITS[high >> 12 & 0xF],
@@ -135,7 +135,7 @@ pub fn escapeChar(codepoint: u21, writer: anytype) !void {
 }
 
 /// Escapes characters of a UTF-8 encoded string using JSON escape sequences.
-pub fn writeEscaped(bytes: []const u8, writer: anytype, formatter: anytype) !void {
+pub fn writeEscaped(bytes: []const u8, w: anytype, f: anytype) !void {
     var i: usize = 0;
     var start: usize = 0;
 
@@ -147,7 +147,7 @@ pub fn writeEscaped(bytes: []const u8, writer: anytype, formatter: anytype) !voi
             continue;
         }
 
-        const codepoint = std.unicode.utf8Decode(bytes[i .. i + length]) catch unreachable;
+        const rune = std.unicode.utf8Decode(bytes[i .. i + length]) catch unreachable;
 
         // Skip all other code points that don't require escaping.
         //
@@ -159,9 +159,9 @@ pub fn writeEscaped(bytes: []const u8, writer: anytype, formatter: anytype) !voi
         //
         // In any case, this switch lets us be faster than std.json, so I guess
         // it's fine as it is for now.
-        switch (codepoint) {
+        switch (rune) {
             0x00...0x1F, DOUBLE_QUOTE, BACKSLASH, 0x7F, 0x2028, 0x2029 => {},
-            else => if (codepoint <= 0xFFFF) {
+            else => if (rune <= 0xFFFF) {
                 i += length - 1;
                 continue;
             },
@@ -169,11 +169,11 @@ pub fn writeEscaped(bytes: []const u8, writer: anytype, formatter: anytype) !voi
 
         // Write out any buffered non-escaped code points.
         if (start < i) {
-            try formatter.writeRawFragment(writer, bytes[start..i]);
+            try f.writeRawFragment(w, bytes[start..i]);
         }
 
         // Escape and write out the current code point.
-        try formatter.writeCharEscape(writer, codepoint);
+        try f.writeCharEscape(w, rune);
 
         i += length - 1;
         start = i + 1;
@@ -183,6 +183,6 @@ pub fn writeEscaped(bytes: []const u8, writer: anytype, formatter: anytype) !voi
     // escaping, then they've been buffered, but not written. So, we must write
     // them out.
     if (start != bytes.len) {
-        try formatter.writeRawFragment(writer, bytes[start..]);
+        try f.writeRawFragment(w, bytes[start..]);
     }
 }
