@@ -6,63 +6,43 @@ const PrettyFormatter = @import("impl/formatter/pretty.zig").Formatter;
 const writeEscaped = @import("impl/formatter/details/escape.zig").writeEscaped;
 
 pub fn serializer(
-    allocator: ?std.mem.Allocator,
-    writer: anytype,
-    user_sbt: anytype,
+    ally: ?std.mem.Allocator,
+    w: anytype,
+    sbt: anytype,
 ) blk: {
-    var f = CompactFormatter(@TypeOf(writer)){};
-    const formatter = f.formatter();
+    var f = CompactFormatter(@TypeOf(w)){};
+    const ff = f.formatter();
 
-    break :blk Serializer(
-        @TypeOf(writer),
-        @TypeOf(formatter),
-        user_sbt,
-    );
+    break :blk Serializer(@TypeOf(w), @TypeOf(ff), sbt);
 } {
-    var f = CompactFormatter(@TypeOf(writer)){};
-    const formatter = f.formatter();
+    var f = CompactFormatter(@TypeOf(w)){};
+    const ff = f.formatter();
 
-    return Serializer(
-        @TypeOf(writer),
-        @TypeOf(formatter),
-        user_sbt,
-    ).init(
-        allocator,
-        writer,
-        formatter,
-    );
+    return Serializer(@TypeOf(w), @TypeOf(ff), sbt).init(ally, w, ff);
 }
 
 pub fn Serializer(
     comptime Writer: type,
     comptime Formatter: type,
-    comptime user_sbt: anytype,
+    comptime sbt: anytype,
 ) type {
     return struct {
-        allocator: ?std.mem.Allocator = null,
+        ally: ?std.mem.Allocator = null,
 
         writer: Writer,
         formatter: Formatter,
 
         const Self = @This();
 
-        pub fn init(
-            allocator: ?std.mem.Allocator,
-            writer: Writer,
-            formatter: Formatter,
-        ) Self {
-            return .{
-                .allocator = allocator,
-                .writer = writer,
-                .formatter = formatter,
-            };
+        pub fn init(ally: ?std.mem.Allocator, w: Writer, f: Formatter) Self {
+            return .{ .ally = ally, .writer = w, .formatter = f };
         }
 
         pub usingnamespace getty.Serializer(
             *Self,
             Ok,
             Error,
-            user_sbt,
+            sbt,
             null,
             Serialize,
             Serialize,
@@ -103,30 +83,30 @@ pub fn Serializer(
             Eof,
         };
 
-        fn serializeBool(self: *Self, value: bool) Error!Ok {
-            self.formatter.writeBool(self.writer, value) catch return Error.Io;
+        fn serializeBool(self: *Self, v: bool) Error!Ok {
+            self.formatter.writeBool(self.writer, v) catch return Error.Io;
         }
 
-        fn serializeEnum(self: *Self, _: anytype, name: []const u8) Error!Ok {
-            serializeString(self, name) catch return Error.Io;
+        fn serializeEnum(self: *Self, _: anytype, variant: []const u8) Error!Ok {
+            serializeString(self, variant) catch return Error.Io;
         }
 
-        fn serializeFloat(self: *Self, value: anytype) Error!Ok {
-            if (@TypeOf(value) != comptime_float and (std.math.isNan(value) or std.math.isInf(value))) {
+        fn serializeFloat(self: *Self, v: anytype) Error!Ok {
+            if (@TypeOf(v) != comptime_float and (std.math.isNan(v) or std.math.isInf(v))) {
                 self.formatter.writeNull(self.writer) catch return Error.Io;
             } else {
-                self.formatter.writeFloat(self.writer, value) catch return Error.Io;
+                self.formatter.writeFloat(self.writer, v) catch return Error.Io;
             }
         }
 
-        fn serializeInt(self: *Self, value: anytype) Error!Ok {
-            self.formatter.writeInt(self.writer, value) catch return Error.Io;
+        fn serializeInt(self: *Self, v: anytype) Error!Ok {
+            self.formatter.writeInt(self.writer, v) catch return Error.Io;
         }
 
-        fn serializeMap(self: *Self, length: ?usize) Error!Serialize {
+        fn serializeMap(self: *Self, len: ?usize) Error!Serialize {
             self.formatter.beginObject(self.writer) catch return Error.Io;
 
-            if (length) |l| {
+            if (len) |l| {
                 if (l == 0) {
                     self.formatter.endObject(self.writer) catch return Error.Io;
                     return Serialize{ .ser = self, .max = 0 };
@@ -142,10 +122,10 @@ pub fn Serializer(
             self.formatter.writeNull(self.writer) catch return Error.Io;
         }
 
-        fn serializeSeq(self: *Self, length: ?usize) Error!Serialize {
+        fn serializeSeq(self: *Self, len: ?usize) Error!Serialize {
             self.formatter.beginArray(self.writer) catch return Error.Io;
 
-            if (length) |l| {
+            if (len) |l| {
                 if (l == 0) {
                     self.formatter.endArray(self.writer) catch return Error.Io;
                     return Serialize{ .ser = self, .max = 0 };
@@ -157,29 +137,29 @@ pub fn Serializer(
             return Serialize{ .ser = self, .state = .first };
         }
 
-        fn serializeSome(self: *Self, value: anytype) Error!Ok {
-            try getty.serialize(self.allocator, value, self.serializer());
+        fn serializeSome(self: *Self, v: anytype) Error!Ok {
+            try getty.serialize(self.ally, v, self.serializer());
         }
 
-        fn serializeString(self: *Self, value: anytype) Error!Ok {
-            if (!std.unicode.utf8ValidateSlice(value)) {
+        fn serializeString(self: *Self, v: anytype) Error!Ok {
+            if (!std.unicode.utf8ValidateSlice(v)) {
                 return Error.Syntax;
             }
 
             self.formatter.beginString(self.writer) catch return Error.Io;
-            writeEscaped(value, self.writer, self.formatter) catch return Error.Io;
+            writeEscaped(v, self.writer, self.formatter) catch return Error.Io;
             self.formatter.endString(self.writer) catch return Error.Io;
         }
 
-        fn serializeStruct(self: *Self, comptime _: []const u8, length: usize) Error!Serialize {
+        fn serializeStruct(self: *Self, comptime _: []const u8, len: usize) Error!Serialize {
             self.formatter.beginObject(self.writer) catch return Error.Io;
 
-            if (length == 0) {
+            if (len == 0) {
                 self.formatter.endObject(self.writer) catch return Error.Io;
                 return Serialize{ .ser = self, .max = 0 };
             }
 
-            return Serialize{ .ser = self, .state = .first, .max = length };
+            return Serialize{ .ser = self, .state = .first, .max = len };
         }
 
         // Implementation of Getty's aggregate serialization interfaces.
@@ -207,11 +187,11 @@ pub fn Serializer(
                 },
             );
 
-            fn serializeElement(s: *Serialize, value: anytype) Error!void {
+            fn serializeElement(s: *Serialize, v: anytype) Error!void {
                 // Number of elements in sequence is unknown, so just try to
                 // serialize an element and return an error if there are none.
                 if (s.max == null) {
-                    return try s._serializeElement(value);
+                    return try s._serializeElement(v);
                 }
 
                 // Number of elements in sequence is known but we've already
@@ -223,10 +203,10 @@ pub fn Serializer(
                 // Number of elements in sequence is known but we haven't
                 // serialized all of them yet, so serialize an element and
                 // increment the current count.
-                var v = try s._serializeElement(value);
-                s.count += 1;
+                var elem = try s._serializeElement(v);
+                defer s.count += 1;
 
-                return v;
+                return elem;
             }
 
             fn seq_end(s: *Serialize) Error!Ok {
@@ -250,7 +230,7 @@ pub fn Serializer(
                 },
             );
 
-            fn serializeKey(s: *Serialize, key: anytype) Error!void {
+            fn serializeKey(s: *Serialize, k: anytype) Error!void {
                 if (s.max) |max| {
                     // Number of elements in map is known but we've already
                     // serialized all entries, so just return from the function.
@@ -268,14 +248,16 @@ pub fn Serializer(
                 //      start serializing an entry by serializing a key. The
                 //      count will be incremented in serializeValue.
                 var mks = MapKeySerializer{ .ser = s.ser };
-                try s._serializeKey(key, mks.serializer());
+                const ss = mks.serializer();
+
+                try s._serializeKey(k, ss);
             }
 
-            fn serializeValue(s: *Serialize, value: anytype) Error!void {
+            fn serializeValue(s: *Serialize, v: anytype) Error!void {
                 // Number of entries in map is unknown, so just try to
                 // serialize an entry and return an error if there are none.
                 if (s.max == null) {
-                    return try s._serializeElement(value);
+                    return try s._serializeElement(v);
                 }
 
                 // Number of entries in map is known but we've already
@@ -287,10 +269,10 @@ pub fn Serializer(
                 // Number of entries in map is known but we haven't serialized
                 // all of them yet, so serialize an entry and increment the
                 // current count.
-                var v = try s._serializeValue(value);
-                s.count += 1;
+                var value = try s._serializeValue(v);
+                defer s.count += 1;
 
-                return v;
+                return value;
             }
 
             fn map_end(s: *Serialize) Error!Ok {
@@ -313,15 +295,11 @@ pub fn Serializer(
                 },
             );
 
-            fn serializeField(
-                s: *Serialize,
-                comptime key: []const u8,
-                value: anytype,
-            ) Error!void {
+            fn serializeField(s: *Serialize, comptime k: []const u8, v: anytype) Error!void {
                 // Number of fields in struct is unknown, so just try to
                 // serialize a field and return an error if there are none.
                 if (s.max == null) {
-                    return try s._serializeField(key, value);
+                    return try s._serializeField(k, v);
                 }
 
                 // Number of fields in struct is known but we've already
@@ -330,46 +308,48 @@ pub fn Serializer(
                     return;
                 }
 
-                var v = try s._serializeField(key, value);
-                s.count += 1;
+                var f = try s._serializeField(k, v);
+                defer s.count += 1;
 
-                return v;
+                return f;
             }
 
             ////////////////////////////////////////////////////////////////////
             // Private methods
             ////////////////////////////////////////////////////////////////////
 
-            fn _serializeElement(s: *Serialize, value: anytype) Error!void {
+            fn _serializeElement(s: *Serialize, v: anytype) Error!void {
                 s.ser.formatter.beginArrayValue(s.ser.writer, s.state == .first) catch return error.Io;
-                try getty.serialize(s.ser.allocator, value, s.ser.serializer());
+                try getty.serialize(s.ser.ally, v, s.ser.serializer());
                 s.ser.formatter.endArrayValue(s.ser.writer) catch return error.Io;
 
                 s.state = .rest;
             }
 
-            fn _serializeKey(s: *Serialize, key: anytype, ser: anytype) Error!void {
+            fn _serializeKey(s: *Serialize, k: anytype, ser: anytype) Error!void {
                 s.ser.formatter.beginObjectKey(s.ser.writer, s.state == .first) catch return error.Io;
-                try getty.serialize(s.ser.allocator, key, ser);
+                try getty.serialize(s.ser.ally, k, ser);
                 s.ser.formatter.endObjectKey(s.ser.writer) catch return error.Io;
 
                 s.state = .rest;
             }
 
-            fn _serializeValue(s: *Serialize, value: anytype) Error!void {
+            fn _serializeValue(s: *Serialize, v: anytype) Error!void {
                 s.ser.formatter.beginObjectValue(s.ser.writer) catch return error.Io;
-                try getty.serialize(s.ser.allocator, value, s.ser.serializer());
+                try getty.serialize(s.ser.ally, v, s.ser.serializer());
                 s.ser.formatter.endObjectValue(s.ser.writer) catch return error.Io;
             }
 
-            fn _serializeField(s: *Serialize, comptime key: []const u8, value: anytype) Error!void {
-                if (comptime !std.unicode.utf8ValidateSlice(key)) {
+            fn _serializeField(s: *Serialize, comptime k: []const u8, v: anytype) Error!void {
+                if (comptime !std.unicode.utf8ValidateSlice(k)) {
                     return Error.Syntax;
                 }
 
                 var sks = StructKeySerializer{ .ser = s.ser };
-                try s._serializeKey(key, sks.serializer());
-                try s._serializeValue(value);
+                const ss = sks.serializer();
+
+                try s._serializeKey(k, ss);
+                try s._serializeValue(v);
             }
         };
 
@@ -393,26 +373,26 @@ pub fn Serializer(
                 },
             );
 
-            fn _serializeBool(s: MapKeySerializer, value: bool) Error!Ok {
-                try getty.serialize(s.ser.allocator, if (value) "true" else "false", s.ser.serializer());
+            fn _serializeBool(s: MapKeySerializer, v: bool) Error!Ok {
+                try getty.serialize(s.ser.ally, if (v) "true" else "false", s.ser.serializer());
             }
 
-            fn _serializeInt(s: MapKeySerializer, value: anytype) Error!Ok {
+            fn _serializeInt(s: MapKeySerializer, v: anytype) Error!Ok {
                 // TODO: Change to buffer size to digits10 + 1 for better space efficiency.
-                var buf: [@max(@bitSizeOf(@TypeOf(value)), 1) + 1]u8 = undefined;
+                var buf: [@max(@bitSizeOf(@TypeOf(v)), 1) + 1]u8 = undefined;
                 var fbs = std.io.fixedBufferStream(&buf);
 
                 // We have to manually format the integer into a string
                 // ourselves instead of using the serializer's formatter. The
                 // formatter's expecting the user's writer type, so we can't
                 // use it here.
-                std.fmt.formatInt(value, 10, .lower, .{}, fbs.writer()) catch return error.Io;
+                std.fmt.formatInt(v, 10, .lower, .{}, fbs.writer()) catch return error.Io;
 
-                try getty.serialize(s.ser.allocator, fbs.getWritten(), s.ser.serializer());
+                try getty.serialize(s.ser.ally, fbs.getWritten(), s.ser.serializer());
             }
 
-            fn _serializeString(s: MapKeySerializer, value: anytype) Error!Ok {
-                try getty.serialize(s.ser.allocator, value, s.ser.serializer());
+            fn _serializeString(s: MapKeySerializer, v: anytype) Error!Ok {
+                try getty.serialize(s.ser.ally, v, s.ser.serializer());
             }
         };
 
@@ -439,9 +419,9 @@ pub fn Serializer(
                 },
             );
 
-            fn _serializeString(s: StructKeySerializer, value: anytype) Error!Ok {
+            fn _serializeString(s: StructKeySerializer, v: anytype) Error!Ok {
                 s.ser.formatter.beginString(s.ser.writer) catch return Error.Io;
-                writeEscaped(value, s.ser.writer, s.ser.formatter) catch return Error.Io;
+                writeEscaped(v, s.ser.writer, s.ser.formatter) catch return Error.Io;
                 s.ser.formatter.endString(s.ser.writer) catch return Error.Io;
             }
         };
