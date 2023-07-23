@@ -26,8 +26,8 @@ pub const de = struct {
 
 /// Deserializes into a value of type `T` from the deserializer `d`.
 pub fn fromDeserializer(comptime T: type, d: anytype) !T {
-    const value = try getty.deserialize(d.allocator, T, d.deserializer());
-    errdefer de.free(d.allocator, value, null);
+    const value = try getty.deserialize(d.ally, T, d.deserializer());
+    errdefer de.free(d.ally, value, null);
     try d.end();
 
     return value;
