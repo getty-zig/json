@@ -69,7 +69,7 @@ pub fn build(b: *std.build.Builder) void {
         doc_obj.addModule("getty", getty_module);
 
         const install_docs = b.addInstallDirectory(.{
-            .source_dir = doc_obj.getOutputDocs(),
+            .source_dir = doc_obj.getEmittedDocs(),
             .install_dir = .prefix,
             .install_subdir = "doc/json",
         });
