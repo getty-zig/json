@@ -65,7 +65,6 @@ pub fn build(b: *std.build.Builder) void {
             .target = target,
             .optimize = optimize,
         });
-        doc_obj.emit_bin = .no_emit;
         doc_obj.addModule("getty", getty_module);
 
         const install_docs = b.addInstallDirectory(.{
