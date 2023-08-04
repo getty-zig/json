@@ -3,7 +3,7 @@ const std = @import("std");
 
 const expectEqualDeep = std.testing.expectEqualDeep;
 const expectEqualStrings = std.testing.expectEqualStrings;
-const test_allocator = std.testing.allocator;
+const test_ally = std.testing.allocator;
 
 test "encode - array" {
     try testEncodeEqual([0]bool, &.{
@@ -176,7 +176,7 @@ test "encode - list (std.ArrayList)" {
     {
         const T = std.ArrayList(u8);
 
-        var want = T.init(test_allocator);
+        var want = T.init(test_ally);
         defer want.deinit();
         try want.appendSlice(&.{ 1, 2, 3, 4 });
 
@@ -188,9 +188,9 @@ test "encode - list (std.ArrayList)" {
     {
         const T = std.ArrayList(std.ArrayList(u8));
 
-        var want = T.init(test_allocator);
-        var one = std.ArrayList(u8).init(test_allocator);
-        var two = std.ArrayList(u8).init(test_allocator);
+        var want = T.init(test_ally);
+        var one = std.ArrayList(u8).init(test_ally);
+        var two = std.ArrayList(u8).init(test_ally);
         defer {
             one.deinit();
             two.deinit();
@@ -210,7 +210,7 @@ test "encode - object (std.AutoHashMap)" {
     {
         const T = std.AutoHashMap(i32, []const u8);
 
-        var value = T.init(test_allocator);
+        var value = T.init(test_ally);
         defer value.deinit();
         try value.put(1, "foo");
         try value.put(2, "bar");
@@ -234,9 +234,9 @@ test "encode - object (std.AutoHashMap)" {
         const Child = std.AutoHashMap(i32, []const u8);
         const T = std.AutoHashMap(i32, Child);
 
-        var value = T.init(test_allocator);
-        var a = Child.init(test_allocator);
-        var b = Child.init(test_allocator);
+        var value = T.init(test_ally);
+        var a = Child.init(test_ally);
+        var b = Child.init(test_ally);
         defer {
             a.deinit();
             b.deinit();
@@ -275,7 +275,7 @@ test "encode - object (std.StringArrayHashMap)" {
     {
         const T = std.StringArrayHashMap(i32);
 
-        var value = T.init(test_allocator);
+        var value = T.init(test_ally);
         defer value.deinit();
         try value.put("foo", 1);
         try value.put("bar", 2);
@@ -299,9 +299,9 @@ test "encode - object (std.StringArrayHashMap)" {
         const Child = std.StringArrayHashMap(i32);
         const T = std.StringArrayHashMap(Child);
 
-        var value = T.init(test_allocator);
-        var a = Child.init(test_allocator);
-        var b = Child.init(test_allocator);
+        var value = T.init(test_ally);
+        var a = Child.init(test_ally);
+        var b = Child.init(test_ally);
         defer {
             a.deinit();
             b.deinit();
@@ -700,7 +700,7 @@ test "parse - int" {
 
 test "parse - list (std.ArrayList)" {
     {
-        var want = std.ArrayList(u8).init(test_allocator);
+        var want = std.ArrayList(u8).init(test_ally);
         defer want.deinit();
 
         try want.appendSlice(&.{ 1, 2, 3, 4 });
@@ -711,9 +711,9 @@ test "parse - list (std.ArrayList)" {
     }
 
     {
-        var want = std.ArrayList(std.ArrayList(u8)).init(test_allocator);
-        var one = std.ArrayList(u8).init(test_allocator);
-        var two = std.ArrayList(u8).init(test_allocator);
+        var want = std.ArrayList(std.ArrayList(u8)).init(test_ally);
+        var one = std.ArrayList(u8).init(test_ally);
+        var two = std.ArrayList(u8).init(test_ally);
         defer {
             one.deinit();
             two.deinit();
@@ -732,14 +732,14 @@ test "parse - list (std.ArrayList)" {
 
 test "parse - object (std.AutoHashMap)" {
     {
-        var got = try json.fromSlice(test_allocator, std.AutoHashMap(i32, []const u8),
+        var got = try json.fromSlice(test_ally, std.AutoHashMap(i32, []const u8),
             \\{
             \\  "1": "foo",
             \\  "2": "bar",
             \\  "3": "baz"
             \\}
         );
-        defer json.de.free(test_allocator, got, null);
+        defer json.de.free(test_ally, got, null);
 
         try expectEqualDeep(std.AutoHashMap(i32, []const u8), @TypeOf(got));
         try expectEqualDeep(@as(u32, 3), got.count());
@@ -749,18 +749,18 @@ test "parse - object (std.AutoHashMap)" {
     }
 
     {
-        var got = try json.fromSlice(test_allocator, std.AutoHashMap(i32, std.AutoHashMap(i32, []const u8)),
+        var got = try json.fromSlice(test_ally, std.AutoHashMap(i32, std.AutoHashMap(i32, []const u8)),
             \\{
             \\  "1": { "4": "foo" },
             \\  "2": { "5": "bar" },
             \\  "3": { "6": "baz" }
             \\}
         );
-        defer json.de.free(test_allocator, got, null);
+        defer json.de.free(test_ally, got, null);
 
-        var a = std.AutoHashMap(i32, []const u8).init(test_allocator);
-        var b = std.AutoHashMap(i32, []const u8).init(test_allocator);
-        var c = std.AutoHashMap(i32, []const u8).init(test_allocator);
+        var a = std.AutoHashMap(i32, []const u8).init(test_ally);
+        var b = std.AutoHashMap(i32, []const u8).init(test_ally);
+        var c = std.AutoHashMap(i32, []const u8).init(test_ally);
         defer {
             a.deinit();
             b.deinit();
@@ -784,14 +784,14 @@ test "parse - object (std.AutoHashMap)" {
 
 test "parse - object (std.StringHashMap)" {
     {
-        var got = try json.fromSlice(test_allocator, std.StringHashMap(u8),
+        var got = try json.fromSlice(test_ally, std.StringHashMap(u8),
             \\{
             \\  "\"a": 1,
             \\  "b": 2,
             \\  "c": 3
             \\}
         );
-        defer json.de.free(test_allocator, got, null);
+        defer json.de.free(test_ally, got, null);
 
         try expectEqualDeep(std.StringHashMap(u8), @TypeOf(got));
         try expectEqualDeep(@as(u32, 3), got.count());
@@ -801,14 +801,14 @@ test "parse - object (std.StringHashMap)" {
     }
 
     {
-        var got = try json.fromSlice(test_allocator, std.StringHashMap([]const u8),
+        var got = try json.fromSlice(test_ally, std.StringHashMap([]const u8),
             \\{
             \\  "\"a": "foo",
             \\  "b": "bar",
             \\  "c": "baz"
             \\}
         );
-        defer json.de.free(test_allocator, got, null);
+        defer json.de.free(test_ally, got, null);
 
         try expectEqualDeep(std.StringHashMap([]const u8), @TypeOf(got));
         try expectEqualDeep(@as(u32, 3), got.count());
@@ -818,18 +818,18 @@ test "parse - object (std.StringHashMap)" {
     }
 
     {
-        var got = try json.fromSlice(test_allocator, std.StringHashMap(std.StringHashMap([]const u8)),
+        var got = try json.fromSlice(test_ally, std.StringHashMap(std.StringHashMap([]const u8)),
             \\{
             \\  "\"a": { "\"d": "foo" },
             \\  "b": { "e": "bar" },
             \\  "c": { "f": "baz" }
             \\}
         );
-        defer json.de.free(test_allocator, got, null);
+        defer json.de.free(test_ally, got, null);
 
-        var a = std.StringHashMap([]const u8).init(test_allocator);
-        var b = std.StringHashMap([]const u8).init(test_allocator);
-        var c = std.StringHashMap([]const u8).init(test_allocator);
+        var a = std.StringHashMap([]const u8).init(test_ally);
+        var b = std.StringHashMap([]const u8).init(test_ally);
+        var c = std.StringHashMap([]const u8).init(test_ally);
         defer {
             a.deinit();
             b.deinit();
@@ -995,8 +995,8 @@ test "parse - union" {
     const Untagged = union { foo: bool, bar: void };
     const want_foo = Untagged{ .foo = false };
     const want_bar = Untagged{ .bar = {} };
-    const got_foo = try json.fromSlice(test_allocator, Untagged, "{\"foo\":false}");
-    const got_bar = try json.fromSlice(test_allocator, Untagged, "{\"bar\":null}");
+    const got_foo = try json.fromSlice(test_ally, Untagged, "{\"foo\":false}");
+    const got_bar = try json.fromSlice(test_ally, Untagged, "{\"bar\":null}");
     try expectEqualDeep(want_foo.foo, got_foo.foo);
     try expectEqualDeep(want_bar.bar, got_bar.bar);
 }
@@ -1012,8 +1012,8 @@ fn testEncodeEqual(comptime T: type, tests: EncodeTest(T)) !void {
         const want = t[0];
         const value = t[1];
 
-        var got = try json.toSlice(test_allocator, value);
-        defer json.de.free(test_allocator, got, null);
+        var got = try json.toSlice(test_ally, value);
+        defer json.de.free(test_ally, got, null);
 
         try expectEqualStrings(want, got);
     }
@@ -1024,8 +1024,8 @@ fn testPrettyEncodeEqual(comptime T: type, tests: EncodeTest(T)) !void {
         const want = t[0];
         const value = t[1];
 
-        var got = try json.toPrettySlice(test_allocator, value);
-        defer json.de.free(test_allocator, got, null);
+        var got = try json.toPrettySlice(test_ally, value);
+        defer json.de.free(test_ally, got, null);
 
         try expectEqualStrings(want, got);
     }
@@ -1036,8 +1036,8 @@ fn testParseEqual(comptime T: type, tests: ParseTest(T)) !void {
         const want = t[0];
         const input = t[1];
 
-        var got = try json.fromSlice(test_allocator, T, input);
-        defer json.de.free(test_allocator, got, null);
+        var got = try json.fromSlice(test_ally, T, input);
+        defer json.de.free(test_ally, got, null);
 
         try expectEqualDeep(want, got);
     }
