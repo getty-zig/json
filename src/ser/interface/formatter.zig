@@ -213,7 +213,7 @@ pub fn Formatter(
         };
 
         pub fn formatter(impl: Impl) @"json.ser.Formatter" {
-            return .{ .impl = self };
+            return .{ .impl = impl };
         }
     };
 }
