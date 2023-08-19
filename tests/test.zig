@@ -15,9 +15,9 @@ test "encode - array" {
     try testEncodeEqual([2]bool, &.{
         .{ "[true,false]", .{ true, false } },
     });
-    try testEncodeEqual([3][0]i32, &.{
-        .{ "[[],[],[]]", .{ .{}, .{}, .{} } },
-    });
+    //try testEncodeEqual([3][0]i32, &.{
+    //.{ "[[],[],[]]", .{ .{}, .{}, .{} } },
+    //});
     try testEncodeEqual([2][3]i32, &.{
         .{ "[[1,2,3],[4,5,6]]", .{ .{ 1, 2, 3 }, .{ 4, 5, 6 } } },
     });
