@@ -164,7 +164,7 @@ test "encode - float" {
         .{ "2.2250738585072014e-308", std.math.floatMin(f64) },
         .{ "1.7976931348623157e+308", std.math.floatMax(f64) },
         .{ "2.220446049250313e-16", std.math.floatEps(f64) },
-        .{ "null", std.math.nan_f64 },
+        .{ "null", std.math.nan(f64) },
         .{ "null", std.math.inf(f64) },
     };
 
