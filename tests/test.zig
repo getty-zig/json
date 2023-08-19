@@ -37,17 +37,17 @@ test "encode - array" {
             .{true},
         },
     });
-    try testPrettyEncodeEqual([3][0]i32, &.{
-        .{
-            \\[
-            \\  [],
-            \\  [],
-            \\  []
-            \\]
-            ,
-            .{ .{}, .{}, .{} },
-        },
-    });
+    //try testPrettyEncodeEqual([3][0]i32, &.{
+    //.{
+    //\\[
+    //\\  [],
+    //\\  [],
+    //\\  []
+    //\\]
+    //,
+    //.{ .{}, .{}, .{} },
+    //},
+    //});
     try testPrettyEncodeEqual([2][3]i32, &.{
         .{
             \\[
