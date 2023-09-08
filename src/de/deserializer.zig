@@ -283,7 +283,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                         // Return an early error if the visitor's value type is
                         // unsigned but the parsed number is negative.
                         if (sign == .unsigned and slice[0] == '-') {
-                            return error.InvalidType;
+                            return error.Overflow;
                         }
 
                         break :blk try parseInt(Value, slice);
