@@ -26,7 +26,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         ///
         /// This method should always be called after a value has been fully
         /// deserialized.
-        pub fn end(self: *Self) Error!void {
+        pub fn end(self: *Self) Err!void {
             if (try self.parser.next() != .end_of_document) {
                 return error.SyntaxError;
             }
@@ -34,7 +34,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
         pub usingnamespace getty.Deserializer(
             *Self,
-            Error,
+            Err,
             dbt,
             null,
             .{
@@ -54,15 +54,14 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             },
         );
 
-        const Error = getty.de.Error ||
+        const De = Self.@"getty.Deserializer";
+        const Err = getty.de.Error ||
             // This includes all of std.json.Reader's errors, including
             // std.json.Error.
             Parser.AllocError ||
             std.fmt.ParseIntError || std.fmt.ParseFloatError;
 
-        const De = Self.@"getty.Deserializer";
-
-        fn deserializeAny(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeAny(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             if (try self.parser.peekNextTokenType() == .end_of_document) {
                 return error.UnexpectedEndOfInput;
             }
@@ -170,7 +169,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn deserializeBool(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeBool(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.peekNextTokenType()) {
                 .true, .false => {},
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -189,7 +188,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             return try visitor.visitBool(ally, De, value);
         }
 
-        fn deserializeEnum(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeEnum(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.peekNextTokenType()) {
                 .string, .number => {},
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -217,7 +216,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             };
         }
 
-        fn deserializeFloat(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeFloat(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.peekNextTokenType()) {
                 .number => {},
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -250,13 +249,13 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             return try visitor.visitFloat(ally, De, value);
         }
 
-        fn deserializeIgnored(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeIgnored(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             try self.parser.skipValue();
 
             return try visitor.visitVoid(ally, De);
         }
 
-        fn deserializeInt(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeInt(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.peekNextTokenType()) {
                 .number => {},
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -305,7 +304,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             return try visitor.visitInt(ally, De, value);
         }
 
-        fn deserializeMap(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeMap(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.peekNextTokenType()) {
                 .object_begin => try self.skipToken(), // Eat '{'.
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -325,7 +324,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             return result;
         }
 
-        fn deserializeOptional(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeOptional(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             return switch (try self.parser.peekNextTokenType()) {
                 .null => blk: {
                     try self.skipToken(); // Eat 'null'.
@@ -336,7 +335,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             };
         }
 
-        fn deserializeSeq(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeSeq(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.peekNextTokenType()) {
                 .array_begin => try self.skipToken(), // Eat '['.
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -356,7 +355,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             return result;
         }
 
-        fn deserializeString(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeString(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.peekNextTokenType()) {
                 .string => {},
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -379,7 +378,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             };
         }
 
-        fn deserializeStruct(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeStruct(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.peekNextTokenType()) {
                 .object_begin => try self.skipToken(), // Eat '{'.
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -399,7 +398,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             return result;
         }
 
-        fn deserializeUnion(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeUnion(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const peek = switch (try self.parser.peekNextTokenType()) {
                 .string => |v| v,
                 .object_begin => |v| blk: {
@@ -425,7 +424,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             return result;
         }
 
-        fn deserializeVoid(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeVoid(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.peekNextTokenType()) {
                 .null => try self.skipToken(), // Eat 'null'.
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -452,7 +451,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn endSeq(self: *Self) Error!void {
+        fn endSeq(self: *Self) Err!void {
             switch (try self.parser.peekNextTokenType()) {
                 .array_end => try self.skipToken(), // Eat ']'.
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -460,7 +459,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn endMap(self: *Self) Error!void {
+        fn endMap(self: *Self) Err!void {
             switch (try self.parser.peekNextTokenType()) {
                 .object_end => try self.skipToken(), // Eat '}'.
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -478,7 +477,7 @@ fn MapKeyDeserializer(comptime De: type) type {
 
         pub usingnamespace getty.Deserializer(
             *Self,
-            Error,
+            Err,
             De.user_dt,
             De.deserializer_dt,
             .{
@@ -489,9 +488,9 @@ fn MapKeyDeserializer(comptime De: type) type {
             },
         );
 
-        const Error = De.Error;
+        const Err = De.Err;
 
-        fn deserializeAny(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeAny(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const Value = @TypeOf(visitor).Value;
 
             if (@typeInfo(Value) == .Int) {
@@ -505,17 +504,17 @@ fn MapKeyDeserializer(comptime De: type) type {
             return error.InvalidType;
         }
 
-        fn deserializeIgnored(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeIgnored(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             _ = self;
             return try visitor.visitVoid(ally, De);
         }
 
-        fn deserializeInt(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeInt(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const int = try parseInt(@TypeOf(visitor).Value, self.key);
             return try visitor.visitInt(ally, De, int);
         }
 
-        fn deserializeString(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Error!@TypeOf(visitor).Value {
+        fn deserializeString(self: *Self, ally: ?std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             return try visitor.visitString(ally, De, self.key);
         }
     };
@@ -529,7 +528,7 @@ fn MapAccess(comptime D: type) type {
 
         pub usingnamespace getty.de.MapAccess(
             *Self,
-            Error,
+            Err,
             .{
                 .nextKeySeed = nextKeySeed,
                 .nextValueSeed = nextValueSeed,
@@ -537,10 +536,9 @@ fn MapAccess(comptime D: type) type {
         );
 
         const De = D.@"getty.Deserializer";
+        const Err = De.Err;
 
-        const Error = De.Error;
-
-        fn nextKeySeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
+        fn nextKeySeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
             switch (try self.d.parser.peekNextTokenType()) {
                 .object_end => return null,
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -563,7 +561,7 @@ fn MapAccess(comptime D: type) type {
             return try seed.deserialize(ally, mkd.deserializer());
         }
 
-        fn nextValueSeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
+        fn nextValueSeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             return try seed.deserialize(ally, self.d.deserializer());
         }
     };
@@ -577,15 +575,14 @@ fn SeqAccess(comptime D: type) type {
 
         pub usingnamespace getty.de.SeqAccess(
             *Self,
-            Error,
+            Err,
             .{ .nextElementSeed = nextElementSeed },
         );
 
         const De = D.@"getty.Deserializer";
+        const Err = De.Err;
 
-        const Error = De.Error;
-
-        fn nextElementSeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
+        fn nextElementSeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
             switch (try self.d.parser.peekNextTokenType()) {
                 .array_end => return null,
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -606,7 +603,7 @@ fn StructAccess(comptime D: type) type {
 
         pub usingnamespace getty.de.MapAccess(
             *Self,
-            Error,
+            Err,
             .{
                 .nextKeySeed = nextKeySeed,
                 .nextValueSeed = nextValueSeed,
@@ -615,10 +612,9 @@ fn StructAccess(comptime D: type) type {
         );
 
         const De = D.@"getty.Deserializer";
+        const Err = De.Err;
 
-        const Error = De.Error;
-
-        fn nextKeySeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Error!?@TypeOf(seed).Value {
+        fn nextKeySeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
             if (@TypeOf(seed).Value != []const u8) {
                 @compileError("expected key type to be `[]const u8`");
             }
@@ -648,7 +644,7 @@ fn StructAccess(comptime D: type) type {
             }
         }
 
-        fn nextValueSeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
+        fn nextValueSeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             return try seed.deserialize(ally, self.d.deserializer());
         }
 
@@ -666,7 +662,7 @@ fn Union(comptime D: type) type {
 
         pub usingnamespace getty.de.UnionAccess(
             *Self,
-            Error,
+            Err,
             .{
                 .variantSeed = variantSeed,
             },
@@ -674,17 +670,16 @@ fn Union(comptime D: type) type {
 
         pub usingnamespace getty.de.VariantAccess(
             *Self,
-            Error,
+            Err,
             .{
                 .payloadSeed = payloadSeed,
             },
         );
 
         const De = D.@"getty.Deserializer";
+        const Err = De.Err;
 
-        const Error = De.Error;
-
-        fn variantSeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
+        fn variantSeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             return switch (try self.d.parser.peekNextTokenType()) {
                 .string => try seed.deserialize(ally, self.d.deserializer()),
                 .end_of_document => error.UnexpectedEndOfInput,
@@ -692,7 +687,7 @@ fn Union(comptime D: type) type {
             };
         }
 
-        fn payloadSeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Error!@TypeOf(seed).Value {
+        fn payloadSeed(self: *Self, ally: ?std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             const payload = try seed.deserialize(ally, self.d.deserializer());
             errdefer if (ally) |a| getty.de.free(a, De, payload);
 
