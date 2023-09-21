@@ -553,7 +553,6 @@ fn SeqAccess(comptime D: type) type {
 fn StructAccess(comptime D: type) type {
     return struct {
         d: *D,
-        is_key_allocated: bool = false,
 
         const Self = @This();
 
@@ -585,7 +584,6 @@ fn StructAccess(comptime D: type) type {
 
             switch (token) {
                 inline .string, .allocated_string => |slice| {
-                    self.is_key_allocated = token == .allocated_string;
                     return slice;
                 },
 
