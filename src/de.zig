@@ -53,6 +53,7 @@ pub fn fromReaderWith(
 /// Deserializes into a value of type `T` from the deserializer `d`.
 pub fn fromDeserializer(comptime T: type, d: anytype) !getty.de.Result(T) {
     var result = try getty.deserialize(d.ally, T, d.deserializer());
+    errdefer result.deinit();
 
     try d.end();
 
