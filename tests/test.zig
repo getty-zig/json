@@ -1012,16 +1012,16 @@ test "parse - union" {
         .{ .{ .bar = {} }, "{\"bar\":null}" },
     });
 
-    //const Untagged = union { foo: bool, bar: void };
-    //const want_foo = Untagged{ .foo = false };
-    //_ = want_foo;
-    //const want_bar = Untagged{ .bar = {} };
-    //_ = want_bar;
-    //const result_foo = try json.fromSlice(test_ally, Untagged, "{\"foo\":false}");
-    //const result_bar = try json.fromSlice(test_ally, Untagged, "{\"bar\":null}");
+    const Untagged = union { foo: bool, bar: void };
+    const want_foo = Untagged{ .foo = false };
+    const want_bar = Untagged{ .bar = {} };
+    const result_foo = try json.fromSlice(test_ally, Untagged, "{\"foo\":false}");
+    defer result_foo.deinit();
+    const result_bar = try json.fromSlice(test_ally, Untagged, "{\"bar\":null}");
+    defer result_bar.deinit();
 
-    //try expectEqualDeep(want_foo.foo, result_foo.value.foo);
-    //try expectEqualDeep(want_bar.bar, result_bar.value.bar);
+    try expectEqualDeep(want_foo.foo, result_foo.value.foo);
+    try expectEqualDeep(want_bar.bar, result_bar.value.bar);
 }
 
 test "parse - void" {
