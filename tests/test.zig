@@ -1,6 +1,7 @@
 const json = @import("json");
 const std = @import("std");
 
+const expectEqual = std.testing.expectEqual;
 const expectEqualDeep = std.testing.expectEqualDeep;
 const expectEqualStrings = std.testing.expectEqualStrings;
 const test_ally = std.testing.allocator;
@@ -686,17 +687,27 @@ test "parse - int" {
 
 test "parse - list (std.ArrayList)" {
     {
+        const input = "[1,2,3,4]";
+
         var want = std.ArrayList(u8).init(test_ally);
         defer want.deinit();
 
         try want.appendSlice(&.{ 1, 2, 3, 4 });
 
-        try testParseEqual(std.ArrayList(u8), &.{
-            .{ want, "[1,2,3,4]" },
-        });
+        var result = try json.fromSlice(test_ally, @TypeOf(want), input);
+        defer result.deinit();
+
+        const got = result.value;
+
+        try expectEqual(want.items.len, got.items.len);
+        for (want.items, 0..) |w, i| {
+            try expectEqual(w, got.items[i]);
+        }
     }
 
     {
+        const input = "[[1, 2],[3,4]]";
+
         var want = std.ArrayList(std.ArrayList(u8)).init(test_ally);
         var one = std.ArrayList(u8).init(test_ally);
         var two = std.ArrayList(u8).init(test_ally);
