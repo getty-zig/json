@@ -134,7 +134,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 .array_begin => {
                     var s = SeqAccess(Self){ .d = self };
                     const result = try visitor.visitSeq(ally, De, s.seqAccess());
-                    errdefer getty.de.free(ally, De, result);
 
                     try self.endSeq();
 
@@ -145,7 +144,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     if (visitor_info == .Union) {
                         var u = Union(Self){ .d = self };
                         const result = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
-                        errdefer getty.de.free(ally, De, result);
 
                         try self.endMap();
 
@@ -155,7 +153,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     // Map
                     var m = MapAccess(Self){ .d = self };
                     const result = try visitor.visitMap(ally, De, m.mapAccess());
-                    errdefer getty.de.free(ally, De, result);
 
                     try self.endMap();
 
@@ -297,7 +294,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
             var m = MapAccess(Self){ .d = self };
             const result = try visitor.visitMap(ally, De, m.mapAccess());
-            errdefer getty.de.free(ally, De, result);
 
             try self.endMap();
 
@@ -324,7 +320,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
             var s = SeqAccess(Self){ .d = self };
             const result = try visitor.visitSeq(ally, De, s.seqAccess());
-            errdefer getty.de.free(ally, De, result);
 
             try self.endSeq();
 
@@ -359,7 +354,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
             var s = StructAccess(Self){ .d = self };
             const result = try visitor.visitMap(ally, De, s.mapAccess());
-            errdefer getty.de.free(ally, De, result);
 
             try self.endMap();
 
@@ -379,7 +373,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
             var u = Union(Self){ .d = self };
             const result = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
-            errdefer getty.de.free(ally, De, result);
 
             if (peek == .object_begin) {
                 try self.endMap();
@@ -518,11 +511,13 @@ fn MapAccess(comptime D: type) type {
             };
 
             var mkd = MapKeyDeserializer(De){ .key = value };
-            return try seed.deserialize(ally, mkd.deserializer());
+            var result = try seed.deserialize(ally, mkd.deserializer());
+            return result.value;
         }
 
         fn nextValueSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
-            return try seed.deserialize(ally, self.d.deserializer());
+            var result = try seed.deserialize(ally, self.d.deserializer());
+            return result.value;
         }
     };
 }
@@ -549,7 +544,8 @@ fn SeqAccess(comptime D: type) type {
                 else => {},
             }
 
-            return try seed.deserialize(ally, self.d.deserializer());
+            var result = try seed.deserialize(ally, self.d.deserializer());
+            return result.value;
         }
     };
 }
@@ -637,18 +633,20 @@ fn Union(comptime D: type) type {
 
         fn variantSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             return switch (try self.d.parser.peekNextTokenType()) {
-                .string => try seed.deserialize(ally, self.d.deserializer()),
+                .string => blk: {
+                    var result = try seed.deserialize(ally, self.d.deserializer());
+                    break :blk result.value;
+                },
                 .end_of_document => error.UnexpectedEndOfInput,
                 else => error.InvalidType,
             };
         }
 
         fn payloadSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
-            const payload = try seed.deserialize(ally, self.d.deserializer());
-            errdefer if (ally) |a| getty.de.free(a, De, payload);
+            var result = try seed.deserialize(ally, self.d.deserializer());
 
             return switch (try self.d.parser.peekNextTokenType()) {
-                .object_end => payload,
+                .object_end => result.value,
                 .end_of_document => error.UnexpectedEndOfInput,
                 else => error.SyntaxError,
             };
