@@ -563,7 +563,6 @@ fn StructAccess(comptime D: type) type {
             .{
                 .nextKeySeed = nextKeySeed,
                 .nextValueSeed = nextValueSeed,
-                .isKeyAllocated = isKeyAllocated,
             },
         );
 
@@ -597,11 +596,8 @@ fn StructAccess(comptime D: type) type {
         }
 
         fn nextValueSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
-            return try seed.deserialize(ally, self.d.deserializer());
-        }
-
-        fn isKeyAllocated(self: *Self, comptime _: type) bool {
-            return self.is_key_allocated;
+            var result = try seed.deserialize(ally, self.d.deserializer());
+            return result.value;
         }
     };
 }
