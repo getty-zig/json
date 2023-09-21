@@ -1005,22 +1005,24 @@ test "parse - struct" {
 }
 
 // TODO: Uncomment test once https://github.com/getty-zig/getty/issues/135 finished.
-//test "parse - union" {
-//const Tagged = union(enum) { foo: bool, bar: void };
-//try testParseEqual(Tagged, &.{
-//.{ .{ .foo = true }, "{\"foo\":true}" },
-//.{ .{ .bar = {} }, "{\"bar\":null}" },
-//});
+test "parse - union" {
+    const Tagged = union(enum) { foo: bool, bar: void };
+    try testParseEqual(Tagged, &.{
+        .{ .{ .foo = true }, "{\"foo\":true}" },
+        .{ .{ .bar = {} }, "{\"bar\":null}" },
+    });
 
-//const Untagged = union { foo: bool, bar: void };
-//const want_foo = Untagged{ .foo = false };
-//const want_bar = Untagged{ .bar = {} };
-//const result_foo = try json.fromSlice(test_ally, Untagged, "{\"foo\":false}");
-//const result_bar = try json.fromSlice(test_ally, Untagged, "{\"bar\":null}");
+    //const Untagged = union { foo: bool, bar: void };
+    //const want_foo = Untagged{ .foo = false };
+    //_ = want_foo;
+    //const want_bar = Untagged{ .bar = {} };
+    //_ = want_bar;
+    //const result_foo = try json.fromSlice(test_ally, Untagged, "{\"foo\":false}");
+    //const result_bar = try json.fromSlice(test_ally, Untagged, "{\"bar\":null}");
 
-//try expectEqualDeep(want_foo.foo, result_foo.value.foo);
-//try expectEqualDeep(want_bar.bar, result_bar.value.bar);
-//}
+    //try expectEqualDeep(want_foo.foo, result_foo.value.foo);
+    //try expectEqualDeep(want_bar.bar, result_bar.value.bar);
+}
 
 test "parse - void" {
     try testParseEqual(void, &.{
