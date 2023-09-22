@@ -62,10 +62,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             std.fmt.ParseIntError || std.fmt.ParseFloatError;
 
         fn deserializeAny(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            if (try self.parser.peekNextTokenType() == .end_of_document) {
-                return error.UnexpectedEndOfInput;
-            }
-
             const Visitor = @TypeOf(visitor);
             const visitor_info = @typeInfo(Visitor);
 
@@ -170,6 +166,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
                     return result;
                 },
+                .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             }
         }
