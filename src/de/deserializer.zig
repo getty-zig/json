@@ -357,11 +357,11 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             const token = try self.parser.nextAlloc(ally, .alloc_always);
 
             switch (token) {
-                .string => |s| {
-                    return try visitor.visitString(ally, De, s, .stack);
-                },
                 .allocated_string => |s| {
                     return try visitor.visitString(ally, De, s, .heap);
+                },
+                .string => |s| {
+                    return try visitor.visitString(ally, De, s, .stack);
                 },
 
                 // UNREACHABLE: The peek switch guarantees that only .string
