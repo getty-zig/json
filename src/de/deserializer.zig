@@ -334,15 +334,18 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
 
             const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
-            defer freeToken(ally, token);
 
-            return try switch (token) {
-                inline .string, .allocated_string => |slice| visitor.visitString(ally, De, slice),
+            switch (token) {
+                .string => |s| return try visitor.visitString(ally, De, s, .stack),
+                .allocated_string => |s| {
+                    defer freeToken(ally, token);
+                    return try visitor.visitString(ally, De, s, .heap);
+                },
 
                 // UNREACHABLE: The peek switch guarantees that only .string
                 // and .allocated_string tokens reach here.
                 else => unreachable,
-            };
+            }
         }
 
         fn deserializeStruct(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
