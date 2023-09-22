@@ -70,13 +70,14 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             const visitor_info = @typeInfo(Visitor);
 
             const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
-            defer freeToken(ally, token);
 
             switch (token) {
                 .true, .false => {
                     return try visitor.visitBool(ally, De, token == .true);
                 },
                 inline .number, .allocated_number => |slice| {
+                    defer freeToken(ally, token);
+
                     // Integer (with hint)
                     if (visitor_info == .Int) {
                         const sign = visitor_info.Int.signedness;
@@ -120,7 +121,18 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     }
 
                     // Enum, String
-                    return try visitor.visitString(ally, De, slice);
+                    switch (token) {
+                        .string => {
+                            return try visitor.visitString(ally, De, slice, .stack);
+                        },
+                        .allocated_string => {
+                            return try visitor.visitString(ally, De, slice, .heap);
+                        },
+                        // UNREACHABLE: The outer switch guarantees that only
+                        // .string and .allocated_string tokens will reach this
+                        // inner switch.
+                        else => unreachable,
+                    }
                 },
                 .null => {
                     // Void
@@ -182,27 +194,36 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeEnum(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.peekNextTokenType()) {
+            const peek = try self.parser.peekNextTokenType();
+            switch (peek) {
                 .string, .number => {},
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             }
 
-            const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
-            defer freeToken(ally, token);
+            const token = try self.parser.nextAlloc(
+                ally,
+                if (peek == .string) .alloc_always else .alloc_if_needed,
+            );
 
-            return try switch (token) {
-                inline .string, .allocated_string => |slice| visitor.visitString(ally, De, slice),
-                inline .number, .allocated_number => |slice| switch (slice[0]) {
-                    '0'...'9' => visitor.visitInt(ally, De, try parseInt(u128, slice)),
-                    else => visitor.visitInt(ally, De, try parseInt(i128, slice)),
+            switch (token) {
+                .allocated_string => |slice| {
+                    return try visitor.visitString(ally, De, slice, .heap);
+                },
+                inline .number, .allocated_number => |slice| {
+                    defer freeToken(ally, token);
+
+                    return try switch (slice[0]) {
+                        '0'...'9' => visitor.visitInt(ally, De, try parseInt(u128, slice)),
+                        else => visitor.visitInt(ally, De, try parseInt(i128, slice)),
+                    };
                 },
 
-                // UNREACHABLE: The peek switch guarantees that only .number,
-                // .string, .allocated_number, and .allocated_string tokens
+                // UNREACHABLE: The peek and string check guarantees that only
+                // .number, .allocated_number, and .allocated_string tokens
                 // reach here.
                 else => unreachable,
-            };
+            }
         }
 
         fn deserializeFloat(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
@@ -333,16 +354,20 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 else => return error.InvalidType,
             }
 
-            const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
-            defer freeToken(ally, token);
+            const token = try self.parser.nextAlloc(ally, .alloc_always);
 
-            return try switch (token) {
-                inline .string, .allocated_string => |slice| visitor.visitString(ally, De, slice),
+            switch (token) {
+                .string => |s| {
+                    return try visitor.visitString(ally, De, s, .stack);
+                },
+                .allocated_string => |s| {
+                    return try visitor.visitString(ally, De, s, .heap);
+                },
 
                 // UNREACHABLE: The peek switch guarantees that only .string
                 // and .allocated_string tokens reach here.
                 else => unreachable,
-            };
+            }
         }
 
         fn deserializeStruct(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
@@ -429,6 +454,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 fn MapKeyDeserializer(comptime De: type) type {
     return struct {
         key: []const u8,
+        allocated: bool,
 
         const Self = @This();
 
@@ -472,7 +498,11 @@ fn MapKeyDeserializer(comptime De: type) type {
         }
 
         fn deserializeString(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            return try visitor.visitString(ally, De, self.key);
+            if (self.allocated) {
+                return try visitor.visitString(ally, De, self.key, .heap);
+            }
+
+            return try visitor.visitString(ally, De, self.key, .stack);
         }
     };
 }
@@ -505,12 +535,16 @@ fn MapAccess(comptime D: type) type {
             const token = try self.d.parser.nextAlloc(ally, .alloc_if_needed);
             defer freeToken(ally, token);
 
+            var allocated: bool = undefined;
             const value = switch (token) {
-                inline .string, .allocated_string => |slice| slice,
+                inline .string, .allocated_string => |slice| value: {
+                    allocated = token == .allocated_string;
+                    break :value slice;
+                },
                 else => return error.InvalidType,
             };
 
-            var mkd = MapKeyDeserializer(De){ .key = value };
+            var mkd = MapKeyDeserializer(De){ .key = value, .allocated = allocated };
             var result = try seed.deserialize(ally, mkd.deserializer());
             return result.value;
         }
