@@ -194,18 +194,19 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeEnum(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.peekNextTokenType()) {
+            const peek = try self.parser.peekNextTokenType();
+            switch (peek) {
                 .string, .number => {},
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             }
 
-            const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
+            const token = try self.parser.nextAlloc(
+                ally,
+                if (peek == .string) .alloc_always else .alloc_if_needed,
+            );
 
             switch (token) {
-                .string => |slice| {
-                    return try visitor.visitString(ally, De, slice, .stack);
-                },
                 .allocated_string => |slice| {
                     return try visitor.visitString(ally, De, slice, .heap);
                 },
@@ -218,8 +219,9 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     };
                 },
 
-                // UNREACHABLE: The peek guarantees that only .number, .string,
-                // .allocated_number, and .allocated_string tokens reach here.
+                // UNREACHABLE: The peek and string check guarantees that only
+                // .number, .allocated_number, and .allocated_string tokens
+                // reach here.
                 else => unreachable,
             }
         }
@@ -352,7 +354,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 else => return error.InvalidType,
             }
 
-            const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
+            const token = try self.parser.nextAlloc(ally, .alloc_always);
 
             switch (token) {
                 .string => |s| {
