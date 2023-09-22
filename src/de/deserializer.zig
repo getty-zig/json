@@ -348,26 +348,22 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeString(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.peekNextTokenType()) {
-                .string => {},
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
+            const peek = try self.parser.peekNextTokenType();
+
+            if (peek == .end_of_document) {
+                return error.UnexpectedEndOfInput;
+            }
+            if (peek != .string) {
+                return error.InvalidType;
             }
 
             const token = try self.parser.nextAlloc(ally, .alloc_always);
 
-            switch (token) {
-                .string => |s| {
-                    return try visitor.visitString(ally, De, s, .stack);
-                },
-                .allocated_string => |s| {
-                    return try visitor.visitString(ally, De, s, .heap);
-                },
-
-                // UNREACHABLE: The peek switch guarantees that only .string
-                // and .allocated_string tokens reach here.
-                else => unreachable,
+            if (token == .string) {
+                return try visitor.visitString(ally, De, token.string, .stack);
             }
+
+            return try visitor.visitString(ally, De, token.allocated_string, .heap);
         }
 
         fn deserializeStruct(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
