@@ -344,11 +344,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
 
             var s = StructAccess(Self){ .d = self };
-            const result = try visitor.visitMap(ally, De, s.mapAccess());
-
-            try self.endMap();
-
-            return result;
+            return try visitor.visitMap(ally, De, s.mapAccess());
         }
 
         fn deserializeUnion(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
@@ -573,23 +569,13 @@ fn StructAccess(comptime D: type) type {
                 @compileError("expected key type to be `[]const u8`");
             }
 
-            switch (try self.d.parser.peekNextTokenType()) {
-                .string => {},
-                .object_end => return null,
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
-            }
-
             const token = try self.d.parser.nextAlloc(ally, .alloc_if_needed);
 
             switch (token) {
-                inline .string, .allocated_string => |slice| {
-                    return slice;
-                },
-
-                // UNREACHABLE: The peek switch guarantees that only .string
-                // and .allocated_string tokens reach here.
-                else => unreachable,
+                inline .string, .allocated_string => |slice| return slice,
+                .object_end => return null,
+                .end_of_document => return error.UnexpectedEndOfInput,
+                else => return error.InvalidType,
             }
         }
 
