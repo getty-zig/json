@@ -1,6 +1,7 @@
 const json = @import("json");
 const std = @import("std");
 
+const expectEqual = std.testing.expectEqual;
 const expectEqualDeep = std.testing.expectEqualDeep;
 const expectEqualStrings = std.testing.expectEqualStrings;
 const test_ally = std.testing.allocator;
@@ -686,17 +687,27 @@ test "parse - int" {
 
 test "parse - list (std.ArrayList)" {
     {
+        const input = "[1,2,3,4]";
+
         var want = std.ArrayList(u8).init(test_ally);
         defer want.deinit();
 
         try want.appendSlice(&.{ 1, 2, 3, 4 });
 
-        try testParseEqual(std.ArrayList(u8), &.{
-            .{ want, "[1,2,3,4]" },
-        });
+        var result = try json.fromSlice(test_ally, @TypeOf(want), input);
+        defer result.deinit();
+
+        const got = result.value;
+
+        try expectEqual(want.items.len, got.items.len);
+        for (want.items, 0..) |w, i| {
+            try expectEqual(w, got.items[i]);
+        }
     }
 
     {
+        const input = "[[1, 2],[3,4]]";
+
         var want = std.ArrayList(std.ArrayList(u8)).init(test_ally);
         var one = std.ArrayList(u8).init(test_ally);
         var two = std.ArrayList(u8).init(test_ally);
@@ -710,22 +721,36 @@ test "parse - list (std.ArrayList)" {
         try two.appendSlice(&.{ 3, 4 });
         try want.appendSlice(&.{ one, two });
 
-        try testParseEqual(std.ArrayList(std.ArrayList(u8)), &.{
-            .{ want, "[[1, 2],[3,4]]" },
-        });
+        var result = try json.fromSlice(test_ally, @TypeOf(want), input);
+        defer result.deinit();
+
+        const got = result.value;
+
+        try expectEqual(@TypeOf(want), @TypeOf(got));
+        try expectEqual(want.items.len, got.items.len);
+        for (want.items, 0..) |w, i| {
+            const g = got.items[i];
+
+            try expectEqual(w.items.len, g.items.len);
+            for (w.items, 0..) |ww, j| {
+                try expectEqual(ww, g.items[j]);
+            }
+        }
     }
 }
 
 test "parse - object (std.AutoHashMap)" {
     {
-        var got = try json.fromSlice(test_ally, std.AutoHashMap(i32, []const u8),
+        var result = try json.fromSlice(test_ally, std.AutoHashMap(i32, []const u8),
             \\{
             \\  "1": "foo",
             \\  "2": "bar",
             \\  "3": "baz"
             \\}
         );
-        defer json.de.free(test_ally, got, null);
+        defer result.deinit();
+
+        const got = result.value;
 
         try expectEqualDeep(std.AutoHashMap(i32, []const u8), @TypeOf(got));
         try expectEqualDeep(@as(u32, 3), got.count());
@@ -735,14 +760,16 @@ test "parse - object (std.AutoHashMap)" {
     }
 
     {
-        var got = try json.fromSlice(test_ally, std.AutoHashMap(i32, std.AutoHashMap(i32, []const u8)),
+        var result = try json.fromSlice(test_ally, std.AutoHashMap(i32, std.AutoHashMap(i32, []const u8)),
             \\{
             \\  "1": { "4": "foo" },
             \\  "2": { "5": "bar" },
             \\  "3": { "6": "baz" }
             \\}
         );
-        defer json.de.free(test_ally, got, null);
+        defer result.deinit();
+
+        const got = result.value;
 
         var a = std.AutoHashMap(i32, []const u8).init(test_ally);
         var b = std.AutoHashMap(i32, []const u8).init(test_ally);
@@ -770,14 +797,16 @@ test "parse - object (std.AutoHashMap)" {
 
 test "parse - object (std.StringHashMap)" {
     {
-        var got = try json.fromSlice(test_ally, std.StringHashMap(u8),
+        var result = try json.fromSlice(test_ally, std.StringHashMap(u8),
             \\{
             \\  "\"a": 1,
             \\  "b": 2,
             \\  "c": 3
             \\}
         );
-        defer json.de.free(test_ally, got, null);
+        defer result.deinit();
+
+        const got = result.value;
 
         try expectEqualDeep(std.StringHashMap(u8), @TypeOf(got));
         try expectEqualDeep(@as(u32, 3), got.count());
@@ -787,14 +816,16 @@ test "parse - object (std.StringHashMap)" {
     }
 
     {
-        var got = try json.fromSlice(test_ally, std.StringHashMap([]const u8),
+        var result = try json.fromSlice(test_ally, std.StringHashMap([]const u8),
             \\{
             \\  "\"a": "foo",
             \\  "b": "bar",
             \\  "c": "baz"
             \\}
         );
-        defer json.de.free(test_ally, got, null);
+        defer result.deinit();
+
+        const got = result.value;
 
         try expectEqualDeep(std.StringHashMap([]const u8), @TypeOf(got));
         try expectEqualDeep(@as(u32, 3), got.count());
@@ -804,14 +835,16 @@ test "parse - object (std.StringHashMap)" {
     }
 
     {
-        var got = try json.fromSlice(test_ally, std.StringHashMap(std.StringHashMap([]const u8)),
+        var result = try json.fromSlice(test_ally, std.StringHashMap(std.StringHashMap([]const u8)),
             \\{
             \\  "\"a": { "\"d": "foo" },
             \\  "b": { "e": "bar" },
             \\  "c": { "f": "baz" }
             \\}
         );
-        defer json.de.free(test_ally, got, null);
+        defer result.deinit();
+
+        const got = result.value;
 
         var a = std.StringHashMap([]const u8).init(test_ally);
         var b = std.StringHashMap([]const u8).init(test_ally);
@@ -971,6 +1004,7 @@ test "parse - struct" {
     });
 }
 
+// TODO: Uncomment test once https://github.com/getty-zig/getty/issues/135 finished.
 test "parse - union" {
     const Tagged = union(enum) { foo: bool, bar: void };
     try testParseEqual(Tagged, &.{
@@ -981,10 +1015,13 @@ test "parse - union" {
     const Untagged = union { foo: bool, bar: void };
     const want_foo = Untagged{ .foo = false };
     const want_bar = Untagged{ .bar = {} };
-    const got_foo = try json.fromSlice(test_ally, Untagged, "{\"foo\":false}");
-    const got_bar = try json.fromSlice(test_ally, Untagged, "{\"bar\":null}");
-    try expectEqualDeep(want_foo.foo, got_foo.foo);
-    try expectEqualDeep(want_bar.bar, got_bar.bar);
+    const result_foo = try json.fromSlice(test_ally, Untagged, "{\"foo\":false}");
+    defer result_foo.deinit();
+    const result_bar = try json.fromSlice(test_ally, Untagged, "{\"bar\":null}");
+    defer result_bar.deinit();
+
+    try expectEqualDeep(want_foo.foo, result_foo.value.foo);
+    try expectEqualDeep(want_bar.bar, result_bar.value.bar);
 }
 
 test "parse - void" {
@@ -999,7 +1036,7 @@ fn testEncodeEqual(comptime T: type, tests: EncodeTest(T)) !void {
         const value = t[1];
 
         var got = try json.toSlice(test_ally, value);
-        defer json.de.free(test_ally, got, null);
+        defer test_ally.free(got);
 
         try expectEqualStrings(want, got);
     }
@@ -1011,7 +1048,7 @@ fn testPrettyEncodeEqual(comptime T: type, tests: EncodeTest(T)) !void {
         const value = t[1];
 
         var got = try json.toPrettySlice(test_ally, value);
-        defer json.de.free(test_ally, got, null);
+        defer test_ally.free(got);
 
         try expectEqualStrings(want, got);
     }
@@ -1022,10 +1059,10 @@ fn testParseEqual(comptime T: type, tests: ParseTest(T)) !void {
         const want = t[0];
         const input = t[1];
 
-        var got = try json.fromSlice(test_ally, T, input);
-        defer json.de.free(test_ally, got, null);
+        var result = try json.fromSlice(test_ally, T, input);
+        defer result.deinit();
 
-        try expectEqualDeep(want, got);
+        try expectEqualDeep(want, result.value);
     }
 }
 
