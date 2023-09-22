@@ -337,14 +337,14 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeStruct(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.peekNextTokenType()) {
-                .object_begin => try self.skipToken(), // Eat '{'.
+            switch (try self.parser.next()) {
+                .object_begin => {
+                    var s = StructAccess(Self){ .d = self };
+                    return try visitor.visitMap(ally, De, s.mapAccess());
+                },
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             }
-
-            var s = StructAccess(Self){ .d = self };
-            return try visitor.visitMap(ally, De, s.mapAccess());
         }
 
         fn deserializeUnion(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
