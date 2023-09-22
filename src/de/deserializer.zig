@@ -325,11 +325,15 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
             std.debug.assert(token != .string);
 
-            switch (token) {
-                .allocated_string => |slice| return try visitor.visitString(ally, De, slice, .heap),
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
+            if (token == .allocated_string) {
+                return try visitor.visitString(ally, De, token.allocated_string, .heap);
             }
+
+            if (token == .end_of_document) {
+                return error.UnexpectedEndOfInput;
+            }
+
+            return error.InvalidType;
         }
 
         fn deserializeStruct(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
