@@ -172,19 +172,11 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeBool(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.peekNextTokenType()) {
-                .true, .false => {},
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
-            }
-
             const value = switch (try self.parser.next()) {
                 .true => true,
                 .false => false,
-
-                // UNREACHABLE: The peek switch guarantees that only .true and
-                // .false tokens reach here.
-                else => unreachable,
+                .end_of_document => return error.UnexpectedEndOfInput,
+                else => return error.InvalidType,
             };
 
             return try visitor.visitBool(ally, De, value);
@@ -224,12 +216,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeFloat(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.peekNextTokenType()) {
-                .number => {},
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
-            }
-
             // std.fmt.parseFloat uses an optimized parsing algorithm for f16,
             // f32, and f64. So, we try to use those if we can based on the
             // kind of value the visitor produces.
@@ -243,10 +229,8 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
             const value = switch (token) {
                 inline .number, .allocated_number => |slice| try std.fmt.parseFloat(Float, slice),
-
-                // UNREACHABLE: The peek switch guarantees that only .number
-                // and .allocated_number tokens reach here.
-                else => unreachable,
+                .end_of_document => return error.UnexpectedEndOfInput,
+                else => return error.InvalidType,
             };
 
             return try visitor.visitFloat(ally, De, value);
@@ -259,12 +243,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeInt(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.peekNextTokenType()) {
-                .number => {},
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
-            }
-
             const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
             defer freeToken(ally, token);
 
@@ -294,10 +272,8 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                         else => parseInt(i128, slice),
                     };
                 },
-
-                // UNREACHABLE: The peek switch guarantees that only .number
-                // and .allocated_number tokens reach here.
-                else => unreachable,
+                .end_of_document => return error.UnexpectedEndOfInput,
+                else => return error.InvalidType,
             };
 
             return try visitor.visitInt(ally, De, value);
