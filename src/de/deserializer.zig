@@ -74,7 +74,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     return try visitor.visitBool(ally, De, token == .true);
                 },
                 inline .number, .allocated_number => |slice| {
-                    defer freeToken(ally, token);
+                    defer if (token == .allocated_number) ally.free(slice);
 
                     // Integer (with hint)
                     if (visitor_info == .Int) {
@@ -208,7 +208,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     return ret.value;
                 },
                 inline .number, .allocated_number => |slice| {
-                    defer freeToken(ally, token);
+                    defer if (token == .allocated_number) ally.free(slice);
 
                     return try switch (slice[0]) {
                         '0'...'9' => visitor.visitInt(ally, De, try parseInt(u128, slice)),
@@ -233,7 +233,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             };
 
             const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
-            defer freeToken(ally, token);
+            defer if (token == .allocated_number) ally.free(token.allocated_number);
 
             const value = switch (token) {
                 inline .number, .allocated_number => |slice| try std.fmt.parseFloat(Float, slice),
@@ -252,7 +252,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
         fn deserializeInt(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
-            defer freeToken(ally, token);
+            defer if (token == .allocated_number) ally.free(token.allocated_number);
 
             const value = switch (token) {
                 inline .number, .allocated_number => |slice| blk: {
@@ -509,7 +509,7 @@ fn MapAccess(comptime D: type) type {
             }
 
             const token = try self.d.parser.nextAlloc(ally, .alloc_if_needed);
-            defer freeToken(ally, token);
+            defer if (token == .allocated_string) ally.free(token.allocated_string);
 
             var allocated: bool = undefined;
             const value = switch (token) {
@@ -653,11 +653,4 @@ inline fn parseInt(comptime T: type, slice: []const u8) !T {
         error.InvalidCharacter => return error.InvalidType,
         error.Overflow => return err,
     };
-}
-
-inline fn freeToken(ally: std.mem.Allocator, token: std.json.Token) void {
-    switch (token) {
-        inline .allocated_number, .allocated_string => |slice| ally.free(slice),
-        else => {},
-    }
 }
