@@ -1,6 +1,8 @@
 const getty = @import("getty");
 const std = @import("std");
 
+const VisitStringReturn = getty.de.VisitStringReturn;
+
 pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
     const Parser = std.json.Reader(1024 * 4, Reader);
 
@@ -119,10 +121,14 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     // Enum, String
                     switch (token) {
                         .string => {
-                            return try visitor.visitString(ally, De, slice, .stack);
+                            var ret = try visitor.visitString(ally, De, slice, .stack);
+                            std.debug.assert(!ret.used);
+                            return ret.value;
                         },
                         .allocated_string => {
-                            return try visitor.visitString(ally, De, slice, .heap);
+                            var ret = try visitor.visitString(ally, De, slice, .heap);
+                            if (!ret.used) ally.free(slice);
+                            return ret.value;
                         },
                         // UNREACHABLE: The outer switch guarantees that only
                         // .string and .allocated_string tokens will reach this
@@ -197,7 +203,9 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
             switch (token) {
                 .allocated_string => |slice| {
-                    return try visitor.visitString(ally, De, slice, .heap);
+                    var ret = try visitor.visitString(ally, De, slice, .heap);
+                    if (!ret.used) ally.free(slice);
+                    return ret.value;
                 },
                 inline .number, .allocated_number => |slice| {
                     defer freeToken(ally, token);
@@ -326,7 +334,9 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             std.debug.assert(token != .string);
 
             if (token == .allocated_string) {
-                return try visitor.visitString(ally, De, token.allocated_string, .heap);
+                var ret = try visitor.visitString(ally, De, token.allocated_string, .heap);
+                if (!ret.used) ally.free(token.allocated_string);
+                return ret.value;
             }
 
             if (token == .end_of_document) {
@@ -461,10 +471,14 @@ fn MapKeyDeserializer(comptime De: type) type {
 
         fn deserializeString(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             if (self.allocated) {
-                return try visitor.visitString(ally, De, self.key, .heap);
+                var ret = try visitor.visitString(ally, De, self.key, .heap);
+                if (!ret.used) ally.free(self.key);
+                return ret.value;
             }
 
-            return try visitor.visitString(ally, De, self.key, .stack);
+            var ret = try visitor.visitString(ally, De, self.key, .stack);
+            std.debug.assert(!ret.used);
+            return ret.value;
         }
     };
 }
