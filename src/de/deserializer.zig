@@ -501,7 +501,11 @@ fn MapAccess(comptime D: type) type {
         const De = D.@"getty.Deserializer";
         const Err = De.Err;
 
-        fn nextKeySeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
+        fn nextKeySeed(
+            self: *Self,
+            ally: std.mem.Allocator,
+            seed: anytype,
+        ) Err!getty.de.NextKeyReturn(@TypeOf(seed).Value) {
             switch (try self.d.parser.peekNextTokenType()) {
                 .object_end => return null,
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -522,7 +526,11 @@ fn MapAccess(comptime D: type) type {
 
             var mkd = MapKeyDeserializer(De){ .key = value, .allocated = allocated };
             var result = try seed.deserialize(ally, mkd.deserializer());
-            return result.value;
+
+            return .{
+                .value = result.value,
+                .lifetime = if (allocated) .heap else .managed,
+            };
         }
 
         fn nextValueSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
@@ -578,7 +586,11 @@ fn StructAccess(comptime D: type) type {
         const De = D.@"getty.Deserializer";
         const Err = De.Err;
 
-        fn nextKeySeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
+        fn nextKeySeed(
+            self: *Self,
+            ally: std.mem.Allocator,
+            seed: anytype,
+        ) Err!getty.de.NextKeyReturn(@TypeOf(seed).Value) {
             if (@TypeOf(seed).Value != []const u8) {
                 @compileError("expected key type to be `[]const u8`");
             }
@@ -586,7 +598,14 @@ fn StructAccess(comptime D: type) type {
             const token = try self.d.parser.nextAlloc(ally, .alloc_if_needed);
 
             switch (token) {
-                inline .string, .allocated_string => |slice| return slice,
+                .string => |slice| return .{
+                    .value = slice,
+                    .lifetime = .managed,
+                },
+                .allocated_string => |slice| return .{
+                    .value = slice,
+                    .lifetime = .heap,
+                },
                 .object_end => return null,
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
