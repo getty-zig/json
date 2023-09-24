@@ -563,6 +563,7 @@ fn SeqAccess(comptime D: type) type {
 fn StructAccess(comptime D: type) type {
     return struct {
         d: *D,
+        lt: getty.de.ValueLifetime = .managed,
 
         const Self = @This();
 
@@ -572,6 +573,7 @@ fn StructAccess(comptime D: type) type {
             .{
                 .nextKeySeed = nextKeySeed,
                 .nextValueSeed = nextValueSeed,
+                .keyLifetime = keyLifetime,
             },
         );
 
@@ -586,7 +588,10 @@ fn StructAccess(comptime D: type) type {
             const token = try self.d.parser.nextAlloc(ally, .alloc_if_needed);
 
             switch (token) {
-                inline .string, .allocated_string => |slice| return slice,
+                inline .string, .allocated_string => |slice| {
+                    self.lt = if (token == .allocated_string) .heap else .managed;
+                    return slice;
+                },
                 .object_end => return null,
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
@@ -596,6 +601,10 @@ fn StructAccess(comptime D: type) type {
         fn nextValueSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             var result = try seed.deserialize(ally, self.d.deserializer());
             return result.value;
+        }
+
+        fn keyLifetime(self: *Self) getty.de.ValueLifetime {
+            return self.lt;
         }
     };
 }
