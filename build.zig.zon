@@ -1,10 +1,17 @@
 .{
     .name = "json",
     .version = "0.4.0",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "LICENSE",
+        "README.md",
+        "src/",
+    },
     .dependencies = .{
         .getty = .{
-            .url = "https://github.com/getty-zig/getty/archive/293d04168734d7de6a3b6325f3a279e577c95754.tar.gz",
-            .hash = "1220f926ec5cfd0814d398a2d31e677ded452d84ef150d89a577b4d7d3add091acc5",
+            .url = "https://github.com/getty-zig/getty/archive/1687959e1e8fa42333dfeae8cf993996d7500f0a.tar.gz",
+            .hash = "1220098ca31143dabd97e2dcf575f89b7dfa3852b6fbdc030ca9ad587509f13ff0e3",
         },
     },
 }
