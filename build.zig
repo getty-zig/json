@@ -38,6 +38,7 @@ pub fn build(b: *std.build.Builder) void {
         });
 
         t_ser.addModule("json", json_module);
+        t_ser.addModule("getty", getty_module);
         test_ser_step.dependOn(&b.addRunArtifact(t_ser).step);
         test_all_step.dependOn(test_ser_step);
 
@@ -51,6 +52,7 @@ pub fn build(b: *std.build.Builder) void {
         });
 
         t_de.addModule("json", json_module);
+        t_de.addModule("getty", getty_module);
         test_de_step.dependOn(&b.addRunArtifact(t_de).step);
         test_all_step.dependOn(test_de_step);
     }

@@ -1,3 +1,4 @@
+const getty = @import("getty");
 const json = @import("json");
 const std = @import("std");
 
@@ -682,6 +683,50 @@ test "parse - int" {
         .{ 1234, "1234" },
         .{ 1234, " 1234 " },
         .{ std.math.maxInt(u64), "18446744073709551615" },
+    });
+}
+
+test "parse - int (custom type)" {
+    const Foo = struct {
+        int: i32,
+
+        pub const @"getty.db" = struct {
+            pub fn deserialize(
+                ally: std.mem.Allocator,
+                comptime _: type,
+                deserializer: anytype,
+                visitor: anytype,
+            ) @TypeOf(deserializer).Err!@TypeOf(visitor).Value {
+                return try deserializer.deserializeInt(ally, visitor);
+            }
+
+            pub fn Visitor(comptime Value: type) type {
+                return struct {
+                    pub usingnamespace getty.de.Visitor(
+                        @This(),
+                        Value,
+                        .{ .visitInt = visitInt },
+                    );
+
+                    pub fn visitInt(
+                        _: @This(),
+                        _: std.mem.Allocator,
+                        comptime De: type,
+                        input: anytype,
+                    ) De.Err!Value {
+                        return .{ .int = std.math.cast(i32, input) orelse return error.Overflow };
+                    }
+                };
+            }
+        };
+    };
+
+    try testParseEqual(Foo, &.{
+        .{ .{ .int = 0 }, "0" },
+        .{ .{ .int = 1 }, "  1 " },
+        .{ .{ .int = 12345 }, "12345" },
+        .{ .{ .int = -1 }, "-1 " },
+        .{ .{ .int = -12345 }, " -12345  " },
     });
 }
 
