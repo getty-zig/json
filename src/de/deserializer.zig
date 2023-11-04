@@ -254,8 +254,8 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
             defer if (token == .allocated_number) ally.free(token.allocated_number);
 
-            const value = switch (token) {
-                inline .number, .allocated_number => |slice| blk: {
+            switch (token) {
+                .number, .allocated_number => |slice| {
                     const Value = @TypeOf(visitor).Value;
                     const value_info = @typeInfo(Value);
 
@@ -270,21 +270,19 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                             return error.Overflow;
                         }
 
-                        break :blk try parseInt(Value, slice);
+                        return try visitor.visitInt(ally, De, try parseInt(Value, slice));
                     }
 
                     // If the visitor is not producing an integer, default to
                     // deserializing a 128-bit integer.
-                    break :blk try switch (slice[0]) {
-                        '0'...'9' => parseInt(u128, slice),
-                        else => parseInt(i128, slice),
+                    return try switch (slice[0]) {
+                        '0'...'9' => visitor.visitInt(ally, De, try parseInt(u128, slice)),
+                        else => visitor.visitInt(ally, De, try parseInt(i128, slice)),
                     };
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
-            };
-
-            return try visitor.visitInt(ally, De, value);
+            }
         }
 
         fn deserializeMap(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
