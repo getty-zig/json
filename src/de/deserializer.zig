@@ -127,7 +127,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                         },
                         .allocated_string => {
                             var ret = try visitor.visitString(ally, De, slice, .heap);
-                            if (!ret.used) ally.free(slice);
+                            //if (!ret.used) ally.free(slice);
                             return ret.value;
                         },
                         // UNREACHABLE: The outer switch guarantees that only
@@ -204,7 +204,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             switch (token) {
                 .allocated_string => |slice| {
                     var ret = try visitor.visitString(ally, De, slice, .heap);
-                    if (!ret.used) ally.free(slice);
+                    //if (!ret.used) ally.free(slice);
                     return ret.value;
                 },
                 inline .number, .allocated_number => |slice| {
@@ -333,7 +333,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
             if (token == .allocated_string) {
                 var ret = try visitor.visitString(ally, De, token.allocated_string, .heap);
-                if (!ret.used) ally.free(token.allocated_string);
+                //if (!ret.used) ally.free(token.allocated_string);
                 return ret.value;
             }
 
@@ -470,7 +470,7 @@ fn MapKeyDeserializer(comptime De: type) type {
         fn deserializeString(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             if (self.allocated) {
                 var ret = try visitor.visitString(ally, De, self.key, .heap);
-                if (!ret.used) ally.free(self.key);
+                //if (!ret.used) ally.free(self.key);
                 return ret.value;
             }
 
