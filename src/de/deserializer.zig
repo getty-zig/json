@@ -519,13 +519,11 @@ fn MapAccess(comptime D: type) type {
             };
 
             var mkd = MapKeyDeserializer(De){ .key = value, .allocated = allocated };
-            var result = try seed.deserialize(ally, mkd.deserializer());
-            return result.value;
+            return try seed.deserialize(ally, mkd.deserializer());
         }
 
         fn nextValueSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
-            var result = try seed.deserialize(ally, self.d.deserializer());
-            return result.value;
+            return try seed.deserialize(ally, self.d.deserializer());
         }
     };
 }
@@ -552,8 +550,7 @@ fn SeqAccess(comptime D: type) type {
                 else => {},
             }
 
-            var result = try seed.deserialize(ally, self.d.deserializer());
-            return result.value;
+            return try seed.deserialize(ally, self.d.deserializer());
         }
     };
 }
@@ -592,8 +589,7 @@ fn StructAccess(comptime D: type) type {
         }
 
         fn nextValueSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
-            var result = try seed.deserialize(ally, self.d.deserializer());
-            return result.value;
+            return try seed.deserialize(ally, self.d.deserializer());
         }
     };
 }
@@ -625,20 +621,17 @@ fn Union(comptime D: type) type {
 
         fn variantSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             return switch (try self.d.parser.peekNextTokenType()) {
-                .string => blk: {
-                    var result = try seed.deserialize(ally, self.d.deserializer());
-                    break :blk result.value;
-                },
+                .string => try seed.deserialize(ally, self.d.deserializer()),
                 .end_of_document => error.UnexpectedEndOfInput,
                 else => error.InvalidType,
             };
         }
 
         fn payloadSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
-            var result = try seed.deserialize(ally, self.d.deserializer());
+            var payload = try seed.deserialize(ally, self.d.deserializer());
 
             return switch (try self.d.parser.peekNextTokenType()) {
-                .object_end => result.value,
+                .object_end => payload,
                 .end_of_document => error.UnexpectedEndOfInput,
                 else => error.SyntaxError,
             };
