@@ -327,7 +327,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeString(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            const token = try self.parser.nextAlloc(ally, .alloc_always);
+            const token = try self.parser.nextAllocMax(ally, .alloc_always, self.parser.scanner.input.len);
 
             std.debug.assert(token != .string);
 
