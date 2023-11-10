@@ -7,20 +7,21 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
     const Parser = std.json.Reader(1024 * 4, Reader);
 
     return struct {
-        ally: std.mem.Allocator,
         parser: Parser,
+        scratch: std.heap.ArenaAllocator,
 
         const Self = @This();
 
         pub fn init(ally: std.mem.Allocator, r: Reader) Self {
             return Self{
-                .ally = ally,
                 .parser = Parser.init(ally, r),
+                .scratch = std.heap.ArenaAllocator.init(ally),
             };
         }
 
         pub fn deinit(self: *Self) void {
             self.parser.deinit();
+            self.scratch.deinit();
             self.* = undefined;
         }
 
