@@ -574,12 +574,12 @@ fn StructAccess(comptime D: type) type {
         const De = D.@"getty.Deserializer";
         const Err = De.Err;
 
-        fn nextKeySeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
+        fn nextKeySeed(self: *Self, _: std.mem.Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
             if (@TypeOf(seed).Value != []const u8) {
                 @compileError("expected key type to be `[]const u8`");
             }
 
-            const token = try self.d.parser.nextAlloc(ally, .alloc_if_needed);
+            const token = try self.d.parser.nextAlloc(self.d.scratch.allocator(), .alloc_if_needed);
 
             switch (token) {
                 inline .string, .allocated_string => |slice| return slice,
