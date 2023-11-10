@@ -47,12 +47,12 @@ pub fn fromReaderWith(
     var d = Deserializer(dbt, @TypeOf(r)).init(ally, r);
     defer d.deinit();
 
-    return try fromDeserializer(T, &d);
+    return try fromDeserializer(ally, T, &d);
 }
 
 /// Deserializes into a value of type `T` from the deserializer `d`.
-pub fn fromDeserializer(comptime T: type, d: anytype) !getty.de.Result(T) {
-    var result = try getty.deserialize(d.ally, T, d.deserializer());
+pub fn fromDeserializer(ally: std.mem.Allocator, comptime T: type, d: anytype) !getty.de.Result(T) {
+    var result = try getty.deserialize(ally, T, d.deserializer());
     errdefer result.deinit();
 
     try d.end();
