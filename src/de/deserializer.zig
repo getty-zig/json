@@ -211,31 +211,31 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
         fn deserializeUnion(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const peek = switch (try self.parser.peekNextTokenType()) {
-                .string => |v| v,
-                .object_begin => |v| peek: {
+                .object_begin => |tok| peek: {
                     try self.skipToken(); // Eat '{'.
-                    break :peek v;
+                    break :peek tok;
                 },
+                .string => |tok| tok,
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             };
 
             var u = Union(Self){ .d = self };
             const ret = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
+
             if (peek == .object_begin) {
                 try self.endMap();
             }
+
             return ret;
         }
 
         fn deserializeVoid(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.peekNextTokenType()) {
-                .null => try self.skipToken(), // Eat 'null'.
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
-            }
-
-            return try visitor.visitVoid(ally, De);
+            return switch (try self.parser.next()) {
+                .null => try visitor.visitVoid(ally, De),
+                .end_of_document => error.UnexpectedEndOfInput,
+                else => error.InvalidType,
+            };
         }
 
         fn deserializeAny(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
