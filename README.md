@@ -66,7 +66,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     note: expected .hash = "<HASH>",
     ```
 
-4. Update `build.zig.zon` with hash value:
+4. Update `build.zig.zon` with Getty JSON's package hash value:
 
     ```diff
     .{
