@@ -86,17 +86,9 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     return ret.value;
                 },
                 .number, .allocated_number => |slice| {
-                    return switch (slice[0]) {
-                        '0'...'9' => visitor.visitInt(
-                            ally,
-                            De,
-                            try parseInt(u128, slice),
-                        ),
-                        else => visitor.visitInt(
-                            ally,
-                            De,
-                            try parseInt(i128, slice),
-                        ),
+                    return try switch (slice[0]) {
+                        '0'...'9' => visitor.visitInt(ally, De, try parseInt(u128, slice)),
+                        else => visitor.visitInt(ally, De, try parseInt(i128, slice)),
                     };
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -115,7 +107,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
             const token = try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed);
             const value = switch (token) {
-                inline .number, .allocated_number => |slice| try std.fmt.parseFloat(Float, slice),
+                .number, .allocated_number => |slice| try std.fmt.parseFloat(Float, slice),
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             };
@@ -125,7 +117,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
         fn deserializeIgnored(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             try self.parser.skipValue();
-
             return try visitor.visitVoid(ally, De);
         }
 
