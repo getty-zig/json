@@ -1,8 +1,6 @@
 const getty = @import("getty");
 const std = @import("std");
 
-const VisitStringReturn = getty.de.VisitStringReturn;
-
 pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
     const Parser = std.json.Reader(1024 * 4, Reader);
 
