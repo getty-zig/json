@@ -62,120 +62,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             Parser.AllocError ||
             std.fmt.ParseIntError || std.fmt.ParseFloatError;
 
-        fn deserializeAny(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            const Visitor = @TypeOf(visitor);
-            const visitor_info = @typeInfo(Visitor);
-
-            const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
-
-            switch (token) {
-                .true, .false => {
-                    return try visitor.visitBool(ally, De, token == .true);
-                },
-                inline .number, .allocated_number => |slice| {
-                    defer if (token == .allocated_number) ally.free(slice);
-
-                    // Integer (with hint)
-                    if (visitor_info == .Int) {
-                        const sign = visitor_info.Int.signedness;
-
-                        if (sign == .unsigned and slice[0] == '-') {
-                            return error.InvalidType;
-                        }
-
-                        return try visitor.visitInt(ally, De, try parseInt(Visitor, slice));
-                    }
-
-                    // Enum
-                    if (visitor_info == .Enum) {
-                        switch (slice[0]) {
-                            '0'...'9' => return try visitor.visitInt(ally, De, try parseInt(u128, slice)),
-                            else => return try visitor.visitInt(ally, De, try parseInt(i128, slice)),
-                        }
-                    }
-
-                    // Float
-                    if (!std.json.isNumberFormattedLikeAnInteger(slice)) {
-                        const Float = switch (Visitor.Value) {
-                            f16, f32, f64 => |T| T,
-                            else => f128,
-                        };
-
-                        return try visitor.visitFloat(ally, De, try std.fmt.parseFloat(Float, slice));
-                    }
-
-                    // Integer (without hint)
-                    switch (slice[0]) {
-                        '0'...'9' => return try visitor.visitInt(ally, De, try parseInt(u128, slice)),
-                        else => return try visitor.visitInt(ally, De, try parseInt(i128, slice)),
-                    }
-                },
-                inline .string, .allocated_string => |slice| {
-                    // Union
-                    if (visitor_info == .Union) {
-                        var u = Union(Self){ .d = self };
-                        return try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
-                    }
-
-                    // Enum, String
-                    switch (token) {
-                        .string => {
-                            var ret = try visitor.visitString(ally, De, slice, .stack);
-                            std.debug.assert(!ret.used);
-                            return ret.value;
-                        },
-                        .allocated_string => {
-                            var ret = try visitor.visitString(ally, De, slice, .heap);
-                            if (!ret.used) ally.free(slice);
-                            return ret.value;
-                        },
-                        // UNREACHABLE: The outer switch guarantees that only
-                        // .string and .allocated_string tokens will reach this
-                        // inner switch.
-                        else => unreachable,
-                    }
-                },
-                .null => {
-                    // Void
-                    if (Visitor.Value == void) {
-                        return try visitor.visitVoid(ally, De);
-                    }
-
-                    // Optional
-                    return try visitor.visitNull(ally, De);
-                },
-                .array_begin => {
-                    var s = SeqAccess(Self){ .d = self };
-                    const result = try visitor.visitSeq(ally, De, s.seqAccess());
-
-                    try self.endSeq();
-
-                    return result;
-                },
-                .object_begin => {
-                    // Union
-                    if (visitor_info == .Union) {
-                        var u = Union(Self){ .d = self };
-                        const result = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
-
-                        try self.endMap();
-
-                        return result;
-                    }
-
-                    // Map
-                    var m = MapAccess(Self){ .d = self };
-                    const result = try visitor.visitMap(ally, De, m.mapAccess());
-
-                    try self.endMap();
-
-                    return result;
-                },
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
-            }
-        }
-
         fn deserializeBool(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const value = switch (try self.parser.next()) {
                 .true => true,
@@ -383,6 +269,120 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
 
             return try visitor.visitVoid(ally, De);
+        }
+
+        fn deserializeAny(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+            const Visitor = @TypeOf(visitor);
+            const visitor_info = @typeInfo(Visitor);
+
+            const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
+
+            switch (token) {
+                .true, .false => {
+                    return try visitor.visitBool(ally, De, token == .true);
+                },
+                inline .number, .allocated_number => |slice| {
+                    defer if (token == .allocated_number) ally.free(slice);
+
+                    // Integer (with hint)
+                    if (visitor_info == .Int) {
+                        const sign = visitor_info.Int.signedness;
+
+                        if (sign == .unsigned and slice[0] == '-') {
+                            return error.InvalidType;
+                        }
+
+                        return try visitor.visitInt(ally, De, try parseInt(Visitor, slice));
+                    }
+
+                    // Enum
+                    if (visitor_info == .Enum) {
+                        switch (slice[0]) {
+                            '0'...'9' => return try visitor.visitInt(ally, De, try parseInt(u128, slice)),
+                            else => return try visitor.visitInt(ally, De, try parseInt(i128, slice)),
+                        }
+                    }
+
+                    // Float
+                    if (!std.json.isNumberFormattedLikeAnInteger(slice)) {
+                        const Float = switch (Visitor.Value) {
+                            f16, f32, f64 => |T| T,
+                            else => f128,
+                        };
+
+                        return try visitor.visitFloat(ally, De, try std.fmt.parseFloat(Float, slice));
+                    }
+
+                    // Integer (without hint)
+                    switch (slice[0]) {
+                        '0'...'9' => return try visitor.visitInt(ally, De, try parseInt(u128, slice)),
+                        else => return try visitor.visitInt(ally, De, try parseInt(i128, slice)),
+                    }
+                },
+                inline .string, .allocated_string => |slice| {
+                    // Union
+                    if (visitor_info == .Union) {
+                        var u = Union(Self){ .d = self };
+                        return try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
+                    }
+
+                    // Enum, String
+                    switch (token) {
+                        .string => {
+                            var ret = try visitor.visitString(ally, De, slice, .stack);
+                            std.debug.assert(!ret.used);
+                            return ret.value;
+                        },
+                        .allocated_string => {
+                            var ret = try visitor.visitString(ally, De, slice, .heap);
+                            if (!ret.used) ally.free(slice);
+                            return ret.value;
+                        },
+                        // UNREACHABLE: The outer switch guarantees that only
+                        // .string and .allocated_string tokens will reach this
+                        // inner switch.
+                        else => unreachable,
+                    }
+                },
+                .null => {
+                    // Void
+                    if (Visitor.Value == void) {
+                        return try visitor.visitVoid(ally, De);
+                    }
+
+                    // Optional
+                    return try visitor.visitNull(ally, De);
+                },
+                .array_begin => {
+                    var s = SeqAccess(Self){ .d = self };
+                    const result = try visitor.visitSeq(ally, De, s.seqAccess());
+
+                    try self.endSeq();
+
+                    return result;
+                },
+                .object_begin => {
+                    // Union
+                    if (visitor_info == .Union) {
+                        var u = Union(Self){ .d = self };
+                        const result = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
+
+                        try self.endMap();
+
+                        return result;
+                    }
+
+                    // Map
+                    var m = MapAccess(Self){ .d = self };
+                    const result = try visitor.visitMap(ally, De, m.mapAccess());
+
+                    try self.endMap();
+
+                    return result;
+                },
+                .end_of_document => return error.UnexpectedEndOfInput,
+                else => return error.InvalidType,
+            }
         }
 
         fn skipToken(self: *Self) !void {
