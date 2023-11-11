@@ -76,15 +76,12 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeEnum(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
-                .string, .allocated_string => |slice| {
-                    var ret = try visitor.visitString(ally, De, slice, .managed);
-                    return ret.value;
-                },
-                .number, .allocated_number => |slice| return try visitInt(visitor, ally, De, slice),
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
-            }
+            return switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
+                .string, .allocated_string => |slice| (try visitor.visitString(ally, De, slice, .managed)).value,
+                .number, .allocated_number => |slice| try visitInt(visitor, ally, De, slice),
+                .end_of_document => error.UnexpectedEndOfInput,
+                else => error.InvalidType,
+            };
         }
 
         fn deserializeFloat(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
@@ -96,14 +93,11 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 else => f128,
             };
 
-            switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
-                .number, .allocated_number => |slice| {
-                    const float = try std.fmt.parseFloat(Float, slice);
-                    return try visitor.visitFloat(ally, De, float);
-                },
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
-            }
+            return switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
+                .number, .allocated_number => |slice| try visitor.visitFloat(ally, De, try std.fmt.parseFloat(Float, slice)),
+                .end_of_document => error.UnexpectedEndOfInput,
+                else => error.InvalidType,
+            };
         }
 
         fn deserializeIgnored(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
@@ -161,14 +155,11 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeString(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.nextAlloc(ally, .alloc_always)) {
-                .allocated_string => |slice| {
-                    var ret = try visitor.visitString(ally, De, slice, .heap);
-                    return ret.value;
-                },
+            return switch (try self.parser.nextAlloc(ally, .alloc_always)) {
+                .allocated_string => |slice| try visitor.visitString(ally, De, slice, .heap),
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
-            }
+            };
         }
 
         fn deserializeStruct(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
