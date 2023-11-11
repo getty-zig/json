@@ -113,9 +113,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 else => f128,
             };
 
-            const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
-            defer if (token == .allocated_number) ally.free(token.allocated_number);
-
+            const token = try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed);
             const value = switch (token) {
                 inline .number, .allocated_number => |slice| try std.fmt.parseFloat(Float, slice),
                 .end_of_document => return error.UnexpectedEndOfInput,
