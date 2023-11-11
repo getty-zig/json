@@ -212,22 +212,20 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         fn deserializeUnion(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const peek = switch (try self.parser.peekNextTokenType()) {
                 .string => |v| v,
-                .object_begin => |v| blk: {
+                .object_begin => |v| peek: {
                     try self.skipToken(); // Eat '{'.
-                    break :blk v;
+                    break :peek v;
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             };
 
             var u = Union(Self){ .d = self };
-            const result = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
-
+            const ret = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
             if (peek == .object_begin) {
                 try self.endMap();
             }
-
-            return result;
+            return ret;
         }
 
         fn deserializeVoid(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
