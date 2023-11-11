@@ -106,15 +106,12 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeInt(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
+            return switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
                 .number, .allocated_number => |slice| visitInt(visitor, ally, De, slice),
-                .string, .allocated_string => |slice| {
-                    const ret = try visitor.visitString(ally, De, slice, .managed);
-                    return ret.value;
-                },
+                .string, .allocated_string => |slice| (try visitor.visitString(ally, De, slice, .managed)).value,
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
-            }
+            };
         }
 
         fn deserializeMap(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
@@ -156,9 +153,9 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
         fn deserializeString(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             return switch (try self.parser.nextAlloc(ally, .alloc_always)) {
-                .allocated_string => |slice| try visitor.visitString(ally, De, slice, .heap),
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
+                .allocated_string => |slice| (try visitor.visitString(ally, De, slice, .heap)).value,
+                .end_of_document => error.UnexpectedEndOfInput,
+                else => error.InvalidType,
             };
         }
 
