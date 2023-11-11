@@ -668,6 +668,7 @@ test "parse - float" {
 }
 
 test "parse - int" {
+    // From integer
     try testParseEqual(i64, &.{
         .{ 0, "-0" },
         .{ -1, "-1" },
@@ -676,7 +677,6 @@ test "parse - int" {
         .{ std.math.minInt(i64), "-9223372036854775808" },
         .{ std.math.maxInt(i64), "9223372036854775807" },
     });
-
     try testParseEqual(u64, &.{
         .{ 0, "0" },
         .{ 1, "1" },
@@ -684,7 +684,26 @@ test "parse - int" {
         .{ 1234, " 1234 " },
         .{ std.math.maxInt(u64), "18446744073709551615" },
     });
+
+    // From string
+    try testParseEqual(i64, &.{
+        .{ 0, "\"-0\"" },
+        .{ -1, "\"-1\"" },
+        .{ -1234, "\"-1234\"" },
+        .{ -1234, " \"-1234\" " },
+        .{ std.math.minInt(i64), "\"-9223372036854775808\"" },
+        .{ std.math.maxInt(i64), "\"9223372036854775807\"" },
+    });
+    try testParseEqual(u64, &.{
+        .{ 0, "\"0\"" },
+        .{ 1, "\"1\"" },
+        .{ 1234, "\"1234\"" },
+        .{ 1234, " \"1234\" " },
+        .{ std.math.maxInt(u64), "\"18446744073709551615\"" },
+    });
 }
+
+test "parse - int (string)" {}
 
 test "parse - int (custom type)" {
     const Foo = struct {

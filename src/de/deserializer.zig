@@ -136,8 +136,10 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeInt(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
-            defer if (token == .allocated_number) ally.free(token.allocated_number);
+            const token = try self.parser.nextAlloc(
+                self.scratch.allocator(),
+                .alloc_if_needed,
+            );
 
             switch (token) {
                 .number, .allocated_number => |slice| {
@@ -164,6 +166,11 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                         '0'...'9' => visitor.visitInt(ally, De, try parseInt(u128, slice)),
                         else => visitor.visitInt(ally, De, try parseInt(i128, slice)),
                     };
+                },
+                .string, .allocated_string => |slice| {
+                    const ret = try visitor.visitString(ally, De, slice, .managed);
+                    std.debug.assert(!ret.used);
+                    return ret.value;
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
