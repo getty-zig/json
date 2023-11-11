@@ -77,7 +77,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
                 .string, .allocated_string => |slice| {
                     var ret = try visitor.visitString(ally, De, slice, .managed);
-                    std.debug.assert(!ret.used);
                     return ret.value;
                 },
                 .number, .allocated_number => |slice| {
@@ -144,7 +143,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 },
                 .string, .allocated_string => |slice| {
                     const ret = try visitor.visitString(ally, De, slice, .managed);
-                    std.debug.assert(!ret.used);
                     return ret.value;
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
