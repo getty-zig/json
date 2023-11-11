@@ -209,26 +209,14 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
 
             switch (token) {
-                .true, .false => {
-                    return try visitor.visitBool(ally, De, token == .true);
-                },
+                .true, .false => return try visitor.visitBool(ally, De, token == .true),
                 .number, .allocated_number => |slice| {
                     defer if (token == .allocated_number) ally.free(slice);
 
-                    // Integer (with hint)
                     if (visitor_info == .Int) {
                         return try visitIntHint(visitor, ally, De, slice);
                     }
 
-                    // Enum
-                    if (visitor_info == .Enum) {
-                        switch (slice[0]) {
-                            '0'...'9' => return try visitor.visitInt(ally, De, try parseInt(u128, slice)),
-                            else => return try visitor.visitInt(ally, De, try parseInt(i128, slice)),
-                        }
-                    }
-
-                    // Float
                     if (!std.json.isNumberFormattedLikeAnInteger(slice)) {
                         const Float = switch (Visitor.Value) {
                             f16, f32, f64 => |T| T,
@@ -238,7 +226,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                         return try visitor.visitFloat(ally, De, try std.fmt.parseFloat(Float, slice));
                     }
 
-                    // Integer (without hint)
                     return try visitIntBase(visitor, ally, De, slice);
                 },
                 inline .string, .allocated_string => |slice| {
