@@ -16,14 +16,13 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 
 ## Installation
 
-### Manual
-
 1. Declare Getty JSON as a dependency in `build.zig.zon`:
 
     ```diff
     .{
         .name = "my-project",
         .version = "1.0.0",
+        .paths = .{""},
         .dependencies = .{
     +       .json = .{
     +           .url = "https://github.com/getty-zig/json/archive/<COMMIT>.tar.gz",
@@ -73,6 +72,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     .{
         .name = "my-project",
         .version = "1.0.0",
+        .paths = .{""},
         .dependencies = .{
             .json = .{
                 .url = "https://github.com/getty-zig/json/archive/<COMMIT>.tar.gz",
