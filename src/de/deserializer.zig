@@ -79,12 +79,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     var ret = try visitor.visitString(ally, De, slice, .managed);
                     return ret.value;
                 },
-                .number, .allocated_number => |slice| {
-                    return try switch (slice[0]) {
-                        '0'...'9' => visitor.visitInt(ally, De, try parseInt(u128, slice)),
-                        else => visitor.visitInt(ally, De, try parseInt(i128, slice)),
-                    };
-                },
+                .number, .allocated_number => |slice| return try visitInt(visitor, ally, De, slice),
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             }
@@ -116,31 +111,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
         fn deserializeInt(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
-                .number, .allocated_number => |slice| {
-                    const Value = @TypeOf(visitor).Value;
-                    const value_info = @typeInfo(Value);
-
-                    // If we know that the visitor will produce an integer, we
-                    // can pass that information along to std.fmt.ParseInt.
-                    if (value_info == .Int) {
-                        const sign = value_info.Int.signedness;
-
-                        // Return an early error if the visitor's value type is
-                        // unsigned but the parsed number is negative.
-                        if (sign == .unsigned and slice[0] == '-') {
-                            return error.Overflow;
-                        }
-
-                        return try visitor.visitInt(ally, De, try parseInt(Value, slice));
-                    }
-
-                    // If the visitor is not producing an integer, default to
-                    // deserializing a 128-bit integer.
-                    return try switch (slice[0]) {
-                        '0'...'9' => visitor.visitInt(ally, De, try parseInt(u128, slice)),
-                        else => visitor.visitInt(ally, De, try parseInt(i128, slice)),
-                    };
-                },
+                .number, .allocated_number => |slice| visitInt(visitor, ally, De, slice),
                 .string, .allocated_string => |slice| {
                     const ret = try visitor.visitString(ally, De, slice, .managed);
                     return ret.value;
@@ -248,18 +219,12 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 .true, .false => {
                     return try visitor.visitBool(ally, De, token == .true);
                 },
-                inline .number, .allocated_number => |slice| {
+                .number, .allocated_number => |slice| {
                     defer if (token == .allocated_number) ally.free(slice);
 
                     // Integer (with hint)
                     if (visitor_info == .Int) {
-                        const sign = visitor_info.Int.signedness;
-
-                        if (sign == .unsigned and slice[0] == '-') {
-                            return error.InvalidType;
-                        }
-
-                        return try visitor.visitInt(ally, De, try parseInt(Visitor, slice));
+                        return try visitIntHint(visitor, ally, De, slice);
                     }
 
                     // Enum
@@ -281,10 +246,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     }
 
                     // Integer (without hint)
-                    switch (slice[0]) {
-                        '0'...'9' => return try visitor.visitInt(ally, De, try parseInt(u128, slice)),
-                        else => return try visitor.visitInt(ally, De, try parseInt(i128, slice)),
-                    }
+                    return try visitIntBase(visitor, ally, De, slice);
                 },
                 inline .string, .allocated_string => |slice| {
                     // Union
@@ -423,14 +385,16 @@ fn MapKeyDeserializer(comptime De: type) type {
             return error.InvalidType;
         }
 
-        fn deserializeIgnored(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            _ = self;
+        fn deserializeIgnored(_: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             return try visitor.visitVoid(ally, De);
         }
 
         fn deserializeInt(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            const int = try parseInt(@TypeOf(visitor).Value, self.key);
-            return try visitor.visitInt(ally, De, int);
+            if (self.key.len == 0) {
+                return error.InvalidValue;
+            }
+
+            return try visitInt(visitor, ally, De, self.key);
         }
 
         fn deserializeString(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
@@ -610,4 +574,45 @@ inline fn parseInt(comptime T: type, slice: []const u8) !T {
         error.InvalidCharacter => return error.InvalidType,
         error.Overflow => return err,
     };
+}
+
+inline fn visitInt(
+    visitor: anytype,
+    ally: std.mem.Allocator,
+    comptime De: type,
+    slice: []const u8,
+) !@TypeOf(visitor).Value {
+    if (@typeInfo(@TypeOf(visitor).Value) == .Int) {
+        return try visitIntHint(visitor, ally, De, slice);
+    }
+
+    return try visitIntBase(visitor, ally, De, slice);
+}
+
+inline fn visitIntBase(
+    visitor: anytype,
+    ally: std.mem.Allocator,
+    comptime De: type,
+    slice: []const u8,
+) !@TypeOf(visitor).Value {
+    return try switch (slice[0]) {
+        '0'...'9' => visitor.visitInt(ally, De, try parseInt(u128, slice)),
+        else => visitor.visitInt(ally, De, try parseInt(i128, slice)),
+    };
+}
+
+inline fn visitIntHint(
+    visitor: anytype,
+    ally: std.mem.Allocator,
+    comptime De: type,
+    slice: []const u8,
+) !@TypeOf(visitor).Value {
+    const Value = @TypeOf(visitor).Value;
+    const value_info = @typeInfo(Value);
+
+    if (value_info.Int.signedness == .unsigned and slice[0] == '-') {
+        return error.Overflow;
+    }
+
+    return try visitor.visitInt(ally, De, try parseInt(Value, slice));
 }
