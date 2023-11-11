@@ -187,18 +187,16 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeSeq(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.peekNextTokenType()) {
-                .array_begin => try self.skipToken(), // Eat '['.
+            switch (try self.parser.next()) {
+                .array_begin => {
+                    var s = SeqAccess(Self){ .d = self };
+                    const ret = try visitor.visitSeq(ally, De, s.seqAccess());
+                    try self.endSeq(); // Eat ']'.
+                    return ret;
+                },
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             }
-
-            var s = SeqAccess(Self){ .d = self };
-            const result = try visitor.visitSeq(ally, De, s.seqAccess());
-
-            try self.endSeq();
-
-            return result;
         }
 
         fn deserializeString(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
