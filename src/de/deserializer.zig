@@ -1,6 +1,8 @@
 const getty = @import("getty");
 const std = @import("std");
 
+const Allocator = std.mem.Allocator;
+
 pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
     const Parser = std.json.Reader(1024 * 4, Reader);
 
@@ -10,7 +12,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
         const Self = @This();
 
-        pub fn init(ally: std.mem.Allocator, r: Reader) Self {
+        pub fn init(ally: Allocator, r: Reader) Self {
             return Self{
                 .parser = Parser.init(ally, r),
                 .scratch = std.heap.ArenaAllocator.init(ally),
@@ -62,7 +64,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             Parser.AllocError ||
             std.fmt.ParseIntError || std.fmt.ParseFloatError;
 
-        fn deserializeBool(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeBool(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const value = switch (try self.parser.next()) {
                 .true => true,
                 .false => false,
@@ -73,7 +75,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             return try visitor.visitBool(ally, De, value);
         }
 
-        fn deserializeEnum(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeEnum(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
                 .string, .allocated_string => |slice| {
                     var ret = try visitor.visitString(ally, De, slice, .managed);
@@ -85,7 +87,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn deserializeFloat(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeFloat(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             // std.fmt.parseFloat uses an optimized parsing algorithm for f16,
             // f32, and f64. So, we try to use those if we can based on the
             // kind of value the visitor produces.
@@ -104,12 +106,12 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn deserializeIgnored(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeIgnored(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             try self.parser.skipValue();
             return try visitor.visitVoid(ally, De);
         }
 
-        fn deserializeInt(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeInt(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
                 .number, .allocated_number => |slice| visitInt(visitor, ally, De, slice),
                 .string, .allocated_string => |slice| {
@@ -121,7 +123,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn deserializeMap(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeMap(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.next()) {
                 .object_begin => {
                     var m = MapAccess(Self){ .d = self };
@@ -134,7 +136,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn deserializeOptional(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeOptional(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.peekNextTokenType()) {
                 .null => {
                     try self.skipToken(); // Eat 'null'.
@@ -145,7 +147,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn deserializeSeq(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeSeq(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.next()) {
                 .array_begin => {
                     var s = SeqAccess(Self){ .d = self };
@@ -158,7 +160,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn deserializeString(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeString(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.nextAlloc(ally, .alloc_always)) {
                 .allocated_string => |slice| {
                     var ret = try visitor.visitString(ally, De, slice, .heap);
@@ -169,7 +171,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn deserializeStruct(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeStruct(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.next()) {
                 .object_begin => {
                     var s = StructAccess(Self){ .d = self };
@@ -180,7 +182,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn deserializeUnion(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeUnion(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const peek = switch (try self.parser.peekNextTokenType()) {
                 .object_begin => |tok| peek: {
                     try self.skipToken(); // Eat '{'.
@@ -201,7 +203,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             return ret;
         }
 
-        fn deserializeVoid(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeVoid(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             return switch (try self.parser.next()) {
                 .null => try visitor.visitVoid(ally, De),
                 .end_of_document => error.UnexpectedEndOfInput,
@@ -209,7 +211,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             };
         }
 
-        fn deserializeAny(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeAny(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const Visitor = @TypeOf(visitor);
             const visitor_info = @typeInfo(Visitor);
 
@@ -371,7 +373,7 @@ fn MapKeyDeserializer(comptime De: type) type {
 
         const Err = De.Err;
 
-        fn deserializeAny(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeAny(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const Value = @TypeOf(visitor).Value;
 
             if (@typeInfo(Value) == .Int) {
@@ -385,11 +387,11 @@ fn MapKeyDeserializer(comptime De: type) type {
             return error.InvalidType;
         }
 
-        fn deserializeIgnored(_: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeIgnored(_: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             return try visitor.visitVoid(ally, De);
         }
 
-        fn deserializeInt(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeInt(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             if (self.key.len == 0) {
                 return error.InvalidValue;
             }
@@ -397,7 +399,7 @@ fn MapKeyDeserializer(comptime De: type) type {
             return try visitInt(visitor, ally, De, self.key);
         }
 
-        fn deserializeString(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeString(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             if (self.allocated) {
                 var ret = try visitor.visitString(ally, De, self.key, .heap);
                 if (!ret.used) ally.free(self.key);
@@ -429,7 +431,7 @@ fn MapAccess(comptime D: type) type {
         const De = D.@"getty.Deserializer";
         const Err = De.Err;
 
-        fn nextKeySeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
+        fn nextKeySeed(self: *Self, ally: Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
             switch (try self.d.parser.peekNextTokenType()) {
                 .object_end => return null,
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -452,7 +454,7 @@ fn MapAccess(comptime D: type) type {
             return try seed.deserialize(ally, mkd.deserializer());
         }
 
-        fn nextValueSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
+        fn nextValueSeed(self: *Self, ally: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             return try seed.deserialize(ally, self.d.deserializer());
         }
     };
@@ -473,7 +475,7 @@ fn SeqAccess(comptime D: type) type {
         const De = D.@"getty.Deserializer";
         const Err = De.Err;
 
-        fn nextElementSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
+        fn nextElementSeed(self: *Self, ally: Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
             switch (try self.d.parser.peekNextTokenType()) {
                 .array_end => return null,
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -503,7 +505,7 @@ fn StructAccess(comptime D: type) type {
         const De = D.@"getty.Deserializer";
         const Err = De.Err;
 
-        fn nextKeySeed(self: *Self, _: std.mem.Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
+        fn nextKeySeed(self: *Self, _: Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
             if (@TypeOf(seed).Value != []const u8) {
                 @compileError("expected key type to be `[]const u8`");
             }
@@ -518,7 +520,7 @@ fn StructAccess(comptime D: type) type {
             }
         }
 
-        fn nextValueSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
+        fn nextValueSeed(self: *Self, ally: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             return try seed.deserialize(ally, self.d.deserializer());
         }
     };
@@ -549,7 +551,7 @@ fn Union(comptime D: type) type {
         const De = D.@"getty.Deserializer";
         const Err = De.Err;
 
-        fn variantSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
+        fn variantSeed(self: *Self, ally: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             return switch (try self.d.parser.peekNextTokenType()) {
                 .string => try seed.deserialize(ally, self.d.deserializer()),
                 .end_of_document => error.UnexpectedEndOfInput,
@@ -557,7 +559,7 @@ fn Union(comptime D: type) type {
             };
         }
 
-        fn payloadSeed(self: *Self, ally: std.mem.Allocator, seed: anytype) Err!@TypeOf(seed).Value {
+        fn payloadSeed(self: *Self, ally: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             var payload = try seed.deserialize(ally, self.d.deserializer());
 
             return switch (try self.d.parser.peekNextTokenType()) {
@@ -578,7 +580,7 @@ inline fn parseInt(comptime T: type, slice: []const u8) !T {
 
 inline fn visitInt(
     visitor: anytype,
-    ally: std.mem.Allocator,
+    ally: Allocator,
     comptime De: type,
     slice: []const u8,
 ) !@TypeOf(visitor).Value {
@@ -591,7 +593,7 @@ inline fn visitInt(
 
 inline fn visitIntBase(
     visitor: anytype,
-    ally: std.mem.Allocator,
+    ally: Allocator,
     comptime De: type,
     slice: []const u8,
 ) !@TypeOf(visitor).Value {
@@ -603,7 +605,7 @@ inline fn visitIntBase(
 
 inline fn visitIntHint(
     visitor: anytype,
-    ally: std.mem.Allocator,
+    ally: Allocator,
     comptime De: type,
     slice: []const u8,
 ) !@TypeOf(visitor).Value {
