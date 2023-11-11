@@ -191,7 +191,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             switch (try self.parser.nextAlloc(ally, .alloc_always)) {
                 .allocated_string => |slice| {
                     var ret = try visitor.visitString(ally, De, slice, .heap);
-                    if (!ret.used) ally.free(slice);
                     return ret.value;
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
