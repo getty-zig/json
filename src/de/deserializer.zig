@@ -163,18 +163,16 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeMap(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            switch (try self.parser.peekNextTokenType()) {
-                .object_begin => try self.skipToken(), // Eat '{'.
+            switch (try self.parser.next()) {
+                .object_begin => {
+                    var m = MapAccess(Self){ .d = self };
+                    const ret = try visitor.visitMap(ally, De, m.mapAccess());
+                    try self.endMap();
+                    return ret;
+                },
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             }
-
-            var m = MapAccess(Self){ .d = self };
-            const result = try visitor.visitMap(ally, De, m.mapAccess());
-
-            try self.endMap();
-
-            return result;
         }
 
         fn deserializeOptional(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
