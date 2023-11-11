@@ -167,7 +167,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 .object_begin => {
                     var m = MapAccess(Self){ .d = self };
                     const ret = try visitor.visitMap(ally, De, m.mapAccess());
-                    try self.endMap();
+                    try self.endMap(); // Eat '}'.
                     return ret;
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -176,14 +176,14 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeOptional(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            return switch (try self.parser.peekNextTokenType()) {
-                .null => blk: {
+            switch (try self.parser.peekNextTokenType()) {
+                .null => {
                     try self.skipToken(); // Eat 'null'.
-                    break :blk try visitor.visitNull(ally, De);
+                    return try visitor.visitNull(ally, De);
                 },
-                .end_of_document => error.UnexpectedEndOfInput,
-                else => try visitor.visitSome(ally, self.deserializer()),
-            };
+                .end_of_document => return error.UnexpectedEndOfInput,
+                else => return try visitor.visitSome(ally, self.deserializer()),
+            }
         }
 
         fn deserializeSeq(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
