@@ -74,37 +74,33 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeEnum(self: *Self, ally: std.mem.Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            const peek = try self.parser.peekNextTokenType();
-            switch (peek) {
-                .string, .number => {},
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => return error.InvalidType,
-            }
-
             const token = try self.parser.nextAlloc(
-                ally,
-                if (peek == .string) .alloc_always else .alloc_if_needed,
+                self.scratch.allocator(),
+                .alloc_if_needed,
             );
 
             switch (token) {
-                .allocated_string => |slice| {
-                    var ret = try visitor.visitString(ally, De, slice, .heap);
-                    if (!ret.used) ally.free(slice);
+                .string, .allocated_string => |slice| {
+                    var ret = try visitor.visitString(ally, De, slice, .managed);
+                    std.debug.assert(!ret.used);
                     return ret.value;
                 },
-                inline .number, .allocated_number => |slice| {
-                    defer if (token == .allocated_number) ally.free(slice);
-
-                    return try switch (slice[0]) {
-                        '0'...'9' => visitor.visitInt(ally, De, try parseInt(u128, slice)),
-                        else => visitor.visitInt(ally, De, try parseInt(i128, slice)),
+                .number, .allocated_number => |slice| {
+                    return switch (slice[0]) {
+                        '0'...'9' => visitor.visitInt(
+                            ally,
+                            De,
+                            try parseInt(u128, slice),
+                        ),
+                        else => visitor.visitInt(
+                            ally,
+                            De,
+                            try parseInt(i128, slice),
+                        ),
                     };
                 },
-
-                // UNREACHABLE: The peek and string check guarantees that only
-                // .number, .allocated_number, and .allocated_string tokens
-                // reach here.
-                else => unreachable,
+                .end_of_document => return error.UnexpectedEndOfInput,
+                else => return error.InvalidType,
             }
         }
 
