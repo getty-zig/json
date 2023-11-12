@@ -181,7 +181,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 else => return error.InvalidType,
             };
 
-            var u = Union(Self){ .d = self };
+            var u = UnionAccess(Self){ .d = self };
             const ret = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
 
             if (peek == .object_begin) {
@@ -226,7 +226,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 inline .string, .allocated_string => |slice| {
                     // Union
                     if (visitor_info == .Union) {
-                        var u = Union(Self){ .d = self };
+                        var u = UnionAccess(Self){ .d = self };
                         return try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
                     }
 
@@ -268,7 +268,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 .object_begin => {
                     // Union
                     if (visitor_info == .Union) {
-                        var u = Union(Self){ .d = self };
+                        var u = UnionAccess(Self){ .d = self };
                         const result = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
 
                         try self.endMap();
@@ -499,7 +499,7 @@ fn StructAccess(comptime D: type) type {
     };
 }
 
-fn Union(comptime D: type) type {
+fn UnionAccess(comptime D: type) type {
     return struct {
         d: *D,
 
