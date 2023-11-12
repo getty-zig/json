@@ -3,6 +3,7 @@ const std = @import("std");
 
 const Allocator = std.mem.Allocator;
 
+/// A JSON Deserializer.
 pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
     const Parser = std.json.Reader(std.json.default_buffer_size, Reader);
 
@@ -65,14 +66,12 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             std.fmt.ParseIntError || std.fmt.ParseFloatError;
 
         fn deserializeBool(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            const value = switch (try self.parser.next()) {
-                .true => true,
-                .false => false,
+            return switch (try self.parser.next()) {
+                .true => try visitor.visitBool(ally, De, true),
+                .false => try visitor.visitBool(ally, De, false),
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             };
-
-            return try visitor.visitBool(ally, De, value);
         }
 
         fn deserializeEnum(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
@@ -85,9 +84,10 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
         }
 
         fn deserializeFloat(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            // std.fmt.parseFloat uses an optimized parsing algorithm for f16,
-            // f32, and f64. So, we try to use those if we can based on the
-            // kind of value the visitor produces.
+            // By default, JSON numbers are deserialized into f128 Getty
+            // Floats. However, std.fmt.parseFloat uses an optimized parsing
+            // algorithm for f16, f32, and f64 values, so we try to use those
+            // wherever we can.
             const Float = switch (@TypeOf(visitor).Value) {
                 f16, f32, f64 => |T| T,
                 else => f128,
@@ -107,7 +107,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
         fn deserializeInt(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             return switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
-                .number, .allocated_number => |slice| visitInt(visitor, ally, De, slice),
+                .number, .allocated_number => |slice| try visitInt(visitor, ally, De, slice),
                 .string, .allocated_string => |slice| (try visitor.visitString(ally, De, slice, .managed)).value,
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
@@ -118,9 +118,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             switch (try self.parser.next()) {
                 .object_begin => {
                     var m = MapAccess(Self){ .d = self };
-                    const ret = try visitor.visitMap(ally, De, m.mapAccess());
-                    try self.endMap(); // Eat '}'.
-                    return ret;
+                    return try visitor.visitMap(ally, De, m.mapAccess());
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
@@ -185,7 +183,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             const ret = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
 
             if (peek == .object_begin) {
-                try self.endMap();
+                try self.endUnion();
             }
 
             return ret;
@@ -271,18 +269,14 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                         var u = UnionAccess(Self){ .d = self };
                         const result = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
 
-                        try self.endMap();
+                        try self.endUnion();
 
                         return result;
                     }
 
                     // Map
                     var m = MapAccess(Self){ .d = self };
-                    const result = try visitor.visitMap(ally, De, m.mapAccess());
-
-                    try self.endMap();
-
-                    return result;
+                    return try visitor.visitMap(ally, De, m.mapAccess());
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
@@ -314,7 +308,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn endMap(self: *Self) Err!void {
+        fn endUnion(self: *Self) Err!void {
             switch (try self.parser.peekNextTokenType()) {
                 .object_end => try self.skipToken(), // Eat '}'.
                 .end_of_document => return error.UnexpectedEndOfInput,
@@ -405,26 +399,17 @@ fn MapAccess(comptime D: type) type {
         const Err = De.Err;
 
         fn nextKeySeed(self: *Self, ally: Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
-            switch (try self.d.parser.peekNextTokenType()) {
-                .object_end => return null,
-                .end_of_document => return error.UnexpectedEndOfInput,
-                else => {},
-            }
-
             const token = try self.d.parser.nextAlloc(ally, .alloc_if_needed);
-            defer if (token == .allocated_string) ally.free(token.allocated_string);
-
-            var allocated: bool = undefined;
-            const value = switch (token) {
-                inline .string, .allocated_string => |slice| value: {
-                    allocated = token == .allocated_string;
-                    break :value slice;
+            return switch (token) {
+                .string, .allocated_string => |slice| {
+                    const allocated = token == .allocated_string;
+                    var mkd = MapKeyDeserializer(De){ .key = slice, .allocated = allocated };
+                    return try seed.deserialize(ally, mkd.deserializer());
                 },
-                else => return error.InvalidType,
+                .object_end => null,
+                .end_of_document => error.UnexpectedEndOfInput,
+                else => error.InvalidType,
             };
-
-            var mkd = MapKeyDeserializer(De){ .key = value, .allocated = allocated };
-            return try seed.deserialize(ally, mkd.deserializer());
         }
 
         fn nextValueSeed(self: *Self, ally: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
