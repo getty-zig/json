@@ -208,8 +208,6 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             switch (token) {
                 .true, .false => return try visitor.visitBool(ally, De, token == .true),
                 .number, .allocated_number => |slice| {
-                    defer if (token == .allocated_number) ally.free(slice);
-
                     if (visitor_info == .Int) {
                         return try visitIntHint(visitor, ally, De, slice);
                     }
