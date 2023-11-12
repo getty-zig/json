@@ -4,7 +4,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
-    const Parser = std.json.Reader(1024 * 4, Reader);
+    const Parser = std.json.Reader(std.json.default_buffer_size, Reader);
 
     return struct {
         parser: Parser,
@@ -14,7 +14,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
         pub fn init(ally: Allocator, r: Reader) Self {
             return Self{
-                .parser = Parser.init(ally, r),
+                .parser = std.json.reader(ally, r),
                 .scratch = std.heap.ArenaAllocator.init(ally),
             };
         }
