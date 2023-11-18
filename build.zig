@@ -59,10 +59,10 @@ pub fn build(b: *std.build.Builder) void {
 
     // Documentation.
     {
-        const docs_step = b.step("json-docs", "Build the project documentation");
+        const docs_step = b.step("docs", "Build the project documentation");
 
         const doc_obj = b.addObject(.{
-            .name = "json-docs",
+            .name = "docs",
             .root_source_file = .{ .path = package_path },
             .target = target,
             .optimize = optimize,
