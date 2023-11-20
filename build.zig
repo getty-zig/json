@@ -72,7 +72,7 @@ pub fn build(b: *std.build.Builder) void {
         const install_docs = b.addInstallDirectory(.{
             .source_dir = doc_obj.getEmittedDocs(),
             .install_dir = .prefix,
-            .install_subdir = "doc/json",
+            .install_subdir = "docs/json",
         });
         docs_step.dependOn(&install_docs.step);
     }
