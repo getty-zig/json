@@ -231,12 +231,12 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     // Enum, String
                     switch (token) {
                         .string => {
-                            var ret = try visitor.visitString(ally, De, slice, .stack);
+                            const ret = try visitor.visitString(ally, De, slice, .stack);
                             std.debug.assert(!ret.used);
                             return ret.value;
                         },
                         .allocated_string => {
-                            var ret = try visitor.visitString(ally, De, slice, .heap);
+                            const ret = try visitor.visitString(ally, De, slice, .heap);
                             if (!ret.used) ally.free(slice);
                             return ret.value;
                         },
@@ -368,12 +368,12 @@ fn MapKeyDeserializer(comptime De: type) type {
 
         fn deserializeString(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             if (self.allocated) {
-                var ret = try visitor.visitString(ally, De, self.key, .heap);
+                const ret = try visitor.visitString(ally, De, self.key, .heap);
                 if (!ret.used) ally.free(self.key);
                 return ret.value;
             }
 
-            var ret = try visitor.visitString(ally, De, self.key, .stack);
+            const ret = try visitor.visitString(ally, De, self.key, .stack);
             std.debug.assert(!ret.used);
             return ret.value;
         }
@@ -518,7 +518,7 @@ fn UnionAccess(comptime D: type) type {
         }
 
         fn payloadSeed(self: *Self, ally: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
-            var payload = try seed.deserialize(ally, self.d.deserializer());
+            const payload = try seed.deserialize(ally, self.d.deserializer());
 
             return switch (try self.d.parser.peekNextTokenType()) {
                 .object_end => payload,

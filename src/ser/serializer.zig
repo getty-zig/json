@@ -188,7 +188,8 @@ pub fn Serializer(
                 // Number of elements in sequence is unknown, so just try to
                 // serialize an element and return an error if there are none.
                 if (a.max == null) {
-                    return try a._serializeElement(v);
+                    try a._serializeElement(v);
+                    return;
                 }
 
                 // Number of elements in sequence is known but we've already
@@ -200,10 +201,9 @@ pub fn Serializer(
                 // Number of elements in sequence is known but we haven't
                 // serialized all of them yet, so serialize an element and
                 // increment the current count.
-                var elem = try a._serializeElement(v);
-                defer a.count += 1;
+                try a._serializeElement(v);
 
-                return elem;
+                a.count += 1;
             }
 
             fn seq_end(a: *A) Error!Ok {
@@ -254,7 +254,8 @@ pub fn Serializer(
                 // Number of entries in map is unknown, so just try to
                 // serialize an entry and return an error if there are none.
                 if (a.max == null) {
-                    return try a._serializeElement(v);
+                    try a._serializeElement(v);
+                    return;
                 }
 
                 // Number of entries in map is known but we've already
@@ -266,10 +267,9 @@ pub fn Serializer(
                 // Number of entries in map is known but we haven't serialized
                 // all of them yet, so serialize an entry and increment the
                 // current count.
-                var value = try a._serializeValue(v);
-                defer a.count += 1;
+                try a._serializeValue(v);
 
-                return value;
+                a.count += 1;
             }
 
             fn map_end(a: *A) Error!Ok {
@@ -296,7 +296,8 @@ pub fn Serializer(
                 // Number of fields in struct is unknown, so just try to
                 // serialize a field and return an error if there are none.
                 if (a.max == null) {
-                    return try a._serializeField(k, v);
+                    try a._serializeField(k, v);
+                    return;
                 }
 
                 // Number of fields in struct is known but we've already
@@ -305,10 +306,9 @@ pub fn Serializer(
                     return;
                 }
 
-                var f = try a._serializeField(k, v);
-                defer a.count += 1;
+                try a._serializeField(k, v);
 
-                return f;
+                a.count += 1;
             }
 
             ////////////////////////////////////////////////////////////////////

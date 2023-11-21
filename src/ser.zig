@@ -57,7 +57,7 @@ pub fn toPrettyWriterWith(
     const ff = f.formatter();
 
     var s = Serializer(@TypeOf(w), @TypeOf(ff), sbt).init(ally, w, ff);
-    var ss = s.serializer();
+    const ss = s.serializer();
 
     try getty.serialize(ally, v, ss);
 }

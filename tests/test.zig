@@ -1099,7 +1099,7 @@ fn testEncodeEqual(comptime T: type, tests: EncodeTest(T)) !void {
         const want = t[0];
         const value = t[1];
 
-        var got = try json.toSlice(test_ally, value);
+        const got = try json.toSlice(test_ally, value);
         defer test_ally.free(got);
 
         try expectEqualStrings(want, got);
@@ -1111,7 +1111,7 @@ fn testPrettyEncodeEqual(comptime T: type, tests: EncodeTest(T)) !void {
         const want = t[0];
         const value = t[1];
 
-        var got = try json.toPrettySlice(test_ally, value);
+        const got = try json.toPrettySlice(test_ally, value);
         defer test_ally.free(got);
 
         try expectEqualStrings(want, got);
