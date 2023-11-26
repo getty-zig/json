@@ -31,7 +31,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     }
     ```
 
-2. Expose Getty JSON as a module in `build.zig`:
+2. Add Getty JSON as a module in `build.zig`:
 
     ```diff
     const std = @import("std");
@@ -41,7 +41,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
         const optimize = b.standardOptimizeOption(.{});
 
     +   const opts = .{ .target = target, .optimize = optimize };
-    +   const json_module = b.dependency("json", opts).module("json");
+    +   const json_mod = b.dependency("json", opts).module("json");
 
         const exe = b.addExecutable(.{
             .name = "test",
@@ -49,7 +49,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
             .target = target,
             .optimize = optimize,
         });
-    +   exe.addModule("json", json_module);
+    +   exe.addModule("json", json_mod);
         exe.install();
 
         ...
@@ -60,13 +60,13 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 
     ```
     $ zig build
-    my-project/build.zig.zon:6:20: error: url field is missing corresponding hash field
+    my-project/build.zig.zon:7:20: error: url field is missing corresponding hash field
             .url = "https://github.com/getty-zig/json/archive/<COMMIT>.tar.gz",
                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     note: expected .hash = "<HASH>",
     ```
 
-4. Update `build.zig.zon` with Getty JSON's package hash value:
+4. Update `build.zig.zon` with Getty JSON's package hash:
 
     ```diff
     .{
