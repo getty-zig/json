@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>ser/serializer.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> getty = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;getty&quot;</span>);</span>
+<span class="line" id="L2"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L3"></span>
+<span class="line" id="L4"><span class="tok-kw">const</span> CompactFormatter = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;impl/formatter/compact.zig&quot;</span>).Formatter;</span>
+<span class="line" id="L5"><span class="tok-kw">const</span> PrettyFormatter = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;impl/formatter/pretty.zig&quot;</span>).Formatter;</span>
+<span class="line" id="L6"><span class="tok-kw">const</span> writeEscaped = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;impl/formatter/details/escape.zig&quot;</span>).writeEscaped;</span>
+<span class="line" id="L7"></span>
+<span class="line" id="L8"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">serializer</span>(ally: ?std.mem.Allocator, w: <span class="tok-kw">anytype</span>, sbt: <span class="tok-kw">anytype</span>) blk: {</span>
+<span class="line" id="L9">    <span class="tok-kw">var</span> f = CompactFormatter(<span class="tok-builtin">@TypeOf</span>(w)){};</span>
+<span class="line" id="L10">    <span class="tok-kw">const</span> ff = f.formatter();</span>
+<span class="line" id="L11"></span>
+<span class="line" id="L12">    <span class="tok-kw">break</span> :blk Serializer(<span class="tok-builtin">@TypeOf</span>(w), <span class="tok-builtin">@TypeOf</span>(ff), sbt);</span>
+<span class="line" id="L13">} {</span>
+<span class="line" id="L14">    <span class="tok-kw">var</span> f = CompactFormatter(<span class="tok-builtin">@TypeOf</span>(w)){};</span>
+<span class="line" id="L15">    <span class="tok-kw">const</span> ff = f.formatter();</span>
+<span class="line" id="L16"></span>
+<span class="line" id="L17">    <span class="tok-kw">return</span> Serializer(<span class="tok-builtin">@TypeOf</span>(w), <span class="tok-builtin">@TypeOf</span>(ff), sbt).init(ally, w, ff);</span>
+<span class="line" id="L18">}</span>
+<span class="line" id="L19"></span>
+<span class="line" id="L20"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">Serializer</span>(</span>
+<span class="line" id="L21">    <span class="tok-kw">comptime</span> Writer: <span class="tok-type">type</span>,</span>
+<span class="line" id="L22">    <span class="tok-kw">comptime</span> Formatter: <span class="tok-type">type</span>,</span>
+<span class="line" id="L23">    <span class="tok-kw">comptime</span> sbt: <span class="tok-kw">anytype</span>,</span>
+<span class="line" id="L24">) <span class="tok-type">type</span> {</span>
+<span class="line" id="L25">    <span class="tok-kw">return</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L26">        ally: ?std.mem.Allocator = <span class="tok-null">null</span>,</span>
+<span class="line" id="L27">        writer: Writer,</span>
+<span class="line" id="L28">        formatter: Formatter,</span>
+<span class="line" id="L29"></span>
+<span class="line" id="L30">        <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L31"></span>
+<span class="line" id="L32">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(ally: ?std.mem.Allocator, w: Writer, f: Formatter) Self {</span>
+<span class="line" id="L33">            <span class="tok-kw">return</span> .{ .ally = ally, .writer = w, .formatter = f };</span>
+<span class="line" id="L34">        }</span>
+<span class="line" id="L35"></span>
+<span class="line" id="L36">        <span class="tok-kw">pub</span> <span class="tok-kw">usingnamespace</span> getty.Serializer(</span>
+<span class="line" id="L37">            *Self,</span>
+<span class="line" id="L38">            Ok,</span>
+<span class="line" id="L39">            Error,</span>
+<span class="line" id="L40">            sbt,</span>
+<span class="line" id="L41">            <span class="tok-null">null</span>,</span>
+<span class="line" id="L42">            Aggregate,</span>
+<span class="line" id="L43">            Aggregate,</span>
+<span class="line" id="L44">            Aggregate,</span>
+<span class="line" id="L45">            .{</span>
+<span class="line" id="L46">                .serializeBool = serializeBool,</span>
+<span class="line" id="L47">                .serializeEnum = serializeEnum,</span>
+<span class="line" id="L48">                .serializeFloat = serializeFloat,</span>
+<span class="line" id="L49">                .serializeInt = serializeInt,</span>
+<span class="line" id="L50">                .serializeMap = serializeMap,</span>
+<span class="line" id="L51">                .serializeNull = serializeNull,</span>
+<span class="line" id="L52">                .serializeSeq = serializeSeq,</span>
+<span class="line" id="L53">                .serializeSome = serializeSome,</span>
+<span class="line" id="L54">                .serializeString = serializeString,</span>
+<span class="line" id="L55">                .serializeStruct = serializeStruct,</span>
+<span class="line" id="L56">                .serializeVoid = serializeNull,</span>
+<span class="line" id="L57">            },</span>
+<span class="line" id="L58">        );</span>
+<span class="line" id="L59"></span>
+<span class="line" id="L60">        <span class="tok-kw">const</span> Ok = <span class="tok-type">void</span>;</span>
+<span class="line" id="L61">        <span class="tok-kw">const</span> Error = getty.ser.Error || std.mem.Allocator.Error || <span class="tok-kw">error</span>{</span>
+<span class="line" id="L62">            <span class="tok-comment">/// Failure to read or write bytes on an IO stream.</span></span>
+<span class="line" id="L63">            Io,</span>
+<span class="line" id="L64"></span>
+<span class="line" id="L65">            <span class="tok-comment">/// Input was syntactically incorrect.</span></span>
+<span class="line" id="L66">            Syntax,</span>
+<span class="line" id="L67"></span>
+<span class="line" id="L68">            <span class="tok-comment">/// Input data was semantically incorrect.</span></span>
+<span class="line" id="L69">            <span class="tok-comment">///</span></span>
+<span class="line" id="L70">            <span class="tok-comment">/// For example, JSON containing a number is semantically incorrect</span></span>
+<span class="line" id="L71">            <span class="tok-comment">/// when the type being deserialized into holds a String.</span></span>
+<span class="line" id="L72">            Data,</span>
+<span class="line" id="L73"></span>
+<span class="line" id="L74">            <span class="tok-comment">/// Prematurely reached the end of the input data.</span></span>
+<span class="line" id="L75">            <span class="tok-comment">///</span></span>
+<span class="line" id="L76">            <span class="tok-comment">/// Callers that process streaming input may be interested in</span></span>
+<span class="line" id="L77">            <span class="tok-comment">/// retrying the deserialization once more data is available.</span></span>
+<span class="line" id="L78">            Eof,</span>
+<span class="line" id="L79">        };</span>
+<span class="line" id="L80"></span>
+<span class="line" id="L81">        <span class="tok-kw">fn</span> <span class="tok-fn">serializeBool</span>(self: *Self, v: <span class="tok-type">bool</span>) Error!Ok {</span>
+<span class="line" id="L82">            self.formatter.writeBool(self.writer, v) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L83">        }</span>
+<span class="line" id="L84"></span>
+<span class="line" id="L85">        <span class="tok-kw">fn</span> <span class="tok-fn">serializeEnum</span>(self: *Self, _: <span class="tok-kw">anytype</span>, variant: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) Error!Ok {</span>
+<span class="line" id="L86">            serializeString(self, variant) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L87">        }</span>
+<span class="line" id="L88"></span>
+<span class="line" id="L89">        <span class="tok-kw">fn</span> <span class="tok-fn">serializeFloat</span>(self: *Self, v: <span class="tok-kw">anytype</span>) Error!Ok {</span>
+<span class="line" id="L90">            <span class="tok-kw">if</span> (<span class="tok-builtin">@TypeOf</span>(v) != <span class="tok-type">comptime_float</span> <span class="tok-kw">and</span> (std.math.isNan(v) <span class="tok-kw">or</span> std.math.isInf(v))) {</span>
+<span class="line" id="L91">                self.formatter.writeNull(self.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L92">            } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L93">                self.formatter.writeFloat(self.writer, v) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L94">            }</span>
+<span class="line" id="L95">        }</span>
+<span class="line" id="L96"></span>
+<span class="line" id="L97">        <span class="tok-kw">fn</span> <span class="tok-fn">serializeInt</span>(self: *Self, v: <span class="tok-kw">anytype</span>) Error!Ok {</span>
+<span class="line" id="L98">            self.formatter.writeInt(self.writer, v) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L99">        }</span>
+<span class="line" id="L100"></span>
+<span class="line" id="L101">        <span class="tok-kw">fn</span> <span class="tok-fn">serializeMap</span>(self: *Self, len: ?<span class="tok-type">usize</span>) Error!Aggregate {</span>
+<span class="line" id="L102">            self.formatter.beginObject(self.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L103"></span>
+<span class="line" id="L104">            <span class="tok-kw">if</span> (len) |l| {</span>
+<span class="line" id="L105">                <span class="tok-kw">if</span> (l == <span class="tok-number">0</span>) {</span>
+<span class="line" id="L106">                    self.formatter.endObject(self.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L107">                    <span class="tok-kw">return</span> Aggregate{ .ser = self, .max = <span class="tok-number">0</span> };</span>
+<span class="line" id="L108">                }</span>
+<span class="line" id="L109"></span>
+<span class="line" id="L110">                <span class="tok-kw">return</span> Aggregate{ .ser = self, .state = .first, .max = l };</span>
+<span class="line" id="L111">            }</span>
+<span class="line" id="L112"></span>
+<span class="line" id="L113">            <span class="tok-kw">return</span> Aggregate{ .ser = self, .state = .first };</span>
+<span class="line" id="L114">        }</span>
+<span class="line" id="L115"></span>
+<span class="line" id="L116">        <span class="tok-kw">fn</span> <span class="tok-fn">serializeNull</span>(self: *Self) Error!Ok {</span>
+<span class="line" id="L117">            self.formatter.writeNull(self.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L118">        }</span>
+<span class="line" id="L119"></span>
+<span class="line" id="L120">        <span class="tok-kw">fn</span> <span class="tok-fn">serializeSeq</span>(self: *Self, len: ?<span class="tok-type">usize</span>) Error!Aggregate {</span>
+<span class="line" id="L121">            self.formatter.beginArray(self.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L122"></span>
+<span class="line" id="L123">            <span class="tok-kw">if</span> (len) |l| {</span>
+<span class="line" id="L124">                <span class="tok-kw">if</span> (l == <span class="tok-number">0</span>) {</span>
+<span class="line" id="L125">                    self.formatter.endArray(self.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L126">                    <span class="tok-kw">return</span> Aggregate{ .ser = self, .max = <span class="tok-number">0</span> };</span>
+<span class="line" id="L127">                }</span>
+<span class="line" id="L128"></span>
+<span class="line" id="L129">                <span class="tok-kw">return</span> Aggregate{ .ser = self, .state = .first, .max = l };</span>
+<span class="line" id="L130">            }</span>
+<span class="line" id="L131"></span>
+<span class="line" id="L132">            <span class="tok-kw">return</span> Aggregate{ .ser = self, .state = .first };</span>
+<span class="line" id="L133">        }</span>
+<span class="line" id="L134"></span>
+<span class="line" id="L135">        <span class="tok-kw">fn</span> <span class="tok-fn">serializeSome</span>(self: *Self, v: <span class="tok-kw">anytype</span>) Error!Ok {</span>
+<span class="line" id="L136">            <span class="tok-kw">try</span> getty.serialize(self.ally, v, self.serializer());</span>
+<span class="line" id="L137">        }</span>
+<span class="line" id="L138"></span>
+<span class="line" id="L139">        <span class="tok-kw">fn</span> <span class="tok-fn">serializeString</span>(self: *Self, v: <span class="tok-kw">anytype</span>) Error!Ok {</span>
+<span class="line" id="L140">            <span class="tok-kw">if</span> (!std.unicode.utf8ValidateSlice(v)) {</span>
+<span class="line" id="L141">                <span class="tok-kw">return</span> Error.Syntax;</span>
+<span class="line" id="L142">            }</span>
+<span class="line" id="L143"></span>
+<span class="line" id="L144">            self.formatter.beginString(self.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L145">            writeEscaped(v, self.writer, self.formatter) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L146">            self.formatter.endString(self.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L147">        }</span>
+<span class="line" id="L148"></span>
+<span class="line" id="L149">        <span class="tok-kw">fn</span> <span class="tok-fn">serializeStruct</span>(self: *Self, <span class="tok-kw">comptime</span> _: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>, len: <span class="tok-type">usize</span>) Error!Aggregate {</span>
+<span class="line" id="L150">            self.formatter.beginObject(self.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L151"></span>
+<span class="line" id="L152">            <span class="tok-kw">if</span> (len == <span class="tok-number">0</span>) {</span>
+<span class="line" id="L153">                self.formatter.endObject(self.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L154">                <span class="tok-kw">return</span> Aggregate{ .ser = self, .max = <span class="tok-number">0</span> };</span>
+<span class="line" id="L155">            }</span>
+<span class="line" id="L156"></span>
+<span class="line" id="L157">            <span class="tok-kw">return</span> Aggregate{ .ser = self, .state = .first, .max = len };</span>
+<span class="line" id="L158">        }</span>
+<span class="line" id="L159"></span>
+<span class="line" id="L160">        <span class="tok-comment">// Implementation of Getty's aggregate serialization interfaces.</span>
+</span>
+<span class="line" id="L161">        <span class="tok-kw">const</span> Aggregate = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L162">            ser: *Self,</span>
+<span class="line" id="L163">            state: <span class="tok-kw">enum</span> { empty, first, rest } = .empty,</span>
+<span class="line" id="L164"></span>
+<span class="line" id="L165">            <span class="tok-comment">// Maximum number of elements/entries to serialize.</span>
+</span>
+<span class="line" id="L166">            max: ?<span class="tok-type">usize</span> = <span class="tok-null">null</span>,</span>
+<span class="line" id="L167"></span>
+<span class="line" id="L168">            <span class="tok-comment">// Number of elements/entries serialized.</span>
+</span>
+<span class="line" id="L169">            count: <span class="tok-type">usize</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L170"></span>
+<span class="line" id="L171">            <span class="tok-kw">const</span> A = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L172"></span>
+<span class="line" id="L173">            <span class="tok-comment">////////////////////////////////////////////////////////////////////</span>
+</span>
+<span class="line" id="L174">            <span class="tok-comment">// Sequence</span>
+</span>
+<span class="line" id="L175">            <span class="tok-comment">////////////////////////////////////////////////////////////////////</span>
+</span>
+<span class="line" id="L176"></span>
+<span class="line" id="L177">            <span class="tok-kw">pub</span> <span class="tok-kw">usingnamespace</span> getty.ser.Seq(</span>
+<span class="line" id="L178">                *A,</span>
+<span class="line" id="L179">                Ok,</span>
+<span class="line" id="L180">                Error,</span>
+<span class="line" id="L181">                .{</span>
+<span class="line" id="L182">                    .serializeElement = serializeElement,</span>
+<span class="line" id="L183">                    .end = seq_end,</span>
+<span class="line" id="L184">                },</span>
+<span class="line" id="L185">            );</span>
+<span class="line" id="L186"></span>
+<span class="line" id="L187">            <span class="tok-kw">fn</span> <span class="tok-fn">serializeElement</span>(a: *A, v: <span class="tok-kw">anytype</span>) Error!<span class="tok-type">void</span> {</span>
+<span class="line" id="L188">                <span class="tok-comment">// Number of elements in sequence is unknown, so just try to</span>
+</span>
+<span class="line" id="L189">                <span class="tok-comment">// serialize an element and return an error if there are none.</span>
+</span>
+<span class="line" id="L190">                <span class="tok-kw">if</span> (a.max == <span class="tok-null">null</span>) {</span>
+<span class="line" id="L191">                    <span class="tok-kw">try</span> a._serializeElement(v);</span>
+<span class="line" id="L192">                    <span class="tok-kw">return</span>;</span>
+<span class="line" id="L193">                }</span>
+<span class="line" id="L194"></span>
+<span class="line" id="L195">                <span class="tok-comment">// Number of elements in sequence is known but we've already</span>
+</span>
+<span class="line" id="L196">                <span class="tok-comment">// serialized all elements, so just return from the function.</span>
+</span>
+<span class="line" id="L197">                <span class="tok-kw">if</span> (a.count &gt;= a.max.?) {</span>
+<span class="line" id="L198">                    <span class="tok-kw">return</span>;</span>
+<span class="line" id="L199">                }</span>
+<span class="line" id="L200"></span>
+<span class="line" id="L201">                <span class="tok-comment">// Number of elements in sequence is known but we haven't</span>
+</span>
+<span class="line" id="L202">                <span class="tok-comment">// serialized all of them yet, so serialize an element and</span>
+</span>
+<span class="line" id="L203">                <span class="tok-comment">// increment the current count.</span>
+</span>
+<span class="line" id="L204">                <span class="tok-kw">try</span> a._serializeElement(v);</span>
+<span class="line" id="L205"></span>
+<span class="line" id="L206">                a.count += <span class="tok-number">1</span>;</span>
+<span class="line" id="L207">            }</span>
+<span class="line" id="L208"></span>
+<span class="line" id="L209">            <span class="tok-kw">fn</span> <span class="tok-fn">seq_end</span>(a: *A) Error!Ok {</span>
+<span class="line" id="L210">                <span class="tok-kw">if</span> (a.state != .empty) {</span>
+<span class="line" id="L211">                    a.ser.formatter.endArray(a.ser.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Io;</span>
+<span class="line" id="L212">                }</span>
+<span class="line" id="L213">            }</span>
+<span class="line" id="L214"></span>
+<span class="line" id="L215">            <span class="tok-comment">////////////////////////////////////////////////////////////////////</span>
+</span>
+<span class="line" id="L216">            <span class="tok-comment">// Map</span>
+</span>
+<span class="line" id="L217">            <span class="tok-comment">////////////////////////////////////////////////////////////////////</span>
+</span>
+<span class="line" id="L218"></span>
+<span class="line" id="L219">            <span class="tok-kw">pub</span> <span class="tok-kw">usingnamespace</span> getty.ser.Map(</span>
+<span class="line" id="L220">                *A,</span>
+<span class="line" id="L221">                Ok,</span>
+<span class="line" id="L222">                Error,</span>
+<span class="line" id="L223">                .{</span>
+<span class="line" id="L224">                    .serializeKey = serializeKey,</span>
+<span class="line" id="L225">                    .serializeValue = serializeValue,</span>
+<span class="line" id="L226">                    .end = map_end,</span>
+<span class="line" id="L227">                },</span>
+<span class="line" id="L228">            );</span>
+<span class="line" id="L229"></span>
+<span class="line" id="L230">            <span class="tok-kw">fn</span> <span class="tok-fn">serializeKey</span>(a: *A, k: <span class="tok-kw">anytype</span>) Error!<span class="tok-type">void</span> {</span>
+<span class="line" id="L231">                <span class="tok-kw">if</span> (a.max) |max| {</span>
+<span class="line" id="L232">                    <span class="tok-comment">// Number of elements in map is known but we've already</span>
+</span>
+<span class="line" id="L233">                    <span class="tok-comment">// serialized all entries, so just return from the function.</span>
+</span>
+<span class="line" id="L234">                    <span class="tok-kw">if</span> (a.count &gt;= max) {</span>
+<span class="line" id="L235">                        <span class="tok-kw">return</span>;</span>
+<span class="line" id="L236">                    }</span>
+<span class="line" id="L237">                }</span>
+<span class="line" id="L238"></span>
+<span class="line" id="L239">                <span class="tok-comment">// Number of entries in map is either:</span>
+</span>
+<span class="line" id="L240">                <span class="tok-comment">//</span>
+</span>
+<span class="line" id="L241">                <span class="tok-comment">//   1) Unknown, so try to serialize a key and return an error</span>
+</span>
+<span class="line" id="L242">                <span class="tok-comment">//      if there are none.</span>
+</span>
+<span class="line" id="L243">                <span class="tok-comment">//</span>
+</span>
+<span class="line" id="L244">                <span class="tok-comment">//   2) Known, but we haven't serialized all of them yet so</span>
+</span>
+<span class="line" id="L245">                <span class="tok-comment">//      start serializing an entry by serializing a key. The</span>
+</span>
+<span class="line" id="L246">                <span class="tok-comment">//      count will be incremented in serializeValue.</span>
+</span>
+<span class="line" id="L247">                <span class="tok-kw">var</span> s = MapKeySerializer{ .ser = a.ser };</span>
+<span class="line" id="L248">                <span class="tok-kw">const</span> ss = s.serializer();</span>
+<span class="line" id="L249"></span>
+<span class="line" id="L250">                <span class="tok-kw">try</span> a._serializeKey(k, ss);</span>
+<span class="line" id="L251">            }</span>
+<span class="line" id="L252"></span>
+<span class="line" id="L253">            <span class="tok-kw">fn</span> <span class="tok-fn">serializeValue</span>(a: *A, v: <span class="tok-kw">anytype</span>) Error!<span class="tok-type">void</span> {</span>
+<span class="line" id="L254">                <span class="tok-comment">// Number of entries in map is unknown, so just try to</span>
+</span>
+<span class="line" id="L255">                <span class="tok-comment">// serialize an entry and return an error if there are none.</span>
+</span>
+<span class="line" id="L256">                <span class="tok-kw">if</span> (a.max == <span class="tok-null">null</span>) {</span>
+<span class="line" id="L257">                    <span class="tok-kw">try</span> a._serializeElement(v);</span>
+<span class="line" id="L258">                    <span class="tok-kw">return</span>;</span>
+<span class="line" id="L259">                }</span>
+<span class="line" id="L260"></span>
+<span class="line" id="L261">                <span class="tok-comment">// Number of entries in map is known but we've already</span>
+</span>
+<span class="line" id="L262">                <span class="tok-comment">// serialized all entries, so just return from the function.</span>
+</span>
+<span class="line" id="L263">                <span class="tok-kw">if</span> (a.count &gt;= a.max.?) {</span>
+<span class="line" id="L264">                    <span class="tok-kw">return</span>;</span>
+<span class="line" id="L265">                }</span>
+<span class="line" id="L266"></span>
+<span class="line" id="L267">                <span class="tok-comment">// Number of entries in map is known but we haven't serialized</span>
+</span>
+<span class="line" id="L268">                <span class="tok-comment">// all of them yet, so serialize an entry and increment the</span>
+</span>
+<span class="line" id="L269">                <span class="tok-comment">// current count.</span>
+</span>
+<span class="line" id="L270">                <span class="tok-kw">try</span> a._serializeValue(v);</span>
+<span class="line" id="L271"></span>
+<span class="line" id="L272">                a.count += <span class="tok-number">1</span>;</span>
+<span class="line" id="L273">            }</span>
+<span class="line" id="L274"></span>
+<span class="line" id="L275">            <span class="tok-kw">fn</span> <span class="tok-fn">map_end</span>(a: *A) Error!Ok {</span>
+<span class="line" id="L276">                <span class="tok-kw">if</span> (a.state != .empty) {</span>
+<span class="line" id="L277">                    a.ser.formatter.endObject(a.ser.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Io;</span>
+<span class="line" id="L278">                }</span>
+<span class="line" id="L279">            }</span>
+<span class="line" id="L280"></span>
+<span class="line" id="L281">            <span class="tok-comment">////////////////////////////////////////////////////////////////////</span>
+</span>
+<span class="line" id="L282">            <span class="tok-comment">// Structure</span>
+</span>
+<span class="line" id="L283">            <span class="tok-comment">////////////////////////////////////////////////////////////////////</span>
+</span>
+<span class="line" id="L284"></span>
+<span class="line" id="L285">            <span class="tok-kw">pub</span> <span class="tok-kw">usingnamespace</span> getty.ser.Structure(</span>
+<span class="line" id="L286">                *A,</span>
+<span class="line" id="L287">                Ok,</span>
+<span class="line" id="L288">                Error,</span>
+<span class="line" id="L289">                .{</span>
+<span class="line" id="L290">                    .serializeField = serializeField,</span>
+<span class="line" id="L291">                    .end = map_end,</span>
+<span class="line" id="L292">                },</span>
+<span class="line" id="L293">            );</span>
+<span class="line" id="L294"></span>
+<span class="line" id="L295">            <span class="tok-kw">fn</span> <span class="tok-fn">serializeField</span>(a: *A, <span class="tok-kw">comptime</span> k: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>, v: <span class="tok-kw">anytype</span>) Error!<span class="tok-type">void</span> {</span>
+<span class="line" id="L296">                <span class="tok-comment">// Number of fields in struct is unknown, so just try to</span>
+</span>
+<span class="line" id="L297">                <span class="tok-comment">// serialize a field and return an error if there are none.</span>
+</span>
+<span class="line" id="L298">                <span class="tok-kw">if</span> (a.max == <span class="tok-null">null</span>) {</span>
+<span class="line" id="L299">                    <span class="tok-kw">try</span> a._serializeField(k, v);</span>
+<span class="line" id="L300">                    <span class="tok-kw">return</span>;</span>
+<span class="line" id="L301">                }</span>
+<span class="line" id="L302"></span>
+<span class="line" id="L303">                <span class="tok-comment">// Number of fields in struct is known but we've already</span>
+</span>
+<span class="line" id="L304">                <span class="tok-comment">// serialized all fields, so just return from the function.</span>
+</span>
+<span class="line" id="L305">                <span class="tok-kw">if</span> (a.count &gt;= a.max.?) {</span>
+<span class="line" id="L306">                    <span class="tok-kw">return</span>;</span>
+<span class="line" id="L307">                }</span>
+<span class="line" id="L308"></span>
+<span class="line" id="L309">                <span class="tok-kw">try</span> a._serializeField(k, v);</span>
+<span class="line" id="L310"></span>
+<span class="line" id="L311">                a.count += <span class="tok-number">1</span>;</span>
+<span class="line" id="L312">            }</span>
+<span class="line" id="L313"></span>
+<span class="line" id="L314">            <span class="tok-comment">////////////////////////////////////////////////////////////////////</span>
+</span>
+<span class="line" id="L315">            <span class="tok-comment">// Private methods</span>
+</span>
+<span class="line" id="L316">            <span class="tok-comment">////////////////////////////////////////////////////////////////////</span>
+</span>
+<span class="line" id="L317"></span>
+<span class="line" id="L318">            <span class="tok-kw">fn</span> <span class="tok-fn">_serializeElement</span>(a: *A, v: <span class="tok-kw">anytype</span>) Error!<span class="tok-type">void</span> {</span>
+<span class="line" id="L319">                a.ser.formatter.beginArrayValue(a.ser.writer, a.state == .first) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Io;</span>
+<span class="line" id="L320">                <span class="tok-kw">try</span> getty.serialize(a.ser.ally, v, a.ser.serializer());</span>
+<span class="line" id="L321">                a.ser.formatter.endArrayValue(a.ser.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Io;</span>
+<span class="line" id="L322"></span>
+<span class="line" id="L323">                a.state = .rest;</span>
+<span class="line" id="L324">            }</span>
+<span class="line" id="L325"></span>
+<span class="line" id="L326">            <span class="tok-kw">fn</span> <span class="tok-fn">_serializeKey</span>(a: *A, k: <span class="tok-kw">anytype</span>, ser: <span class="tok-kw">anytype</span>) Error!<span class="tok-type">void</span> {</span>
+<span class="line" id="L327">                a.ser.formatter.beginObjectKey(a.ser.writer, a.state == .first) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Io;</span>
+<span class="line" id="L328">                <span class="tok-kw">try</span> getty.serialize(a.ser.ally, k, ser);</span>
+<span class="line" id="L329">                a.ser.formatter.endObjectKey(a.ser.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Io;</span>
+<span class="line" id="L330"></span>
+<span class="line" id="L331">                a.state = .rest;</span>
+<span class="line" id="L332">            }</span>
+<span class="line" id="L333"></span>
+<span class="line" id="L334">            <span class="tok-kw">fn</span> <span class="tok-fn">_serializeValue</span>(a: *A, v: <span class="tok-kw">anytype</span>) Error!<span class="tok-type">void</span> {</span>
+<span class="line" id="L335">                a.ser.formatter.beginObjectValue(a.ser.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Io;</span>
+<span class="line" id="L336">                <span class="tok-kw">try</span> getty.serialize(a.ser.ally, v, a.ser.serializer());</span>
+<span class="line" id="L337">                a.ser.formatter.endObjectValue(a.ser.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Io;</span>
+<span class="line" id="L338">            }</span>
+<span class="line" id="L339"></span>
+<span class="line" id="L340">            <span class="tok-kw">fn</span> <span class="tok-fn">_serializeField</span>(a: *A, <span class="tok-kw">comptime</span> k: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>, v: <span class="tok-kw">anytype</span>) Error!<span class="tok-type">void</span> {</span>
+<span class="line" id="L341">                <span class="tok-kw">if</span> (<span class="tok-kw">comptime</span> !std.unicode.utf8ValidateSlice(k)) {</span>
+<span class="line" id="L342">                    <span class="tok-kw">return</span> Error.Syntax;</span>
+<span class="line" id="L343">                }</span>
+<span class="line" id="L344"></span>
+<span class="line" id="L345">                <span class="tok-kw">var</span> s = StructKeySerializer{ .ser = a.ser };</span>
+<span class="line" id="L346">                <span class="tok-kw">const</span> ss = s.serializer();</span>
+<span class="line" id="L347"></span>
+<span class="line" id="L348">                <span class="tok-kw">try</span> a._serializeKey(k, ss);</span>
+<span class="line" id="L349">                <span class="tok-kw">try</span> a._serializeValue(v);</span>
+<span class="line" id="L350">            }</span>
+<span class="line" id="L351">        };</span>
+<span class="line" id="L352"></span>
+<span class="line" id="L353">        <span class="tok-comment">// An internal Getty serializer for map keys.</span>
+</span>
+<span class="line" id="L354">        <span class="tok-kw">const</span> MapKeySerializer = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L355">            ser: *Self,</span>
+<span class="line" id="L356"></span>
+<span class="line" id="L357">            <span class="tok-kw">const</span> S = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L358"></span>
+<span class="line" id="L359">            <span class="tok-kw">pub</span> <span class="tok-kw">usingnamespace</span> getty.Serializer(</span>
+<span class="line" id="L360">                MapKeySerializer,</span>
+<span class="line" id="L361">                Ok,</span>
+<span class="line" id="L362">                Error,</span>
+<span class="line" id="L363">                Self.@&quot;getty.Serializer&quot;.user_st,</span>
+<span class="line" id="L364">                Self.@&quot;getty.Serializer&quot;.serializer_st,</span>
+<span class="line" id="L365">                <span class="tok-null">null</span>,</span>
+<span class="line" id="L366">                <span class="tok-null">null</span>,</span>
+<span class="line" id="L367">                <span class="tok-null">null</span>,</span>
+<span class="line" id="L368">                .{</span>
+<span class="line" id="L369">                    .serializeBool = _serializeBool,</span>
+<span class="line" id="L370">                    .serializeInt = _serializeInt,</span>
+<span class="line" id="L371">                    .serializeString = _serializeString,</span>
+<span class="line" id="L372">                },</span>
+<span class="line" id="L373">            );</span>
+<span class="line" id="L374"></span>
+<span class="line" id="L375">            <span class="tok-kw">fn</span> <span class="tok-fn">_serializeBool</span>(m: S, v: <span class="tok-type">bool</span>) Error!Ok {</span>
+<span class="line" id="L376">                <span class="tok-kw">const</span> ss = m.ser.serializer();</span>
+<span class="line" id="L377">                <span class="tok-kw">try</span> getty.serialize(m.ser.ally, <span class="tok-kw">if</span> (v) <span class="tok-str">&quot;true&quot;</span> <span class="tok-kw">else</span> <span class="tok-str">&quot;false&quot;</span>, ss);</span>
+<span class="line" id="L378">            }</span>
+<span class="line" id="L379"></span>
+<span class="line" id="L380">            <span class="tok-kw">fn</span> <span class="tok-fn">_serializeInt</span>(m: S, v: <span class="tok-kw">anytype</span>) Error!Ok {</span>
+<span class="line" id="L381">                <span class="tok-comment">// TODO: Change to buffer size to digits10 + 1 for better space efficiency.</span>
+</span>
+<span class="line" id="L382">                <span class="tok-kw">var</span> buf: [<span class="tok-builtin">@max</span>(<span class="tok-builtin">@bitSizeOf</span>(<span class="tok-builtin">@TypeOf</span>(v)), <span class="tok-number">1</span>) + <span class="tok-number">1</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L383">                <span class="tok-kw">var</span> fbs = std.io.fixedBufferStream(&amp;buf);</span>
+<span class="line" id="L384">                <span class="tok-kw">const</span> w = fbs.writer();</span>
+<span class="line" id="L385"></span>
+<span class="line" id="L386">                <span class="tok-comment">// We have to manually format the integer into a string</span>
+</span>
+<span class="line" id="L387">                <span class="tok-comment">// ourselves instead of using the serializer's formatter. The</span>
+</span>
+<span class="line" id="L388">                <span class="tok-comment">// formatter's expecting the user's writer type, so we can't</span>
+</span>
+<span class="line" id="L389">                <span class="tok-comment">// use it here.</span>
+</span>
+<span class="line" id="L390">                std.fmt.formatInt(v, <span class="tok-number">10</span>, .lower, .{}, w) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Io;</span>
+<span class="line" id="L391"></span>
+<span class="line" id="L392">                <span class="tok-kw">const</span> ss = m.ser.serializer();</span>
+<span class="line" id="L393">                <span class="tok-kw">try</span> getty.serialize(m.ser.ally, fbs.getWritten(), ss);</span>
+<span class="line" id="L394">            }</span>
+<span class="line" id="L395"></span>
+<span class="line" id="L396">            <span class="tok-kw">fn</span> <span class="tok-fn">_serializeString</span>(m: S, v: <span class="tok-kw">anytype</span>) Error!Ok {</span>
+<span class="line" id="L397">                <span class="tok-kw">try</span> getty.serialize(m.ser.ally, v, m.ser.serializer());</span>
+<span class="line" id="L398">            }</span>
+<span class="line" id="L399">        };</span>
+<span class="line" id="L400"></span>
+<span class="line" id="L401">        <span class="tok-comment">// An internal Getty serializer for struct keys.</span>
+</span>
+<span class="line" id="L402">        <span class="tok-comment">//</span>
+</span>
+<span class="line" id="L403">        <span class="tok-comment">// The main difference between key serialization for structs</span>
+</span>
+<span class="line" id="L404">        <span class="tok-comment">// and maps is that keys are compile-time known for structs,</span>
+</span>
+<span class="line" id="L405">        <span class="tok-comment">// meaning we can avoid having to validate them at runtime,</span>
+</span>
+<span class="line" id="L406">        <span class="tok-comment">// which gives us a pretty significant performance increase.</span>
+</span>
+<span class="line" id="L407">        <span class="tok-kw">const</span> StructKeySerializer = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L408">            ser: *Self,</span>
+<span class="line" id="L409"></span>
+<span class="line" id="L410">            <span class="tok-kw">const</span> S = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L411"></span>
+<span class="line" id="L412">            <span class="tok-kw">pub</span> <span class="tok-kw">usingnamespace</span> getty.Serializer(</span>
+<span class="line" id="L413">                S,</span>
+<span class="line" id="L414">                Ok,</span>
+<span class="line" id="L415">                Error,</span>
+<span class="line" id="L416">                Self.@&quot;getty.Serializer&quot;.user_st,</span>
+<span class="line" id="L417">                Self.@&quot;getty.Serializer&quot;.serializer_st,</span>
+<span class="line" id="L418">                <span class="tok-null">null</span>,</span>
+<span class="line" id="L419">                <span class="tok-null">null</span>,</span>
+<span class="line" id="L420">                <span class="tok-null">null</span>,</span>
+<span class="line" id="L421">                .{</span>
+<span class="line" id="L422">                    .serializeString = _serializeString,</span>
+<span class="line" id="L423">                },</span>
+<span class="line" id="L424">            );</span>
+<span class="line" id="L425"></span>
+<span class="line" id="L426">            <span class="tok-kw">fn</span> <span class="tok-fn">_serializeString</span>(s: S, v: <span class="tok-kw">anytype</span>) Error!Ok {</span>
+<span class="line" id="L427">                s.ser.formatter.beginString(s.ser.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L428">                writeEscaped(v, s.ser.writer, s.ser.formatter) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L429">                s.ser.formatter.endString(s.ser.writer) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Error.Io;</span>
+<span class="line" id="L430">            }</span>
+<span class="line" id="L431">        };</span>
+<span class="line" id="L432">    };</span>
+<span class="line" id="L433">}</span>
+<span class="line" id="L434"></span>
+</code></pre></body>
+</html>
