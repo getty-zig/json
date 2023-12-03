@@ -4,10 +4,11 @@
   <img alt="Getty" src="https://github.com/getty-zig/logo/blob/main/getty-solid.svg" width="410px">
   <br/>
   <br/>
-  <a href="https://github.com/getty-zig/json/releases/latest"><img alt="Version" src="https://img.shields.io/github/v/release/getty-zig/json?include_prereleases&label=version"></a>
-  <a href="https://github.com/getty-zig/json/actions/workflows/test.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/getty-zig/json/test.yml?branch=main" /></a>
-  <a href="https://ziglang.org/download"><img alt="Zig" src="https://img.shields.io/badge/zig-master-fd9930.svg"></a>
-  <a href="https://github.com/getty-zig/json/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <a href="https://github.com/getty-zig/json/releases/latest"><img alt="Version" src="https://img.shields.io/github/v/release/getty-zig/json?include_prereleases&label=Version"></a>
+  <a href="https://ziglang.org/download"><img alt="Zig" src="https://img.shields.io/badge/Zig-master-fd9930.svg"></a>
+  <a href="https://getty-zig.github.io/json"><img alt="API Reference" src="https://img.shields.io/badge/API-Reference-7a73ff.svg"></a>
+  <a href="https://github.com/getty-zig/json/actions/workflows/test.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/getty-zig/json/test.yml?branch=main&label=Build" /></a>
+  <a href="https://github.com/getty-zig/json/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/License-MIT-blue"></a>
 </p>
 
 ## Overview
@@ -21,7 +22,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     ```diff
     .{
         .name = "my-project",
-        .version = "1.0.0",
+        .version = "0.1.0",
         .paths = .{""},
         .dependencies = .{
     +       .json = .{
@@ -59,7 +60,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 3. Obtain Getty JSON's package hash:
 
     ```
-    $ zig build
+    $ zig build --fetch
     my-project/build.zig.zon:7:20: error: url field is missing corresponding hash field
             .url = "https://github.com/getty-zig/json/archive/<COMMIT>.tar.gz",
                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,7 +72,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     ```diff
     .{
         .name = "my-project",
-        .version = "1.0.0",
+        .version = "0.1.0",
         .paths = .{""},
         .dependencies = .{
             .json = .{
