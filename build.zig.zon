@@ -10,8 +10,8 @@
     },
     .dependencies = .{
         .getty = .{
-            .url = "https://github.com/getty-zig/getty/archive/e42ee6e1cdb27ad3c7d7f8e83ab61620827afdfb.tar.gz",
-            .hash = "1220c28503c1a092c028aa45e09e488458f419122934d6c3b9a48b63fe0e131fe1a1",
+            .url = "https://github.com/getty-zig/getty/archive/cb007b8.tar.gz",
+            .hash = "1220300f52d7592914660ee3c8e461dc7c10bd45708eb32deb0e341b47c7921536dc",
         },
     },
 }
