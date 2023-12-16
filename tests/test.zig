@@ -1,10 +1,8 @@
 const getty = @import("getty");
 const json = @import("json");
+const require = @import("protest").require;
 const std = @import("std");
 
-const expectEqual = std.testing.expectEqual;
-const expectEqualDeep = std.testing.expectEqualDeep;
-const expectEqualStrings = std.testing.expectEqualStrings;
 const test_ally = std.testing.allocator;
 
 test "encode - array" {
@@ -755,18 +753,13 @@ test "parse - list (std.ArrayList)" {
 
         var want = std.ArrayList(u8).init(test_ally);
         defer want.deinit();
-
         try want.appendSlice(&.{ 1, 2, 3, 4 });
 
         var result = try json.fromSlice(test_ally, @TypeOf(want), input);
         defer result.deinit();
-
         const got = result.value;
 
-        try expectEqual(want.items.len, got.items.len);
-        for (want.items, 0..) |w, i| {
-            try expectEqual(w, got.items[i]);
-        }
+        try require.equal(want.items, got.items);
     }
 
     {
@@ -780,25 +773,18 @@ test "parse - list (std.ArrayList)" {
             two.deinit();
             want.deinit();
         }
-
         try one.appendSlice(&.{ 1, 2 });
         try two.appendSlice(&.{ 3, 4 });
         try want.appendSlice(&.{ one, two });
 
         var result = try json.fromSlice(test_ally, @TypeOf(want), input);
         defer result.deinit();
-
         const got = result.value;
 
-        try expectEqual(@TypeOf(want), @TypeOf(got));
-        try expectEqual(want.items.len, got.items.len);
+        try require.equalType(@TypeOf(want), got);
+        try require.len(got.items, want.items.len);
         for (want.items, 0..) |w, i| {
-            const g = got.items[i];
-
-            try expectEqual(w.items.len, g.items.len);
-            for (w.items, 0..) |ww, j| {
-                try expectEqual(ww, g.items[j]);
-            }
+            try require.equal(w.items, got.items[i].items);
         }
     }
 }
@@ -816,11 +802,11 @@ test "parse - object (std.AutoHashMap)" {
 
         const got = result.value;
 
-        try expectEqualDeep(std.AutoHashMap(i32, []const u8), @TypeOf(got));
-        try expectEqualDeep(@as(u32, 3), got.count());
-        try expectEqualStrings("foo", got.get(1).?);
-        try expectEqualStrings("bar", got.get(2).?);
-        try expectEqualStrings("baz", got.get(3).?);
+        try require.equalType(std.AutoHashMap(i32, []const u8), got);
+        try require.equal(@as(u32, 3), got.count());
+        try require.equal("foo", got.get(1).?);
+        try require.equal("bar", got.get(2).?);
+        try require.equal("baz", got.get(3).?);
     }
 
     {
@@ -848,14 +834,14 @@ test "parse - object (std.AutoHashMap)" {
         try b.put(5, "bar");
         try c.put(6, "baz");
 
-        try expectEqualDeep(std.AutoHashMap(i32, std.AutoHashMap(i32, []const u8)), @TypeOf(got));
-        try expectEqualDeep(@as(u32, 3), got.count());
-        try expectEqualDeep(@TypeOf(a), @TypeOf(got.get(1).?));
-        try expectEqualDeep(@TypeOf(b), @TypeOf(got.get(2).?));
-        try expectEqualDeep(@TypeOf(c), @TypeOf(got.get(3).?));
-        try expectEqualDeep(a.get(4).?, got.get(1).?.get(4).?);
-        try expectEqualDeep(b.get(5).?, got.get(2).?.get(5).?);
-        try expectEqualDeep(c.get(6).?, got.get(3).?.get(6).?);
+        try require.equalType(std.AutoHashMap(i32, std.AutoHashMap(i32, []const u8)), got);
+        try require.equal(@as(u32, 3), got.count());
+        try require.equalType(@TypeOf(a), got.get(1).?);
+        try require.equalType(@TypeOf(b), got.get(2).?);
+        try require.equalType(@TypeOf(c), got.get(3).?);
+        try require.equal(a.get(4).?, got.get(1).?.get(4).?);
+        try require.equal(b.get(5).?, got.get(2).?.get(5).?);
+        try require.equal(c.get(6).?, got.get(3).?.get(6).?);
     }
 }
 
@@ -872,11 +858,11 @@ test "parse - object (std.StringHashMap)" {
 
         const got = result.value;
 
-        try expectEqualDeep(std.StringHashMap(u8), @TypeOf(got));
-        try expectEqualDeep(@as(u32, 3), got.count());
-        try expectEqualDeep(@as(u8, 1), got.get("\"a").?);
-        try expectEqualDeep(@as(u8, 2), got.get("b").?);
-        try expectEqualDeep(@as(u8, 3), got.get("c").?);
+        try require.equalType(std.StringHashMap(u8), got);
+        try require.equal(@as(u32, 3), got.count());
+        try require.equal(@as(u8, 1), got.get("\"a").?);
+        try require.equal(@as(u8, 2), got.get("b").?);
+        try require.equal(@as(u8, 3), got.get("c").?);
     }
 
     {
@@ -891,11 +877,11 @@ test "parse - object (std.StringHashMap)" {
 
         const got = result.value;
 
-        try expectEqualDeep(std.StringHashMap([]const u8), @TypeOf(got));
-        try expectEqualDeep(@as(u32, 3), got.count());
-        try expectEqualStrings("foo", got.get("\"a").?);
-        try expectEqualStrings("bar", got.get("b").?);
-        try expectEqualStrings("baz", got.get("c").?);
+        try require.equalType(std.StringHashMap([]const u8), got);
+        try require.equal(@as(u32, 3), got.count());
+        try require.equal("foo", got.get("\"a").?);
+        try require.equal("bar", got.get("b").?);
+        try require.equal("baz", got.get("c").?);
     }
 
     {
@@ -923,14 +909,14 @@ test "parse - object (std.StringHashMap)" {
         try b.put("e", "bar");
         try c.put("f", "baz");
 
-        try expectEqualDeep(std.StringHashMap(std.StringHashMap([]const u8)), @TypeOf(got));
-        try expectEqualDeep(@as(u32, 3), got.count());
-        try expectEqualDeep(@TypeOf(a), @TypeOf(got.get("\"a").?));
-        try expectEqualDeep(@TypeOf(b), @TypeOf(got.get("b").?));
-        try expectEqualDeep(@TypeOf(c), @TypeOf(got.get("c").?));
-        try expectEqualDeep(a.get("\"d").?, got.get("\"a").?.get("\"d").?);
-        try expectEqualDeep(b.get("e").?, got.get("b").?.get("e").?);
-        try expectEqualDeep(c.get("f").?, got.get("c").?.get("f").?);
+        try require.equalType(std.StringHashMap(std.StringHashMap([]const u8)), got);
+        try require.equal(@as(u32, 3), got.count());
+        try require.equalType(@TypeOf(a), got.get("\"a").?);
+        try require.equalType(@TypeOf(b), got.get("b").?);
+        try require.equalType(@TypeOf(c), got.get("c").?);
+        try require.equal(a.get("\"d").?, got.get("\"a").?.get("\"d").?);
+        try require.equal(b.get("e").?, got.get("b").?.get("e").?);
+        try require.equal(c.get("f").?, got.get("c").?.get("f").?);
     }
 }
 
@@ -1084,8 +1070,8 @@ test "parse - union" {
     const result_bar = try json.fromSlice(test_ally, Untagged, "{\"bar\":null}");
     defer result_bar.deinit();
 
-    try expectEqualDeep(want_foo.foo, result_foo.value.foo);
-    try expectEqualDeep(want_bar.bar, result_bar.value.bar);
+    try require.equal(want_foo.foo, result_foo.value.foo);
+    try require.equal(want_bar.bar, result_bar.value.bar);
 }
 
 test "parse - void" {
@@ -1102,7 +1088,7 @@ fn testEncodeEqual(comptime T: type, tests: EncodeTest(T)) !void {
         const got = try json.toSlice(test_ally, value);
         defer test_ally.free(got);
 
-        try expectEqualStrings(want, got);
+        try require.equal(want, got);
     }
 }
 
@@ -1114,7 +1100,7 @@ fn testPrettyEncodeEqual(comptime T: type, tests: EncodeTest(T)) !void {
         const got = try json.toPrettySlice(test_ally, value);
         defer test_ally.free(got);
 
-        try expectEqualStrings(want, got);
+        try require.equal(want, got);
     }
 }
 
@@ -1126,7 +1112,7 @@ fn testParseEqual(comptime T: type, tests: ParseTest(T)) !void {
         var result = try json.fromSlice(test_ally, T, input);
         defer result.deinit();
 
-        try expectEqualDeep(want, result.value);
+        try require.equal(want, result.value);
     }
 }
 
