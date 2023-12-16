@@ -13,5 +13,9 @@
             .url = "https://github.com/getty-zig/getty/archive/cb007b8.tar.gz",
             .hash = "1220300f52d7592914660ee3c8e461dc7c10bd45708eb32deb0e341b47c7921536dc",
         },
+        .protest = .{
+            .url = "https://github.com/ibokuri/protest/archive/f4453f0.tar.gz",
+            .hash = "1220d8a151eacf67716e4843d28d020c53aef739d9ab4cebbdfff22e991f9aa0acf0",
+        },
     },
 }

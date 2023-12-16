@@ -13,12 +13,14 @@ pub fn build(b: *std.build.Builder) void {
     const dep_opts = .{ .target = target, .optimize = optimize };
 
     const getty_module = b.dependency("getty", dep_opts).module("getty");
+    const protest_module = b.dependency("protest", dep_opts).module("protest");
 
     // Export Getty JSON as a module.
     const json_module = b.addModule(package_name, .{
         .source_file = .{ .path = package_path },
         .dependencies = &.{
             .{ .name = "getty", .module = getty_module },
+            .{ .name = "protest", .module = protest_module },
         },
     });
 
@@ -39,6 +41,7 @@ pub fn build(b: *std.build.Builder) void {
 
         t_ser.addModule("json", json_module);
         t_ser.addModule("getty", getty_module);
+        t_ser.addModule("protest", protest_module);
         test_ser_step.dependOn(&b.addRunArtifact(t_ser).step);
         test_all_step.dependOn(test_ser_step);
 
@@ -53,6 +56,7 @@ pub fn build(b: *std.build.Builder) void {
 
         t_de.addModule("json", json_module);
         t_de.addModule("getty", getty_module);
+        t_de.addModule("protest", protest_module);
         test_de_step.dependOn(&b.addRunArtifact(t_de).step);
         test_all_step.dependOn(test_de_step);
     }
