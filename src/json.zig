@@ -17,22 +17,43 @@ pub const ser = @import("ser.zig").ser;
 // Functions
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Deserializes into a value of type `T` from the deserializer `d`.
+/// Deserializes JSON data from the deserializer `d` into a managed value of
+/// type `T`.
 pub const fromDeserializer = @import("de.zig").fromDeserializer;
 
-/// Deserializes into a value of type `T` from a reader of JSON data using a
-/// deserialization block or tuple.
-pub const fromReaderWith = @import("de.zig").fromReaderWith;
+/// Deserializes JSON data from the deserializer `d` into an unmanaged value of
+/// type `T`.
+pub const fromDeserializerLeaky = @import("de.zig").fromDeserializerLeaky;
 
-/// Deserializes into a value of type `T` from a reader of JSON data.
+/// Deserializes JSON data from the reader `r` into a managed value of type
+/// `T`.
 pub const fromReader = @import("de.zig").fromReader;
 
-/// Deserializes into a value of type `T` from a slice of JSON using a
-/// deserialization block or tuple.
+/// Deserializes JSON data from the reader `r` into an unmanaged value of type
+/// `T`.
+pub const fromReaderLeaky = @import("de.zig").fromReaderLeaky;
+
+/// Deserializes JSON data from the reader `r` into a managed value of type `T`,
+/// with an additional deserialization block or tuple.
+pub const fromReaderWith = @import("de.zig").fromReaderWith;
+
+/// Deserializes JSON data from the reader `r` into an unmanaged value of type
+/// `T`, with an additional deserialization block or tuple.
+pub const fromReaderWithLeaky = @import("de.zig").fromReaderWithLeaky;
+
+/// Deserializes JSON data from a string into a managed value of type `T`.
+pub const fromSlice = @import("de.zig").fromSlice;
+
+/// Deserializes JSON data from a string into an unmanaged value of type `T`.
+pub const fromSliceLeaky = @import("de.zig").fromSliceLeaky;
+
+/// Deserializes JSON data from a string into a managed value of type `T`, with
+/// an additional deserialization block or tuple.
 pub const fromSliceWith = @import("de.zig").fromSliceWith;
 
-/// Deserializes into a value of type `T` from a slice of JSON.
-pub const fromSlice = @import("de.zig").fromSlice;
+/// Deserializes JSON data from a string into an unmanaged value of type `T`,
+/// with an additional deserialization block or tuple.
+pub const fromSliceWithLeaky = @import("de.zig").fromSliceWithLeaky;
 
 /// Serializes a value as JSON into an I/O stream using a serialization block
 /// or tuple.
