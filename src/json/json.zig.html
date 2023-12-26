@@ -140,61 +140,82 @@
 <span class="line" id="L18"><span class="tok-comment">////////////////////////////////////////////////////////////////////////////////</span>
 </span>
 <span class="line" id="L19"></span>
-<span class="line" id="L20"><span class="tok-comment">/// Deserializes into a value of type `T` from the deserializer `d`.</span></span>
-<span class="line" id="L21"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromDeserializer = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromDeserializer;</span>
-<span class="line" id="L22"></span>
-<span class="line" id="L23"><span class="tok-comment">/// Deserializes into a value of type `T` from a reader of JSON data using a</span></span>
-<span class="line" id="L24"><span class="tok-comment">/// deserialization block or tuple.</span></span>
-<span class="line" id="L25"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromReaderWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromReaderWith;</span>
-<span class="line" id="L26"></span>
-<span class="line" id="L27"><span class="tok-comment">/// Deserializes into a value of type `T` from a reader of JSON data.</span></span>
-<span class="line" id="L28"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromReader = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromReader;</span>
-<span class="line" id="L29"></span>
-<span class="line" id="L30"><span class="tok-comment">/// Deserializes into a value of type `T` from a slice of JSON using a</span></span>
-<span class="line" id="L31"><span class="tok-comment">/// deserialization block or tuple.</span></span>
-<span class="line" id="L32"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromSliceWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromSliceWith;</span>
-<span class="line" id="L33"></span>
-<span class="line" id="L34"><span class="tok-comment">/// Deserializes into a value of type `T` from a slice of JSON.</span></span>
-<span class="line" id="L35"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromSlice = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromSlice;</span>
-<span class="line" id="L36"></span>
-<span class="line" id="L37"><span class="tok-comment">/// Serializes a value as JSON into an I/O stream using a serialization block</span></span>
-<span class="line" id="L38"><span class="tok-comment">/// or tuple.</span></span>
-<span class="line" id="L39"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toWriterWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toWriterWith;</span>
-<span class="line" id="L40"></span>
-<span class="line" id="L41"><span class="tok-comment">/// Serializes a value as pretty-printed JSON into an I/O stream using a</span></span>
-<span class="line" id="L42"><span class="tok-comment">/// serialization block or tuple.</span></span>
-<span class="line" id="L43"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toPrettyWriterWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toPrettyWriterWith;</span>
-<span class="line" id="L44"></span>
-<span class="line" id="L45"><span class="tok-comment">/// Serializes a value as JSON into an I/O stream.</span></span>
-<span class="line" id="L46"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toWriter = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toWriter;</span>
-<span class="line" id="L47"></span>
-<span class="line" id="L48"><span class="tok-comment">/// Serializes a value as pretty-printed JSON into an I/O stream.</span></span>
-<span class="line" id="L49"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toPrettyWriter = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toPrettyWriter;</span>
-<span class="line" id="L50"></span>
-<span class="line" id="L51"><span class="tok-comment">/// Serializes a value as a JSON string using a serialization block or tuple.</span></span>
-<span class="line" id="L52"><span class="tok-comment">///</span></span>
-<span class="line" id="L53"><span class="tok-comment">/// The returned string is an owned slice. The caller is responsible for</span></span>
-<span class="line" id="L54"><span class="tok-comment">/// freeing its memory.</span></span>
-<span class="line" id="L55"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toSliceWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toSliceWith;</span>
-<span class="line" id="L56"></span>
-<span class="line" id="L57"><span class="tok-comment">/// Serializes a value as a pretty-printed JSON string using a serialization</span></span>
-<span class="line" id="L58"><span class="tok-comment">/// block or tuple.</span></span>
-<span class="line" id="L59"><span class="tok-comment">///</span></span>
-<span class="line" id="L60"><span class="tok-comment">/// The returned string is an owned slice. The caller is responsible for</span></span>
-<span class="line" id="L61"><span class="tok-comment">/// freeing its memory.</span></span>
-<span class="line" id="L62"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toPrettySliceWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toPrettySliceWith;</span>
-<span class="line" id="L63"></span>
-<span class="line" id="L64"><span class="tok-comment">/// Serializes a value as a JSON string.</span></span>
-<span class="line" id="L65"><span class="tok-comment">///</span></span>
-<span class="line" id="L66"><span class="tok-comment">/// The returned string is an owned slice. The caller is responsible for</span></span>
-<span class="line" id="L67"><span class="tok-comment">/// freeing its memory.</span></span>
-<span class="line" id="L68"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toSlice = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toSlice;</span>
-<span class="line" id="L69"></span>
-<span class="line" id="L70"><span class="tok-comment">/// Serializes a value as a pretty-printed JSON string.</span></span>
-<span class="line" id="L71"><span class="tok-comment">///</span></span>
-<span class="line" id="L72"><span class="tok-comment">/// The returned string is an owned slice. The caller is responsible for</span></span>
-<span class="line" id="L73"><span class="tok-comment">/// freeing its memory.</span></span>
-<span class="line" id="L74"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toPrettySlice = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toPrettySlice;</span>
-<span class="line" id="L75"></span>
+<span class="line" id="L20"><span class="tok-comment">/// Deserializes JSON data from the deserializer `d` into a managed value of</span></span>
+<span class="line" id="L21"><span class="tok-comment">/// type `T`.</span></span>
+<span class="line" id="L22"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromDeserializer = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromDeserializer;</span>
+<span class="line" id="L23"></span>
+<span class="line" id="L24"><span class="tok-comment">/// Deserializes JSON data from the deserializer `d` into an unmanaged value of</span></span>
+<span class="line" id="L25"><span class="tok-comment">/// type `T`.</span></span>
+<span class="line" id="L26"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromDeserializerLeaky = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromDeserializerLeaky;</span>
+<span class="line" id="L27"></span>
+<span class="line" id="L28"><span class="tok-comment">/// Deserializes JSON data from the reader `r` into a managed value of type</span></span>
+<span class="line" id="L29"><span class="tok-comment">/// `T`.</span></span>
+<span class="line" id="L30"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromReader = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromReader;</span>
+<span class="line" id="L31"></span>
+<span class="line" id="L32"><span class="tok-comment">/// Deserializes JSON data from the reader `r` into an unmanaged value of type</span></span>
+<span class="line" id="L33"><span class="tok-comment">/// `T`.</span></span>
+<span class="line" id="L34"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromReaderLeaky = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromReaderLeaky;</span>
+<span class="line" id="L35"></span>
+<span class="line" id="L36"><span class="tok-comment">/// Deserializes JSON data from the reader `r` into a managed value of type `T`,</span></span>
+<span class="line" id="L37"><span class="tok-comment">/// with an additional deserialization block or tuple.</span></span>
+<span class="line" id="L38"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromReaderWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromReaderWith;</span>
+<span class="line" id="L39"></span>
+<span class="line" id="L40"><span class="tok-comment">/// Deserializes JSON data from the reader `r` into an unmanaged value of type</span></span>
+<span class="line" id="L41"><span class="tok-comment">/// `T`, with an additional deserialization block or tuple.</span></span>
+<span class="line" id="L42"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromReaderWithLeaky = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromReaderWithLeaky;</span>
+<span class="line" id="L43"></span>
+<span class="line" id="L44"><span class="tok-comment">/// Deserializes JSON data from a string into a managed value of type `T`.</span></span>
+<span class="line" id="L45"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromSlice = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromSlice;</span>
+<span class="line" id="L46"></span>
+<span class="line" id="L47"><span class="tok-comment">/// Deserializes JSON data from a string into an unmanaged value of type `T`.</span></span>
+<span class="line" id="L48"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromSliceLeaky = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromSliceLeaky;</span>
+<span class="line" id="L49"></span>
+<span class="line" id="L50"><span class="tok-comment">/// Deserializes JSON data from a string into a managed value of type `T`, with</span></span>
+<span class="line" id="L51"><span class="tok-comment">/// an additional deserialization block or tuple.</span></span>
+<span class="line" id="L52"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromSliceWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromSliceWith;</span>
+<span class="line" id="L53"></span>
+<span class="line" id="L54"><span class="tok-comment">/// Deserializes JSON data from a string into an unmanaged value of type `T`,</span></span>
+<span class="line" id="L55"><span class="tok-comment">/// with an additional deserialization block or tuple.</span></span>
+<span class="line" id="L56"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> fromSliceWithLeaky = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;de.zig&quot;</span>).fromSliceWithLeaky;</span>
+<span class="line" id="L57"></span>
+<span class="line" id="L58"><span class="tok-comment">/// Serializes a value as JSON into an I/O stream using a serialization block</span></span>
+<span class="line" id="L59"><span class="tok-comment">/// or tuple.</span></span>
+<span class="line" id="L60"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toWriterWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toWriterWith;</span>
+<span class="line" id="L61"></span>
+<span class="line" id="L62"><span class="tok-comment">/// Serializes a value as pretty-printed JSON into an I/O stream using a</span></span>
+<span class="line" id="L63"><span class="tok-comment">/// serialization block or tuple.</span></span>
+<span class="line" id="L64"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toPrettyWriterWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toPrettyWriterWith;</span>
+<span class="line" id="L65"></span>
+<span class="line" id="L66"><span class="tok-comment">/// Serializes a value as JSON into an I/O stream.</span></span>
+<span class="line" id="L67"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toWriter = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toWriter;</span>
+<span class="line" id="L68"></span>
+<span class="line" id="L69"><span class="tok-comment">/// Serializes a value as pretty-printed JSON into an I/O stream.</span></span>
+<span class="line" id="L70"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toPrettyWriter = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toPrettyWriter;</span>
+<span class="line" id="L71"></span>
+<span class="line" id="L72"><span class="tok-comment">/// Serializes a value as a JSON string using a serialization block or tuple.</span></span>
+<span class="line" id="L73"><span class="tok-comment">///</span></span>
+<span class="line" id="L74"><span class="tok-comment">/// The returned string is an owned slice. The caller is responsible for</span></span>
+<span class="line" id="L75"><span class="tok-comment">/// freeing its memory.</span></span>
+<span class="line" id="L76"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toSliceWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toSliceWith;</span>
+<span class="line" id="L77"></span>
+<span class="line" id="L78"><span class="tok-comment">/// Serializes a value as a pretty-printed JSON string using a serialization</span></span>
+<span class="line" id="L79"><span class="tok-comment">/// block or tuple.</span></span>
+<span class="line" id="L80"><span class="tok-comment">///</span></span>
+<span class="line" id="L81"><span class="tok-comment">/// The returned string is an owned slice. The caller is responsible for</span></span>
+<span class="line" id="L82"><span class="tok-comment">/// freeing its memory.</span></span>
+<span class="line" id="L83"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toPrettySliceWith = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toPrettySliceWith;</span>
+<span class="line" id="L84"></span>
+<span class="line" id="L85"><span class="tok-comment">/// Serializes a value as a JSON string.</span></span>
+<span class="line" id="L86"><span class="tok-comment">///</span></span>
+<span class="line" id="L87"><span class="tok-comment">/// The returned string is an owned slice. The caller is responsible for</span></span>
+<span class="line" id="L88"><span class="tok-comment">/// freeing its memory.</span></span>
+<span class="line" id="L89"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toSlice = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toSlice;</span>
+<span class="line" id="L90"></span>
+<span class="line" id="L91"><span class="tok-comment">/// Serializes a value as a pretty-printed JSON string.</span></span>
+<span class="line" id="L92"><span class="tok-comment">///</span></span>
+<span class="line" id="L93"><span class="tok-comment">/// The returned string is an owned slice. The caller is responsible for</span></span>
+<span class="line" id="L94"><span class="tok-comment">/// freeing its memory.</span></span>
+<span class="line" id="L95"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> toPrettySlice = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ser.zig&quot;</span>).toPrettySlice;</span>
+<span class="line" id="L96"></span>
 </code></pre></body>
 </html>
