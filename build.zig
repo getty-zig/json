@@ -5,7 +5,7 @@ const package_path = "src/json.zig";
 
 const test_path = "tests/test.zig";
 
-pub fn build(b: *std.build.Builder) void {
+pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -17,8 +17,8 @@ pub fn build(b: *std.build.Builder) void {
 
     // Export Getty JSON as a module.
     const json_module = b.addModule(package_name, .{
-        .source_file = .{ .path = package_path },
-        .dependencies = &.{
+        .root_source_file = .{ .path = package_path },
+        .imports = &.{
             .{ .name = "getty", .module = getty_module },
             .{ .name = "protest", .module = protest_module },
         },
@@ -39,9 +39,9 @@ pub fn build(b: *std.build.Builder) void {
             .filter = "encode",
         });
 
-        t_ser.addModule("json", json_module);
-        t_ser.addModule("getty", getty_module);
-        t_ser.addModule("protest", protest_module);
+        t_ser.root_module.addImport("json", json_module);
+        t_ser.root_module.addImport("getty", getty_module);
+        t_ser.root_module.addImport("protest", protest_module);
         test_ser_step.dependOn(&b.addRunArtifact(t_ser).step);
         test_all_step.dependOn(test_ser_step);
 
@@ -54,9 +54,9 @@ pub fn build(b: *std.build.Builder) void {
             .filter = "parse",
         });
 
-        t_de.addModule("json", json_module);
-        t_de.addModule("getty", getty_module);
-        t_de.addModule("protest", protest_module);
+        t_de.root_module.addImport("json", json_module);
+        t_de.root_module.addImport("getty", getty_module);
+        t_de.root_module.addImport("protest", protest_module);
         test_de_step.dependOn(&b.addRunArtifact(t_de).step);
         test_all_step.dependOn(test_de_step);
     }
@@ -71,7 +71,7 @@ pub fn build(b: *std.build.Builder) void {
             .target = target,
             .optimize = optimize,
         });
-        doc_obj.addModule("getty", getty_module);
+        doc_obj.root_module.addImport("getty", getty_module);
 
         const install_docs = b.addInstallDirectory(.{
             .source_dir = doc_obj.getEmittedDocs(),
