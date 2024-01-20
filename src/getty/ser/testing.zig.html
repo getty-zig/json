@@ -122,7 +122,7 @@
 <span class="line" id="L8"><span class="tok-kw">const</span> SerializerInterface = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;interfaces/serializer.zig&quot;</span>).Serializer;</span>
 <span class="line" id="L9"><span class="tok-kw">const</span> SeqInterface = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;interfaces/seq.zig&quot;</span>).Seq;</span>
 <span class="line" id="L10"><span class="tok-kw">const</span> StructureInterface = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;interfaces/structure.zig&quot;</span>).Structure;</span>
-<span class="line" id="L11"><span class="tok-kw">const</span> Token = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../testing.zig&quot;</span>).Token;</span>
+<span class="line" id="L11"><span class="tok-kw">const</span> Token = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;testing&quot;</span>).Token;</span>
 <span class="line" id="L12"></span>
 <span class="line" id="L13"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">run</span>(ally: ?std.mem.Allocator, <span class="tok-kw">comptime</span> serialize_fn: <span class="tok-kw">anytype</span>, input: <span class="tok-kw">anytype</span>, expected: []<span class="tok-kw">const</span> Token) !<span class="tok-type">void</span> {</span>
 <span class="line" id="L14">    <span class="tok-kw">var</span> s = DefaultSerializer.init(expected);</span>
