@@ -17,68 +17,30 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 
 ## Installation
 
-1. Declare Getty JSON as a dependency in `build.zig.zon`:
+1. Declare Getty JSON as a dependency (replace `<COMMIT>` with an actual commit SHA):
 
-    ```diff
-    .{
-        .name = "my-project",
-        .version = "0.1.0",
-        .paths = .{""},
-        .dependencies = .{
-    +       .json = .{
-    +           .url = "https://github.com/getty-zig/json/archive/<COMMIT>.tar.gz",
-    +       },
-        },
-    }
+    ```console
+    zig fetch --save git+https://github.com/getty-zig/json.git#<COMMIT>
     ```
 
-2. Add Getty JSON as a module in `build.zig`:
+2. Expose Getty JSON as a module in `build.zig`:
 
-    ```diff
-    const std = @import("std");
-
+    ```zig
     pub fn build(b: *std.Build) void {
         const target = b.standardTargetOptions(.{});
         const optimize = b.standardOptimizeOption(.{});
 
-    +   const opts = .{ .target = target, .optimize = optimize };
-    +   const json_mod = b.dependency("json", opts).module("json");
+        const opts = .{ .target = target, .optimize = optimize };   // 👈
+        const json_mod = b.dependency("json", opts).module("json"); // 👈
 
         const exe = b.addExecutable(.{
-            .name = "test",
+            .name = "my-project",
             .root_source_file = .{ .path = "src/main.zig" },
             .target = target,
             .optimize = optimize,
         });
-    +   exe.addModule("json", json_mod);
-        exe.install();
+        exe.root_module.addImport("json", json_mod); // 👈
 
-        ...
-    }
-    ```
-
-3. Obtain Getty JSON's package hash:
-
-    ```
-    $ zig build --fetch
-    my-project/build.zig.zon:7:20: error: url field is missing corresponding hash field
-            .url = "https://github.com/getty-zig/json/archive/<COMMIT>.tar.gz",
-                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    note: expected .hash = "<HASH>",
-    ```
-
-4. Update `build.zig.zon` with Getty JSON's package hash:
-
-    ```diff
-    .{
-        .name = "my-project",
-        .version = "0.1.0",
-        .paths = .{""},
-        .dependencies = .{
-            .json = .{
-                .url = "https://github.com/getty-zig/json/archive/<COMMIT>.tar.gz",
-    +           .hash = "<HASH>",
-            },
-        },
+        // ...
     }
     ```
