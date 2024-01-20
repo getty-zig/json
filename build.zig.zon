@@ -10,7 +10,7 @@
     },
     .dependencies = .{
         .getty = .{
-            .url = "git+https://github.com/getty-zig/getty.git#0200960bb1c698d85807db59c4ae6ea653ed4a26",
+            .url = "git+https://github.com/getty-zig/getty.git#9ca75378ca4ee1035c68c910df29a756285b2e7c",
             .hash = "12202cf984468b0ae05fffde6c4092c125f29315a289d996fb5cc3026bb2912c4ef0",
         },
         .protest = .{
