@@ -17,7 +17,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 
 ## Installation
 
-1. Declare Getty JSON as a dependency:
+1. Declare Getty JSON as a project dependency with `zig fetch`:
 
     ```sh
     # Latest version
@@ -27,7 +27,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
     zig fetch --save git+https://github.com/getty-zig/json.git#<COMMIT>
     ```
 
-2. Expose Getty JSON as a module in `build.zig`:
+2. Expose Getty JSON as a module in your project's `build.zig`:
 
     ```zig
     pub fn build(b: *std.Build) void {
@@ -47,4 +47,10 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 
         // ...
     }
+    ```
+
+3. Import Getty JSON into your code:
+
+    ```zig
+    const json = @import("json");
     ```
