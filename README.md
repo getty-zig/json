@@ -19,7 +19,7 @@ _Getty JSON_ is a (de)serialization library for the JSON data format.
 
 1. Declare Getty JSON as a dependency:
 
-    ```console
+    ```sh
     # Latest version
     zig fetch --save git+https://github.com/getty-zig/json.git#main
 
