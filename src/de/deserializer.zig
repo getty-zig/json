@@ -65,25 +65,25 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             Parser.AllocError ||
             std.fmt.ParseIntError || std.fmt.ParseFloatError;
 
-        fn deserializeBool(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeBool(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             return switch (try self.parser.next()) {
-                .true => try visitor.visitBool(ally, De, true),
-                .false => try visitor.visitBool(ally, De, false),
+                .true => try visitor.visitBool(arena, De, true),
+                .false => try visitor.visitBool(arena, De, false),
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             };
         }
 
-        fn deserializeEnum(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeEnum(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             return switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
-                .string, .allocated_string => |slice| (try visitor.visitString(ally, De, slice, .managed)).value,
-                .number, .allocated_number => |slice| try visitInt(visitor, ally, De, slice),
+                .string, .allocated_string => |slice| (try visitor.visitString(arena, De, slice, .managed)).value,
+                .number, .allocated_number => |slice| try visitInt(visitor, arena, De, slice),
                 .end_of_document => error.UnexpectedEndOfInput,
                 else => error.InvalidType,
             };
         }
 
-        fn deserializeFloat(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeFloat(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             // By default, JSON numbers are deserialized into f128 Getty
             // Floats. However, std.fmt.parseFloat uses an optimized parsing
             // algorithm for f16, f32, and f64 values, so we try to use those
@@ -94,53 +94,53 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             };
 
             return switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
-                .number, .allocated_number => |slice| try visitor.visitFloat(ally, De, try std.fmt.parseFloat(Float, slice)),
+                .number, .allocated_number => |slice| try visitor.visitFloat(arena, De, try std.fmt.parseFloat(Float, slice)),
                 .end_of_document => error.UnexpectedEndOfInput,
                 else => error.InvalidType,
             };
         }
 
-        fn deserializeIgnored(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeIgnored(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             try self.parser.skipValue();
-            return try visitor.visitVoid(ally, De);
+            return try visitor.visitVoid(arena, De);
         }
 
-        fn deserializeInt(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeInt(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             return switch (try self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {
-                .number, .allocated_number => |slice| try visitInt(visitor, ally, De, slice),
-                .string, .allocated_string => |slice| (try visitor.visitString(ally, De, slice, .managed)).value,
+                .number, .allocated_number => |slice| try visitInt(visitor, arena, De, slice),
+                .string, .allocated_string => |slice| (try visitor.visitString(arena, De, slice, .managed)).value,
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             };
         }
 
-        fn deserializeMap(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeMap(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.next()) {
                 .object_begin => {
                     var m = MapAccess(Self){ .d = self };
-                    return try visitor.visitMap(ally, De, m.mapAccess());
+                    return try visitor.visitMap(arena, De, m.mapAccess());
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             }
         }
 
-        fn deserializeOptional(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeOptional(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.peekNextTokenType()) {
                 .null => {
                     try self.skipToken(); // Eat 'null'.
-                    return try visitor.visitNull(ally, De);
+                    return try visitor.visitNull(arena, De);
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
-                else => return try visitor.visitSome(ally, self.deserializer()),
+                else => return try visitor.visitSome(arena, self.deserializer()),
             }
         }
 
-        fn deserializeSeq(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeSeq(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.next()) {
                 .array_begin => {
                     var s = SeqAccess(Self){ .d = self };
-                    const ret = try visitor.visitSeq(ally, De, s.seqAccess());
+                    const ret = try visitor.visitSeq(arena, De, s.seqAccess());
                     try self.endSeq(); // Eat ']'.
                     return ret;
                 },
@@ -149,26 +149,26 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             }
         }
 
-        fn deserializeString(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            return switch (try self.parser.nextAlloc(ally, .alloc_always)) {
-                .allocated_string => |slice| (try visitor.visitString(ally, De, slice, .heap)).value,
+        fn deserializeString(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+            return switch (try self.parser.nextAlloc(arena, .alloc_always)) {
+                .allocated_string => |slice| (try visitor.visitString(arena, De, slice, .heap)).value,
                 .end_of_document => error.UnexpectedEndOfInput,
                 else => error.InvalidType,
             };
         }
 
-        fn deserializeStruct(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeStruct(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             switch (try self.parser.next()) {
                 .object_begin => {
                     var s = StructAccess(Self){ .d = self };
-                    return try visitor.visitMap(ally, De, s.mapAccess());
+                    return try visitor.visitMap(arena, De, s.mapAccess());
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
             }
         }
 
-        fn deserializeUnion(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeUnion(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const peek = switch (try self.parser.peekNextTokenType()) {
                 .object_begin => |tok| peek: {
                     try self.skipToken(); // Eat '{'.
@@ -180,7 +180,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             };
 
             var u = UnionAccess(Self){ .d = self };
-            const ret = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
+            const ret = try visitor.visitUnion(arena, De, u.unionAccess(), u.variantAccess());
 
             if (peek == .object_begin) {
                 try self.endUnion();
@@ -189,25 +189,25 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
             return ret;
         }
 
-        fn deserializeVoid(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeVoid(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             return switch (try self.parser.next()) {
-                .null => try visitor.visitVoid(ally, De),
+                .null => try visitor.visitVoid(arena, De),
                 .end_of_document => error.UnexpectedEndOfInput,
                 else => error.InvalidType,
             };
         }
 
-        fn deserializeAny(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeAny(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const Visitor = @TypeOf(visitor);
             const visitor_info = @typeInfo(Visitor);
 
-            const token = try self.parser.nextAlloc(ally, .alloc_if_needed);
+            const token = try self.parser.nextAlloc(arena, .alloc_if_needed);
 
             switch (token) {
-                .true, .false => return try visitor.visitBool(ally, De, token == .true),
+                .true, .false => return try visitor.visitBool(arena, De, token == .true),
                 .number, .allocated_number => |slice| {
                     if (visitor_info == .Int) {
-                        return try visitIntHint(visitor, ally, De, slice);
+                        return try visitIntHint(visitor, arena, De, slice);
                     }
 
                     if (!std.json.isNumberFormattedLikeAnInteger(slice)) {
@@ -216,28 +216,28 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                             else => f128,
                         };
 
-                        return try visitor.visitFloat(ally, De, try std.fmt.parseFloat(Float, slice));
+                        return try visitor.visitFloat(arena, De, try std.fmt.parseFloat(Float, slice));
                     }
 
-                    return try visitIntBase(visitor, ally, De, slice);
+                    return try visitIntBase(visitor, arena, De, slice);
                 },
                 inline .string, .allocated_string => |slice| {
                     // Union
                     if (visitor_info == .Union) {
                         var u = UnionAccess(Self){ .d = self };
-                        return try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
+                        return try visitor.visitUnion(arena, De, u.unionAccess(), u.variantAccess());
                     }
 
                     // Enum, String
                     switch (token) {
                         .string => {
-                            const ret = try visitor.visitString(ally, De, slice, .stack);
+                            const ret = try visitor.visitString(arena, De, slice, .stack);
                             std.debug.assert(!ret.used);
                             return ret.value;
                         },
                         .allocated_string => {
-                            const ret = try visitor.visitString(ally, De, slice, .heap);
-                            if (!ret.used) ally.free(slice);
+                            const ret = try visitor.visitString(arena, De, slice, .heap);
+                            if (!ret.used) arena.free(slice);
                             return ret.value;
                         },
                         // UNREACHABLE: The outer switch guarantees that only
@@ -249,15 +249,15 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                 .null => {
                     // Void
                     if (Visitor.Value == void) {
-                        return try visitor.visitVoid(ally, De);
+                        return try visitor.visitVoid(arena, De);
                     }
 
                     // Optional
-                    return try visitor.visitNull(ally, De);
+                    return try visitor.visitNull(arena, De);
                 },
                 .array_begin => {
                     var s = SeqAccess(Self){ .d = self };
-                    const result = try visitor.visitSeq(ally, De, s.seqAccess());
+                    const result = try visitor.visitSeq(arena, De, s.seqAccess());
 
                     try self.endSeq();
 
@@ -267,7 +267,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
                     // Union
                     if (visitor_info == .Union) {
                         var u = UnionAccess(Self){ .d = self };
-                        const result = try visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());
+                        const result = try visitor.visitUnion(arena, De, u.unionAccess(), u.variantAccess());
 
                         try self.endUnion();
 
@@ -276,7 +276,7 @@ pub fn Deserializer(comptime dbt: anytype, comptime Reader: type) type {
 
                     // Map
                     var m = MapAccess(Self){ .d = self };
-                    return try visitor.visitMap(ally, De, m.mapAccess());
+                    return try visitor.visitMap(arena, De, m.mapAccess());
                 },
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => return error.InvalidType,
@@ -340,40 +340,40 @@ fn MapKeyDeserializer(comptime De: type) type {
 
         const Err = De.Err;
 
-        fn deserializeAny(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeAny(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             const Value = @TypeOf(visitor).Value;
 
             if (@typeInfo(Value) == .Int) {
-                return try self.deserializeInt(ally, visitor);
+                return try self.deserializeInt(arena, visitor);
             }
 
             if (comptime isString(Value)) {
-                return try self.deserializeString(ally, visitor);
+                return try self.deserializeString(arena, visitor);
             }
 
             return error.InvalidType;
         }
 
-        fn deserializeIgnored(_: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
-            return try visitor.visitVoid(ally, De);
+        fn deserializeIgnored(_: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+            return try visitor.visitVoid(arena, De);
         }
 
-        fn deserializeInt(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeInt(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             if (self.key.len == 0) {
                 return error.InvalidValue;
             }
 
-            return try visitInt(visitor, ally, De, self.key);
+            return try visitInt(visitor, arena, De, self.key);
         }
 
-        fn deserializeString(self: *Self, ally: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
+        fn deserializeString(self: *Self, arena: Allocator, visitor: anytype) Err!@TypeOf(visitor).Value {
             if (self.allocated) {
-                const ret = try visitor.visitString(ally, De, self.key, .heap);
-                if (!ret.used) ally.free(self.key);
+                const ret = try visitor.visitString(arena, De, self.key, .heap);
+                if (!ret.used) arena.free(self.key);
                 return ret.value;
             }
 
-            const ret = try visitor.visitString(ally, De, self.key, .stack);
+            const ret = try visitor.visitString(arena, De, self.key, .stack);
             std.debug.assert(!ret.used);
             return ret.value;
         }
@@ -398,13 +398,13 @@ fn MapAccess(comptime D: type) type {
         const De = D.@"getty.Deserializer";
         const Err = De.Err;
 
-        fn nextKeySeed(self: *Self, ally: Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
-            const token = try self.d.parser.nextAlloc(ally, .alloc_if_needed);
+        fn nextKeySeed(self: *Self, arena: Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
+            const token = try self.d.parser.nextAlloc(arena, .alloc_if_needed);
             return switch (token) {
                 .string, .allocated_string => |slice| {
                     const allocated = token == .allocated_string;
                     var mkd = MapKeyDeserializer(De){ .key = slice, .allocated = allocated };
-                    return try seed.deserialize(ally, mkd.deserializer());
+                    return try seed.deserialize(arena, mkd.deserializer());
                 },
                 .object_end => null,
                 .end_of_document => error.UnexpectedEndOfInput,
@@ -412,8 +412,8 @@ fn MapAccess(comptime D: type) type {
             };
         }
 
-        fn nextValueSeed(self: *Self, ally: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
-            return try seed.deserialize(ally, self.d.deserializer());
+        fn nextValueSeed(self: *Self, arena: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
+            return try seed.deserialize(arena, self.d.deserializer());
         }
     };
 }
@@ -433,14 +433,14 @@ fn SeqAccess(comptime D: type) type {
         const De = D.@"getty.Deserializer";
         const Err = De.Err;
 
-        fn nextElementSeed(self: *Self, ally: Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
+        fn nextElementSeed(self: *Self, arena: Allocator, seed: anytype) Err!?@TypeOf(seed).Value {
             switch (try self.d.parser.peekNextTokenType()) {
                 .array_end => return null,
                 .end_of_document => return error.UnexpectedEndOfInput,
                 else => {},
             }
 
-            return try seed.deserialize(ally, self.d.deserializer());
+            return try seed.deserialize(arena, self.d.deserializer());
         }
     };
 }
@@ -478,8 +478,8 @@ fn StructAccess(comptime D: type) type {
             }
         }
 
-        fn nextValueSeed(self: *Self, ally: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
-            return try seed.deserialize(ally, self.d.deserializer());
+        fn nextValueSeed(self: *Self, arena: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
+            return try seed.deserialize(arena, self.d.deserializer());
         }
     };
 }
@@ -509,16 +509,16 @@ fn UnionAccess(comptime D: type) type {
         const De = D.@"getty.Deserializer";
         const Err = De.Err;
 
-        fn variantSeed(self: *Self, ally: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
+        fn variantSeed(self: *Self, arena: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
             return switch (try self.d.parser.peekNextTokenType()) {
-                .string => try seed.deserialize(ally, self.d.deserializer()),
+                .string => try seed.deserialize(arena, self.d.deserializer()),
                 .end_of_document => error.UnexpectedEndOfInput,
                 else => error.InvalidType,
             };
         }
 
-        fn payloadSeed(self: *Self, ally: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
-            const payload = try seed.deserialize(ally, self.d.deserializer());
+        fn payloadSeed(self: *Self, arena: Allocator, seed: anytype) Err!@TypeOf(seed).Value {
+            const payload = try seed.deserialize(arena, self.d.deserializer());
 
             return switch (try self.d.parser.peekNextTokenType()) {
                 .object_end => payload,
@@ -538,32 +538,32 @@ inline fn parseInt(comptime T: type, slice: []const u8) !T {
 
 inline fn visitInt(
     visitor: anytype,
-    ally: Allocator,
+    arena: Allocator,
     comptime De: type,
     slice: []const u8,
 ) !@TypeOf(visitor).Value {
     if (@typeInfo(@TypeOf(visitor).Value) == .Int) {
-        return try visitIntHint(visitor, ally, De, slice);
+        return try visitIntHint(visitor, arena, De, slice);
     }
 
-    return try visitIntBase(visitor, ally, De, slice);
+    return try visitIntBase(visitor, arena, De, slice);
 }
 
 inline fn visitIntBase(
     visitor: anytype,
-    ally: Allocator,
+    arena: Allocator,
     comptime De: type,
     slice: []const u8,
 ) !@TypeOf(visitor).Value {
     return try switch (slice[0]) {
-        '0'...'9' => visitor.visitInt(ally, De, try parseInt(u128, slice)),
-        else => visitor.visitInt(ally, De, try parseInt(i128, slice)),
+        '0'...'9' => visitor.visitInt(arena, De, try parseInt(u128, slice)),
+        else => visitor.visitInt(arena, De, try parseInt(i128, slice)),
     };
 }
 
 inline fn visitIntHint(
     visitor: anytype,
-    ally: Allocator,
+    arena: Allocator,
     comptime De: type,
     slice: []const u8,
 ) !@TypeOf(visitor).Value {
@@ -574,7 +574,7 @@ inline fn visitIntHint(
         return error.Overflow;
     }
 
-    return try visitor.visitInt(ally, De, try parseInt(Value, slice));
+    return try visitor.visitInt(arena, De, try parseInt(Value, slice));
 }
 
 fn isString(comptime T: type) bool {
