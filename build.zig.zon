@@ -10,8 +10,8 @@
     },
     .dependencies = .{
         .getty = .{
-            .url = "git+https://github.com/getty-zig/getty.git#9ca75378ca4ee1035c68c910df29a756285b2e7c",
-            .hash = "12202cf984468b0ae05fffde6c4092c125f29315a289d996fb5cc3026bb2912c4ef0",
+            .url = "git+https://github.com/getty-zig/getty.git#fc27249df4c29be03223f80bbd504c28a17a026c",
+            .hash = "12203f307bc58d3abb1ab28cd32847225f2423ce343d771d4d94f81003ee334c717a",
         },
         .protest = .{
             .url = "git+https://github.com/ibokuri/protest.git#bae398b701e763ef18480aa3cfcca103716996de",
