@@ -181,25 +181,25 @@
 <span class="line" id="L65">            Parser.AllocError ||</span>
 <span class="line" id="L66">            std.fmt.ParseIntError || std.fmt.ParseFloatError;</span>
 <span class="line" id="L67"></span>
-<span class="line" id="L68">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeBool</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L68">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeBool</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L69">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.next()) {</span>
-<span class="line" id="L70">                .<span class="tok-null">true</span> =&gt; <span class="tok-kw">try</span> visitor.visitBool(ally, De, <span class="tok-null">true</span>),</span>
-<span class="line" id="L71">                .<span class="tok-null">false</span> =&gt; <span class="tok-kw">try</span> visitor.visitBool(ally, De, <span class="tok-null">false</span>),</span>
+<span class="line" id="L70">                .<span class="tok-null">true</span> =&gt; <span class="tok-kw">try</span> visitor.visitBool(arena, De, <span class="tok-null">true</span>),</span>
+<span class="line" id="L71">                .<span class="tok-null">false</span> =&gt; <span class="tok-kw">try</span> visitor.visitBool(arena, De, <span class="tok-null">false</span>),</span>
 <span class="line" id="L72">                .end_of_document =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
 <span class="line" id="L73">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidType,</span>
 <span class="line" id="L74">            };</span>
 <span class="line" id="L75">        }</span>
 <span class="line" id="L76"></span>
-<span class="line" id="L77">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeEnum</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L77">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeEnum</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L78">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {</span>
-<span class="line" id="L79">                .string, .allocated_string =&gt; |slice| (<span class="tok-kw">try</span> visitor.visitString(ally, De, slice, .managed)).value,</span>
-<span class="line" id="L80">                .number, .allocated_number =&gt; |slice| <span class="tok-kw">try</span> visitInt(visitor, ally, De, slice),</span>
+<span class="line" id="L79">                .string, .allocated_string =&gt; |slice| (<span class="tok-kw">try</span> visitor.visitString(arena, De, slice, .managed)).value,</span>
+<span class="line" id="L80">                .number, .allocated_number =&gt; |slice| <span class="tok-kw">try</span> visitInt(visitor, arena, De, slice),</span>
 <span class="line" id="L81">                .end_of_document =&gt; <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
 <span class="line" id="L82">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">error</span>.InvalidType,</span>
 <span class="line" id="L83">            };</span>
 <span class="line" id="L84">        }</span>
 <span class="line" id="L85"></span>
-<span class="line" id="L86">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeFloat</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L86">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeFloat</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L87">            <span class="tok-comment">// By default, JSON numbers are deserialized into f128 Getty</span>
 </span>
 <span class="line" id="L88">            <span class="tok-comment">// Floats. However, std.fmt.parseFloat uses an optimized parsing</span>
@@ -214,54 +214,54 @@
 <span class="line" id="L94">            };</span>
 <span class="line" id="L95"></span>
 <span class="line" id="L96">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {</span>
-<span class="line" id="L97">                .number, .allocated_number =&gt; |slice| <span class="tok-kw">try</span> visitor.visitFloat(ally, De, <span class="tok-kw">try</span> std.fmt.parseFloat(Float, slice)),</span>
+<span class="line" id="L97">                .number, .allocated_number =&gt; |slice| <span class="tok-kw">try</span> visitor.visitFloat(arena, De, <span class="tok-kw">try</span> std.fmt.parseFloat(Float, slice)),</span>
 <span class="line" id="L98">                .end_of_document =&gt; <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
 <span class="line" id="L99">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">error</span>.InvalidType,</span>
 <span class="line" id="L100">            };</span>
 <span class="line" id="L101">        }</span>
 <span class="line" id="L102"></span>
-<span class="line" id="L103">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeIgnored</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L103">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeIgnored</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L104">            <span class="tok-kw">try</span> self.parser.skipValue();</span>
-<span class="line" id="L105">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitVoid(ally, De);</span>
+<span class="line" id="L105">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitVoid(arena, De);</span>
 <span class="line" id="L106">        }</span>
 <span class="line" id="L107"></span>
-<span class="line" id="L108">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeInt</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L108">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeInt</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L109">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.nextAlloc(self.scratch.allocator(), .alloc_if_needed)) {</span>
-<span class="line" id="L110">                .number, .allocated_number =&gt; |slice| <span class="tok-kw">try</span> visitInt(visitor, ally, De, slice),</span>
-<span class="line" id="L111">                .string, .allocated_string =&gt; |slice| (<span class="tok-kw">try</span> visitor.visitString(ally, De, slice, .managed)).value,</span>
+<span class="line" id="L110">                .number, .allocated_number =&gt; |slice| <span class="tok-kw">try</span> visitInt(visitor, arena, De, slice),</span>
+<span class="line" id="L111">                .string, .allocated_string =&gt; |slice| (<span class="tok-kw">try</span> visitor.visitString(arena, De, slice, .managed)).value,</span>
 <span class="line" id="L112">                .end_of_document =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
 <span class="line" id="L113">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidType,</span>
 <span class="line" id="L114">            };</span>
 <span class="line" id="L115">        }</span>
 <span class="line" id="L116"></span>
-<span class="line" id="L117">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeMap</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L117">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeMap</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L118">            <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.next()) {</span>
 <span class="line" id="L119">                .object_begin =&gt; {</span>
 <span class="line" id="L120">                    <span class="tok-kw">var</span> m = MapAccess(Self){ .d = self };</span>
-<span class="line" id="L121">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitMap(ally, De, m.mapAccess());</span>
+<span class="line" id="L121">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitMap(arena, De, m.mapAccess());</span>
 <span class="line" id="L122">                },</span>
 <span class="line" id="L123">                .end_of_document =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
 <span class="line" id="L124">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidType,</span>
 <span class="line" id="L125">            }</span>
 <span class="line" id="L126">        }</span>
 <span class="line" id="L127"></span>
-<span class="line" id="L128">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeOptional</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L128">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeOptional</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L129">            <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.peekNextTokenType()) {</span>
 <span class="line" id="L130">                .<span class="tok-null">null</span> =&gt; {</span>
 <span class="line" id="L131">                    <span class="tok-kw">try</span> self.skipToken(); <span class="tok-comment">// Eat 'null'.</span>
 </span>
-<span class="line" id="L132">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitNull(ally, De);</span>
+<span class="line" id="L132">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitNull(arena, De);</span>
 <span class="line" id="L133">                },</span>
 <span class="line" id="L134">                .end_of_document =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
-<span class="line" id="L135">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitSome(ally, self.deserializer()),</span>
+<span class="line" id="L135">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitSome(arena, self.deserializer()),</span>
 <span class="line" id="L136">            }</span>
 <span class="line" id="L137">        }</span>
 <span class="line" id="L138"></span>
-<span class="line" id="L139">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeSeq</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L139">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeSeq</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L140">            <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.next()) {</span>
 <span class="line" id="L141">                .array_begin =&gt; {</span>
 <span class="line" id="L142">                    <span class="tok-kw">var</span> s = SeqAccess(Self){ .d = self };</span>
-<span class="line" id="L143">                    <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitSeq(ally, De, s.seqAccess());</span>
+<span class="line" id="L143">                    <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitSeq(arena, De, s.seqAccess());</span>
 <span class="line" id="L144">                    <span class="tok-kw">try</span> self.endSeq(); <span class="tok-comment">// Eat ']'.</span>
 </span>
 <span class="line" id="L145">                    <span class="tok-kw">return</span> ret;</span>
@@ -271,26 +271,26 @@
 <span class="line" id="L149">            }</span>
 <span class="line" id="L150">        }</span>
 <span class="line" id="L151"></span>
-<span class="line" id="L152">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeString</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
-<span class="line" id="L153">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.nextAlloc(ally, .alloc_always)) {</span>
-<span class="line" id="L154">                .allocated_string =&gt; |slice| (<span class="tok-kw">try</span> visitor.visitString(ally, De, slice, .heap)).value,</span>
+<span class="line" id="L152">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeString</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L153">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.nextAlloc(arena, .alloc_always)) {</span>
+<span class="line" id="L154">                .allocated_string =&gt; |slice| (<span class="tok-kw">try</span> visitor.visitString(arena, De, slice, .heap)).value,</span>
 <span class="line" id="L155">                .end_of_document =&gt; <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
 <span class="line" id="L156">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">error</span>.InvalidType,</span>
 <span class="line" id="L157">            };</span>
 <span class="line" id="L158">        }</span>
 <span class="line" id="L159"></span>
-<span class="line" id="L160">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeStruct</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L160">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeStruct</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L161">            <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.next()) {</span>
 <span class="line" id="L162">                .object_begin =&gt; {</span>
 <span class="line" id="L163">                    <span class="tok-kw">var</span> s = StructAccess(Self){ .d = self };</span>
-<span class="line" id="L164">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitMap(ally, De, s.mapAccess());</span>
+<span class="line" id="L164">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitMap(arena, De, s.mapAccess());</span>
 <span class="line" id="L165">                },</span>
 <span class="line" id="L166">                .end_of_document =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
 <span class="line" id="L167">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidType,</span>
 <span class="line" id="L168">            }</span>
 <span class="line" id="L169">        }</span>
 <span class="line" id="L170"></span>
-<span class="line" id="L171">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeUnion</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L171">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeUnion</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L172">            <span class="tok-kw">const</span> peek = <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.peekNextTokenType()) {</span>
 <span class="line" id="L173">                .object_begin =&gt; |tok| peek: {</span>
 <span class="line" id="L174">                    <span class="tok-kw">try</span> self.skipToken(); <span class="tok-comment">// Eat '{'.</span>
@@ -303,7 +303,7 @@
 <span class="line" id="L180">            };</span>
 <span class="line" id="L181"></span>
 <span class="line" id="L182">            <span class="tok-kw">var</span> u = UnionAccess(Self){ .d = self };</span>
-<span class="line" id="L183">            <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());</span>
+<span class="line" id="L183">            <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitUnion(arena, De, u.unionAccess(), u.variantAccess());</span>
 <span class="line" id="L184"></span>
 <span class="line" id="L185">            <span class="tok-kw">if</span> (peek == .object_begin) {</span>
 <span class="line" id="L186">                <span class="tok-kw">try</span> self.endUnion();</span>
@@ -312,25 +312,25 @@
 <span class="line" id="L189">            <span class="tok-kw">return</span> ret;</span>
 <span class="line" id="L190">        }</span>
 <span class="line" id="L191"></span>
-<span class="line" id="L192">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeVoid</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L192">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeVoid</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L193">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.parser.next()) {</span>
-<span class="line" id="L194">                .<span class="tok-null">null</span> =&gt; <span class="tok-kw">try</span> visitor.visitVoid(ally, De),</span>
+<span class="line" id="L194">                .<span class="tok-null">null</span> =&gt; <span class="tok-kw">try</span> visitor.visitVoid(arena, De),</span>
 <span class="line" id="L195">                .end_of_document =&gt; <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
 <span class="line" id="L196">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">error</span>.InvalidType,</span>
 <span class="line" id="L197">            };</span>
 <span class="line" id="L198">        }</span>
 <span class="line" id="L199"></span>
-<span class="line" id="L200">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeAny</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L200">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeAny</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L201">            <span class="tok-kw">const</span> Visitor = <span class="tok-builtin">@TypeOf</span>(visitor);</span>
 <span class="line" id="L202">            <span class="tok-kw">const</span> visitor_info = <span class="tok-builtin">@typeInfo</span>(Visitor);</span>
 <span class="line" id="L203"></span>
-<span class="line" id="L204">            <span class="tok-kw">const</span> token = <span class="tok-kw">try</span> self.parser.nextAlloc(ally, .alloc_if_needed);</span>
+<span class="line" id="L204">            <span class="tok-kw">const</span> token = <span class="tok-kw">try</span> self.parser.nextAlloc(arena, .alloc_if_needed);</span>
 <span class="line" id="L205"></span>
 <span class="line" id="L206">            <span class="tok-kw">switch</span> (token) {</span>
-<span class="line" id="L207">                .<span class="tok-null">true</span>, .<span class="tok-null">false</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitBool(ally, De, token == .<span class="tok-null">true</span>),</span>
+<span class="line" id="L207">                .<span class="tok-null">true</span>, .<span class="tok-null">false</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitBool(arena, De, token == .<span class="tok-null">true</span>),</span>
 <span class="line" id="L208">                .number, .allocated_number =&gt; |slice| {</span>
 <span class="line" id="L209">                    <span class="tok-kw">if</span> (visitor_info == .Int) {</span>
-<span class="line" id="L210">                        <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitIntHint(visitor, ally, De, slice);</span>
+<span class="line" id="L210">                        <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitIntHint(visitor, arena, De, slice);</span>
 <span class="line" id="L211">                    }</span>
 <span class="line" id="L212"></span>
 <span class="line" id="L213">                    <span class="tok-kw">if</span> (!std.json.isNumberFormattedLikeAnInteger(slice)) {</span>
@@ -339,30 +339,30 @@
 <span class="line" id="L216">                            <span class="tok-kw">else</span> =&gt; <span class="tok-type">f128</span>,</span>
 <span class="line" id="L217">                        };</span>
 <span class="line" id="L218"></span>
-<span class="line" id="L219">                        <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitFloat(ally, De, <span class="tok-kw">try</span> std.fmt.parseFloat(Float, slice));</span>
+<span class="line" id="L219">                        <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitFloat(arena, De, <span class="tok-kw">try</span> std.fmt.parseFloat(Float, slice));</span>
 <span class="line" id="L220">                    }</span>
 <span class="line" id="L221"></span>
-<span class="line" id="L222">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitIntBase(visitor, ally, De, slice);</span>
+<span class="line" id="L222">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitIntBase(visitor, arena, De, slice);</span>
 <span class="line" id="L223">                },</span>
 <span class="line" id="L224">                <span class="tok-kw">inline</span> .string, .allocated_string =&gt; |slice| {</span>
 <span class="line" id="L225">                    <span class="tok-comment">// Union</span>
 </span>
 <span class="line" id="L226">                    <span class="tok-kw">if</span> (visitor_info == .Union) {</span>
 <span class="line" id="L227">                        <span class="tok-kw">var</span> u = UnionAccess(Self){ .d = self };</span>
-<span class="line" id="L228">                        <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());</span>
+<span class="line" id="L228">                        <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitUnion(arena, De, u.unionAccess(), u.variantAccess());</span>
 <span class="line" id="L229">                    }</span>
 <span class="line" id="L230"></span>
 <span class="line" id="L231">                    <span class="tok-comment">// Enum, String</span>
 </span>
 <span class="line" id="L232">                    <span class="tok-kw">switch</span> (token) {</span>
 <span class="line" id="L233">                        .string =&gt; {</span>
-<span class="line" id="L234">                            <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitString(ally, De, slice, .stack);</span>
+<span class="line" id="L234">                            <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitString(arena, De, slice, .stack);</span>
 <span class="line" id="L235">                            std.debug.assert(!ret.used);</span>
 <span class="line" id="L236">                            <span class="tok-kw">return</span> ret.value;</span>
 <span class="line" id="L237">                        },</span>
 <span class="line" id="L238">                        .allocated_string =&gt; {</span>
-<span class="line" id="L239">                            <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitString(ally, De, slice, .heap);</span>
-<span class="line" id="L240">                            <span class="tok-kw">if</span> (!ret.used) ally.free(slice);</span>
+<span class="line" id="L239">                            <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitString(arena, De, slice, .heap);</span>
+<span class="line" id="L240">                            <span class="tok-kw">if</span> (!ret.used) arena.free(slice);</span>
 <span class="line" id="L241">                            <span class="tok-kw">return</span> ret.value;</span>
 <span class="line" id="L242">                        },</span>
 <span class="line" id="L243">                        <span class="tok-comment">// UNREACHABLE: The outer switch guarantees that only</span>
@@ -378,16 +378,16 @@
 <span class="line" id="L250">                    <span class="tok-comment">// Void</span>
 </span>
 <span class="line" id="L251">                    <span class="tok-kw">if</span> (Visitor.Value == <span class="tok-type">void</span>) {</span>
-<span class="line" id="L252">                        <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitVoid(ally, De);</span>
+<span class="line" id="L252">                        <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitVoid(arena, De);</span>
 <span class="line" id="L253">                    }</span>
 <span class="line" id="L254"></span>
 <span class="line" id="L255">                    <span class="tok-comment">// Optional</span>
 </span>
-<span class="line" id="L256">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitNull(ally, De);</span>
+<span class="line" id="L256">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitNull(arena, De);</span>
 <span class="line" id="L257">                },</span>
 <span class="line" id="L258">                .array_begin =&gt; {</span>
 <span class="line" id="L259">                    <span class="tok-kw">var</span> s = SeqAccess(Self){ .d = self };</span>
-<span class="line" id="L260">                    <span class="tok-kw">const</span> result = <span class="tok-kw">try</span> visitor.visitSeq(ally, De, s.seqAccess());</span>
+<span class="line" id="L260">                    <span class="tok-kw">const</span> result = <span class="tok-kw">try</span> visitor.visitSeq(arena, De, s.seqAccess());</span>
 <span class="line" id="L261"></span>
 <span class="line" id="L262">                    <span class="tok-kw">try</span> self.endSeq();</span>
 <span class="line" id="L263"></span>
@@ -398,7 +398,7 @@
 </span>
 <span class="line" id="L268">                    <span class="tok-kw">if</span> (visitor_info == .Union) {</span>
 <span class="line" id="L269">                        <span class="tok-kw">var</span> u = UnionAccess(Self){ .d = self };</span>
-<span class="line" id="L270">                        <span class="tok-kw">const</span> result = <span class="tok-kw">try</span> visitor.visitUnion(ally, De, u.unionAccess(), u.variantAccess());</span>
+<span class="line" id="L270">                        <span class="tok-kw">const</span> result = <span class="tok-kw">try</span> visitor.visitUnion(arena, De, u.unionAccess(), u.variantAccess());</span>
 <span class="line" id="L271"></span>
 <span class="line" id="L272">                        <span class="tok-kw">try</span> self.endUnion();</span>
 <span class="line" id="L273"></span>
@@ -408,7 +408,7 @@
 <span class="line" id="L277">                    <span class="tok-comment">// Map</span>
 </span>
 <span class="line" id="L278">                    <span class="tok-kw">var</span> m = MapAccess(Self){ .d = self };</span>
-<span class="line" id="L279">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitMap(ally, De, m.mapAccess());</span>
+<span class="line" id="L279">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitMap(arena, De, m.mapAccess());</span>
 <span class="line" id="L280">                },</span>
 <span class="line" id="L281">                .end_of_document =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
 <span class="line" id="L282">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidType,</span>
@@ -474,40 +474,40 @@
 <span class="line" id="L340"></span>
 <span class="line" id="L341">        <span class="tok-kw">const</span> Err = De.Err;</span>
 <span class="line" id="L342"></span>
-<span class="line" id="L343">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeAny</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L343">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeAny</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L344">            <span class="tok-kw">const</span> Value = <span class="tok-builtin">@TypeOf</span>(visitor).Value;</span>
 <span class="line" id="L345"></span>
 <span class="line" id="L346">            <span class="tok-kw">if</span> (<span class="tok-builtin">@typeInfo</span>(Value) == .Int) {</span>
-<span class="line" id="L347">                <span class="tok-kw">return</span> <span class="tok-kw">try</span> self.deserializeInt(ally, visitor);</span>
+<span class="line" id="L347">                <span class="tok-kw">return</span> <span class="tok-kw">try</span> self.deserializeInt(arena, visitor);</span>
 <span class="line" id="L348">            }</span>
 <span class="line" id="L349"></span>
 <span class="line" id="L350">            <span class="tok-kw">if</span> (<span class="tok-kw">comptime</span> isString(Value)) {</span>
-<span class="line" id="L351">                <span class="tok-kw">return</span> <span class="tok-kw">try</span> self.deserializeString(ally, visitor);</span>
+<span class="line" id="L351">                <span class="tok-kw">return</span> <span class="tok-kw">try</span> self.deserializeString(arena, visitor);</span>
 <span class="line" id="L352">            }</span>
 <span class="line" id="L353"></span>
 <span class="line" id="L354">            <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidType;</span>
 <span class="line" id="L355">        }</span>
 <span class="line" id="L356"></span>
-<span class="line" id="L357">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeIgnored</span>(_: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
-<span class="line" id="L358">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitVoid(ally, De);</span>
+<span class="line" id="L357">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeIgnored</span>(_: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L358">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitVoid(arena, De);</span>
 <span class="line" id="L359">        }</span>
 <span class="line" id="L360"></span>
-<span class="line" id="L361">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeInt</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L361">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeInt</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L362">            <span class="tok-kw">if</span> (self.key.len == <span class="tok-number">0</span>) {</span>
 <span class="line" id="L363">                <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidValue;</span>
 <span class="line" id="L364">            }</span>
 <span class="line" id="L365"></span>
-<span class="line" id="L366">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitInt(visitor, ally, De, self.key);</span>
+<span class="line" id="L366">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitInt(visitor, arena, De, self.key);</span>
 <span class="line" id="L367">        }</span>
 <span class="line" id="L368"></span>
-<span class="line" id="L369">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeString</span>(self: *Self, ally: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
+<span class="line" id="L369">        <span class="tok-kw">fn</span> <span class="tok-fn">deserializeString</span>(self: *Self, arena: Allocator, visitor: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L370">            <span class="tok-kw">if</span> (self.allocated) {</span>
-<span class="line" id="L371">                <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitString(ally, De, self.key, .heap);</span>
-<span class="line" id="L372">                <span class="tok-kw">if</span> (!ret.used) ally.free(self.key);</span>
+<span class="line" id="L371">                <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitString(arena, De, self.key, .heap);</span>
+<span class="line" id="L372">                <span class="tok-kw">if</span> (!ret.used) arena.free(self.key);</span>
 <span class="line" id="L373">                <span class="tok-kw">return</span> ret.value;</span>
 <span class="line" id="L374">            }</span>
 <span class="line" id="L375"></span>
-<span class="line" id="L376">            <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitString(ally, De, self.key, .stack);</span>
+<span class="line" id="L376">            <span class="tok-kw">const</span> ret = <span class="tok-kw">try</span> visitor.visitString(arena, De, self.key, .stack);</span>
 <span class="line" id="L377">            std.debug.assert(!ret.used);</span>
 <span class="line" id="L378">            <span class="tok-kw">return</span> ret.value;</span>
 <span class="line" id="L379">        }</span>
@@ -532,13 +532,13 @@
 <span class="line" id="L398">        <span class="tok-kw">const</span> De = D.@&quot;getty.Deserializer&quot;;</span>
 <span class="line" id="L399">        <span class="tok-kw">const</span> Err = De.Err;</span>
 <span class="line" id="L400"></span>
-<span class="line" id="L401">        <span class="tok-kw">fn</span> <span class="tok-fn">nextKeySeed</span>(self: *Self, ally: Allocator, seed: <span class="tok-kw">anytype</span>) Err!?<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
-<span class="line" id="L402">            <span class="tok-kw">const</span> token = <span class="tok-kw">try</span> self.d.parser.nextAlloc(ally, .alloc_if_needed);</span>
+<span class="line" id="L401">        <span class="tok-kw">fn</span> <span class="tok-fn">nextKeySeed</span>(self: *Self, arena: Allocator, seed: <span class="tok-kw">anytype</span>) Err!?<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
+<span class="line" id="L402">            <span class="tok-kw">const</span> token = <span class="tok-kw">try</span> self.d.parser.nextAlloc(arena, .alloc_if_needed);</span>
 <span class="line" id="L403">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (token) {</span>
 <span class="line" id="L404">                .string, .allocated_string =&gt; |slice| {</span>
 <span class="line" id="L405">                    <span class="tok-kw">const</span> allocated = token == .allocated_string;</span>
 <span class="line" id="L406">                    <span class="tok-kw">var</span> mkd = MapKeyDeserializer(De){ .key = slice, .allocated = allocated };</span>
-<span class="line" id="L407">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> seed.deserialize(ally, mkd.deserializer());</span>
+<span class="line" id="L407">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> seed.deserialize(arena, mkd.deserializer());</span>
 <span class="line" id="L408">                },</span>
 <span class="line" id="L409">                .object_end =&gt; <span class="tok-null">null</span>,</span>
 <span class="line" id="L410">                .end_of_document =&gt; <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
@@ -546,8 +546,8 @@
 <span class="line" id="L412">            };</span>
 <span class="line" id="L413">        }</span>
 <span class="line" id="L414"></span>
-<span class="line" id="L415">        <span class="tok-kw">fn</span> <span class="tok-fn">nextValueSeed</span>(self: *Self, ally: Allocator, seed: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
-<span class="line" id="L416">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> seed.deserialize(ally, self.d.deserializer());</span>
+<span class="line" id="L415">        <span class="tok-kw">fn</span> <span class="tok-fn">nextValueSeed</span>(self: *Self, arena: Allocator, seed: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
+<span class="line" id="L416">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> seed.deserialize(arena, self.d.deserializer());</span>
 <span class="line" id="L417">        }</span>
 <span class="line" id="L418">    };</span>
 <span class="line" id="L419">}</span>
@@ -567,14 +567,14 @@
 <span class="line" id="L433">        <span class="tok-kw">const</span> De = D.@&quot;getty.Deserializer&quot;;</span>
 <span class="line" id="L434">        <span class="tok-kw">const</span> Err = De.Err;</span>
 <span class="line" id="L435"></span>
-<span class="line" id="L436">        <span class="tok-kw">fn</span> <span class="tok-fn">nextElementSeed</span>(self: *Self, ally: Allocator, seed: <span class="tok-kw">anytype</span>) Err!?<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
+<span class="line" id="L436">        <span class="tok-kw">fn</span> <span class="tok-fn">nextElementSeed</span>(self: *Self, arena: Allocator, seed: <span class="tok-kw">anytype</span>) Err!?<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
 <span class="line" id="L437">            <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.d.parser.peekNextTokenType()) {</span>
 <span class="line" id="L438">                .array_end =&gt; <span class="tok-kw">return</span> <span class="tok-null">null</span>,</span>
 <span class="line" id="L439">                .end_of_document =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
 <span class="line" id="L440">                <span class="tok-kw">else</span> =&gt; {},</span>
 <span class="line" id="L441">            }</span>
 <span class="line" id="L442"></span>
-<span class="line" id="L443">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> seed.deserialize(ally, self.d.deserializer());</span>
+<span class="line" id="L443">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> seed.deserialize(arena, self.d.deserializer());</span>
 <span class="line" id="L444">        }</span>
 <span class="line" id="L445">    };</span>
 <span class="line" id="L446">}</span>
@@ -612,8 +612,8 @@
 <span class="line" id="L478">            }</span>
 <span class="line" id="L479">        }</span>
 <span class="line" id="L480"></span>
-<span class="line" id="L481">        <span class="tok-kw">fn</span> <span class="tok-fn">nextValueSeed</span>(self: *Self, ally: Allocator, seed: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
-<span class="line" id="L482">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> seed.deserialize(ally, self.d.deserializer());</span>
+<span class="line" id="L481">        <span class="tok-kw">fn</span> <span class="tok-fn">nextValueSeed</span>(self: *Self, arena: Allocator, seed: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
+<span class="line" id="L482">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> seed.deserialize(arena, self.d.deserializer());</span>
 <span class="line" id="L483">        }</span>
 <span class="line" id="L484">    };</span>
 <span class="line" id="L485">}</span>
@@ -643,16 +643,16 @@
 <span class="line" id="L509">        <span class="tok-kw">const</span> De = D.@&quot;getty.Deserializer&quot;;</span>
 <span class="line" id="L510">        <span class="tok-kw">const</span> Err = De.Err;</span>
 <span class="line" id="L511"></span>
-<span class="line" id="L512">        <span class="tok-kw">fn</span> <span class="tok-fn">variantSeed</span>(self: *Self, ally: Allocator, seed: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
+<span class="line" id="L512">        <span class="tok-kw">fn</span> <span class="tok-fn">variantSeed</span>(self: *Self, arena: Allocator, seed: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
 <span class="line" id="L513">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.d.parser.peekNextTokenType()) {</span>
-<span class="line" id="L514">                .string =&gt; <span class="tok-kw">try</span> seed.deserialize(ally, self.d.deserializer()),</span>
+<span class="line" id="L514">                .string =&gt; <span class="tok-kw">try</span> seed.deserialize(arena, self.d.deserializer()),</span>
 <span class="line" id="L515">                .end_of_document =&gt; <span class="tok-kw">error</span>.UnexpectedEndOfInput,</span>
 <span class="line" id="L516">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">error</span>.InvalidType,</span>
 <span class="line" id="L517">            };</span>
 <span class="line" id="L518">        }</span>
 <span class="line" id="L519"></span>
-<span class="line" id="L520">        <span class="tok-kw">fn</span> <span class="tok-fn">payloadSeed</span>(self: *Self, ally: Allocator, seed: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
-<span class="line" id="L521">            <span class="tok-kw">const</span> payload = <span class="tok-kw">try</span> seed.deserialize(ally, self.d.deserializer());</span>
+<span class="line" id="L520">        <span class="tok-kw">fn</span> <span class="tok-fn">payloadSeed</span>(self: *Self, arena: Allocator, seed: <span class="tok-kw">anytype</span>) Err!<span class="tok-builtin">@TypeOf</span>(seed).Value {</span>
+<span class="line" id="L521">            <span class="tok-kw">const</span> payload = <span class="tok-kw">try</span> seed.deserialize(arena, self.d.deserializer());</span>
 <span class="line" id="L522"></span>
 <span class="line" id="L523">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (<span class="tok-kw">try</span> self.d.parser.peekNextTokenType()) {</span>
 <span class="line" id="L524">                .object_end =&gt; payload,</span>
@@ -672,32 +672,32 @@
 <span class="line" id="L538"></span>
 <span class="line" id="L539"><span class="tok-kw">inline</span> <span class="tok-kw">fn</span> <span class="tok-fn">visitInt</span>(</span>
 <span class="line" id="L540">    visitor: <span class="tok-kw">anytype</span>,</span>
-<span class="line" id="L541">    ally: Allocator,</span>
+<span class="line" id="L541">    arena: Allocator,</span>
 <span class="line" id="L542">    <span class="tok-kw">comptime</span> De: <span class="tok-type">type</span>,</span>
 <span class="line" id="L543">    slice: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>,</span>
 <span class="line" id="L544">) !<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L545">    <span class="tok-kw">if</span> (<span class="tok-builtin">@typeInfo</span>(<span class="tok-builtin">@TypeOf</span>(visitor).Value) == .Int) {</span>
-<span class="line" id="L546">        <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitIntHint(visitor, ally, De, slice);</span>
+<span class="line" id="L546">        <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitIntHint(visitor, arena, De, slice);</span>
 <span class="line" id="L547">    }</span>
 <span class="line" id="L548"></span>
-<span class="line" id="L549">    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitIntBase(visitor, ally, De, slice);</span>
+<span class="line" id="L549">    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitIntBase(visitor, arena, De, slice);</span>
 <span class="line" id="L550">}</span>
 <span class="line" id="L551"></span>
 <span class="line" id="L552"><span class="tok-kw">inline</span> <span class="tok-kw">fn</span> <span class="tok-fn">visitIntBase</span>(</span>
 <span class="line" id="L553">    visitor: <span class="tok-kw">anytype</span>,</span>
-<span class="line" id="L554">    ally: Allocator,</span>
+<span class="line" id="L554">    arena: Allocator,</span>
 <span class="line" id="L555">    <span class="tok-kw">comptime</span> De: <span class="tok-type">type</span>,</span>
 <span class="line" id="L556">    slice: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>,</span>
 <span class="line" id="L557">) !<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
 <span class="line" id="L558">    <span class="tok-kw">return</span> <span class="tok-kw">try</span> <span class="tok-kw">switch</span> (slice[<span class="tok-number">0</span>]) {</span>
-<span class="line" id="L559">        <span class="tok-str">'0'</span>...<span class="tok-str">'9'</span> =&gt; visitor.visitInt(ally, De, <span class="tok-kw">try</span> parseInt(<span class="tok-type">u128</span>, slice)),</span>
-<span class="line" id="L560">        <span class="tok-kw">else</span> =&gt; visitor.visitInt(ally, De, <span class="tok-kw">try</span> parseInt(<span class="tok-type">i128</span>, slice)),</span>
+<span class="line" id="L559">        <span class="tok-str">'0'</span>...<span class="tok-str">'9'</span> =&gt; visitor.visitInt(arena, De, <span class="tok-kw">try</span> parseInt(<span class="tok-type">u128</span>, slice)),</span>
+<span class="line" id="L560">        <span class="tok-kw">else</span> =&gt; visitor.visitInt(arena, De, <span class="tok-kw">try</span> parseInt(<span class="tok-type">i128</span>, slice)),</span>
 <span class="line" id="L561">    };</span>
 <span class="line" id="L562">}</span>
 <span class="line" id="L563"></span>
 <span class="line" id="L564"><span class="tok-kw">inline</span> <span class="tok-kw">fn</span> <span class="tok-fn">visitIntHint</span>(</span>
 <span class="line" id="L565">    visitor: <span class="tok-kw">anytype</span>,</span>
-<span class="line" id="L566">    ally: Allocator,</span>
+<span class="line" id="L566">    arena: Allocator,</span>
 <span class="line" id="L567">    <span class="tok-kw">comptime</span> De: <span class="tok-type">type</span>,</span>
 <span class="line" id="L568">    slice: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>,</span>
 <span class="line" id="L569">) !<span class="tok-builtin">@TypeOf</span>(visitor).Value {</span>
@@ -708,7 +708,7 @@
 <span class="line" id="L574">        <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Overflow;</span>
 <span class="line" id="L575">    }</span>
 <span class="line" id="L576"></span>
-<span class="line" id="L577">    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitInt(ally, De, <span class="tok-kw">try</span> parseInt(Value, slice));</span>
+<span class="line" id="L577">    <span class="tok-kw">return</span> <span class="tok-kw">try</span> visitor.visitInt(arena, De, <span class="tok-kw">try</span> parseInt(Value, slice));</span>
 <span class="line" id="L578">}</span>
 <span class="line" id="L579"></span>
 <span class="line" id="L580"><span class="tok-kw">fn</span> <span class="tok-fn">isString</span>(<span class="tok-kw">comptime</span> T: <span class="tok-type">type</span>) <span class="tok-type">bool</span> {</span>
