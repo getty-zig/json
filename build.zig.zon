@@ -10,11 +10,11 @@
     },
     .dependencies = .{
         .getty = .{
-            .url = "git+https://github.com/getty-zig/getty.git#e3f8894de591bd4ed36fd8dea65b00375d064bee",
-            .hash = "122051041b2d2b96aa50ff1ea9858d1a1dc50bc3ad0e8eda2475d669abe891cbfd9d",
+            .url = "https://github.com/getty-zig/getty/archive/165caba754c7424431b8ea233a315486f133acab.tar.gz",
+            .hash = "1220345b9da2d359d3be77486428eca92c824de275571c17d24e8a6bf8760593ecf0",
         },
         .protest = .{
-            .url = "git+https://github.com/ibokuri/protest.git#bae398b701e763ef18480aa3cfcca103716996de",
+            .url = "https://github.com/ibokuri/protest/archive/bae398b701e763ef18480aa3cfcca103716996de.tar.gz",
             .hash = "1220c70517d1bc1b3734c9c4fe81045b1927320b2590d8af28be32883f5fd4d3af8d",
         },
     },
