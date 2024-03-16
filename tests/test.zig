@@ -144,11 +144,11 @@ test "encode - error" {
 test "encode - float" {
     const T = f64;
     const tests: EncodeTest(T) = &.{
-        .{ "3.0e+00", 3.0 },
-        .{ "3.1e+00", 3.1 },
-        .{ "-1.5e+00", -1.5 },
+        .{ "3e0", 3.0 },
+        .{ "3.1e0", 3.1 },
+        .{ "-1.5e0", -1.5 },
         .{ "2.2250738585072014e-308", std.math.floatMin(f64) },
-        .{ "1.7976931348623157e+308", std.math.floatMax(f64) },
+        .{ "1.7976931348623157e308", std.math.floatMax(f64) },
         .{ "2.220446049250313e-16", std.math.floatEps(f64) },
         .{ "null", std.math.nan(f64) },
         .{ "null", std.math.inf(f64) },

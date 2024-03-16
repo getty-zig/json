@@ -48,7 +48,7 @@ pub fn Formatter(comptime Writer: type) type {
         }
 
         fn writeFloat(_: Self, w: Writer, v: anytype) Writer.Error!void {
-            try std.fmt.formatFloatScientific(v, std.fmt.FormatOptions{}, w);
+            try std.fmt.formatType(v, "", std.fmt.FormatOptions{}, w, std.fmt.default_max_depth);
         }
 
         fn writeNumberString(_: Self, w: Writer, v: []const u8) Writer.Error!void {
