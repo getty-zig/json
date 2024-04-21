@@ -10,8 +10,8 @@
     },
     .dependencies = .{
         .getty = .{
-            .url = "https://github.com/getty-zig/getty/archive/805c4be6eacb988c968911a1cdfd585a8f54ae00.tar.gz",
-            .hash = "1220a5465b323d39df3cdfdc2a77d086d5079d142de48044da1b1feac87531fd6f1c",
+            .url = "https://github.com/getty-zig/getty/archive/d27b9c72c553ee7e9fb383aa955ae1a705cde215.tar.gz",
+            .hash = "12208cf585a316dddfb837fb7397b0cc4a9974716adf63f856171fbd6e99cb9b131d",
         },
         .protest = .{
             .url = "https://github.com/ibokuri/protest/archive/bae398b701e763ef18480aa3cfcca103716996de.tar.gz",
