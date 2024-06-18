@@ -1,4 +1,5 @@
 # Zig
 zig-*
+.zig-*
 docs/
 *.o

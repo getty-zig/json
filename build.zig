@@ -17,7 +17,7 @@ pub fn build(b: *std.Build) void {
 
     // Export Getty JSON as a module.
     const json_module = b.addModule(package_name, .{
-        .root_source_file = .{ .path = package_path },
+        .root_source_file = b.path(package_path),
         .imports = &.{
             .{ .name = "getty", .module = getty_module },
             .{ .name = "protest", .module = protest_module },
@@ -33,7 +33,7 @@ pub fn build(b: *std.Build) void {
         // Serialization tests.
         const t_ser = b.addTest(.{
             .name = "serialization test",
-            .root_source_file = .{ .path = "tests/test.zig" },
+            .root_source_file = b.path("tests/test.zig"),
             .target = target,
             .optimize = optimize,
             .filter = "encode",
@@ -48,7 +48,7 @@ pub fn build(b: *std.Build) void {
         // Deserialization tests.
         const t_de = b.addTest(.{
             .name = "deserialization test",
-            .root_source_file = .{ .path = "tests/test.zig" },
+            .root_source_file = b.path("tests/test.zig"),
             .target = target,
             .optimize = optimize,
             .filter = "parse",
@@ -67,7 +67,7 @@ pub fn build(b: *std.Build) void {
 
         const doc_obj = b.addObject(.{
             .name = "docs",
-            .root_source_file = .{ .path = package_path },
+            .root_source_file = b.path(package_path),
             .target = target,
             .optimize = optimize,
         });
