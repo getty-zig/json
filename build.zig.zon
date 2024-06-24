@@ -10,12 +10,12 @@
     },
     .dependencies = .{
         .getty = .{
-            .url = "https://github.com/getty-zig/getty/archive/d27b9c72c553ee7e9fb383aa955ae1a705cde215.tar.gz",
-            .hash = "12208cf585a316dddfb837fb7397b0cc4a9974716adf63f856171fbd6e99cb9b131d",
+            .url = "https://github.com/getty-zig/getty/archive/78738b665a53db4be85696635b9c832fbca8d273.tar.gz",
+            .hash = "12204235c113ed912d951e381066d587bb398b7175dc635c50c17864946bbd570879",
         },
         .protest = .{
-            .url = "https://github.com/ibokuri/protest/archive/bae398b701e763ef18480aa3cfcca103716996de.tar.gz",
-            .hash = "1220c70517d1bc1b3734c9c4fe81045b1927320b2590d8af28be32883f5fd4d3af8d",
+            .url = "https://github.com/ibokuri/protest/archive/e7a9bc39c213985814a904b38e4506a6fbd537b2.tar.gz",
+            .hash = "122014736a658ee30f82e5c6e3038c95727690fe01fced2791b213dba10c65fba7c5",
         },
     },
 }
